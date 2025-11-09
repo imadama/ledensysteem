@@ -15,6 +15,15 @@ const OrganisationDashboardPage: React.FC = () => {
           <li>
             <Link to="/organisation/users">Beheerders beheren</Link>
           </li>
+          <li>
+            <Link to="/organisation/members">Ledenoverzicht</Link>
+          </li>
+          <li>
+            <Link to="/organisation/members/new">Nieuw lid aanmaken</Link>
+          </li>
+          <li>
+            <Link to="/organisation/members/import">Bulk upload leden</Link>
+          </li>
         </ul>
       </div>
     </div>

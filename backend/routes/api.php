@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Organisation\MemberController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,15 @@ Route::middleware(['auth:sanctum', 'role:org_admin'])
         Route::patch('users/{id}/block', [OrganisationUserController::class, 'block']);
         Route::patch('users/{id}/unblock', [OrganisationUserController::class, 'unblock']);
         Route::delete('users/{id}', [OrganisationUserController::class, 'destroy']);
+
+        Route::get('members/import/template', [MemberController::class, 'downloadTemplate']);
+        Route::post('members/import/preview', [MemberController::class, 'previewImport']);
+        Route::post('members/import/confirm', [MemberController::class, 'confirmImport']);
+        Route::get('members', [MemberController::class, 'index']);
+        Route::post('members', [MemberController::class, 'store']);
+        Route::get('members/{id}', [MemberController::class, 'show']);
+        Route::put('members/{id}', [MemberController::class, 'update']);
+        Route::patch('members/{id}/status', [MemberController::class, 'updateStatus']);
     });
 
 Route::middleware(['auth:sanctum', 'role:platform_admin'])

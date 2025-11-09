@@ -5,18 +5,33 @@ import Layout from './Layout'
 
 type ProtectedRouteProps = {
   component: ComponentType
+  roles?: string[]
+  redirectTo?: string
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component }) => {
-  const { user, isLoading } = useAuth()
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component, roles, redirectTo = '/dashboard' }) => {
+  const { user, isLoading, roles: userRoles } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login', { replace: true, state: { from: location } })
+    if (isLoading) {
+      return
     }
-  }, [isLoading, location, navigate, user])
+
+    if (!user) {
+      navigate('/login', { replace: true, state: { from: location } })
+      return
+    }
+
+    if (roles && roles.length > 0) {
+      const hasRole = roles.some((role) => userRoles.includes(role))
+
+      if (!hasRole) {
+        navigate(redirectTo, { replace: true })
+      }
+    }
+  }, [isLoading, location, navigate, roles, user, userRoles, redirectTo])
 
   if (isLoading) {
     return <div>Loading...</div>
@@ -24,6 +39,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component })
 
   if (!user) {
     return null
+  }
+
+  if (roles && roles.length > 0) {
+    const hasRole = roles.some((role) => userRoles.includes(role))
+
+    if (!hasRole) {
+      return null
+    }
   }
 
   return (
