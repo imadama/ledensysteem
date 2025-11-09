@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: leden_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ledenportaal
+      MYSQL_USER: app
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: leden_backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/var/www/html
+      - backend_vendor:/var/www/html/vendor
+      - backend_storage:/var/www/html/storage
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ledenportaal
+      DB_USERNAME: app
+      DB_PASSWORD: secret
+      SESSION_DOMAIN: localhost
+      SANCTUM_STATEFUL_DOMAINS: localhost:5173
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: leden_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8000
+
+volumes:
+  db_data:
+  backend_vendor:
+  backend_storage:
+  frontend_node_modules:
+
