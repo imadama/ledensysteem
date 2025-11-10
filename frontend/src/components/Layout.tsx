@@ -1,13 +1,14 @@
-import TopNav from './TopNav'
+import { type ReactNode } from 'react'
+import AppHeader from './AppHeader'
 
 type LayoutProps = {
-  children: React.ReactNode
+  children: ReactNode
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="app-shell">
-      <TopNav />
+      <AppHeader />
       <main className="app-shell__main">{children}</main>
     </div>
   )

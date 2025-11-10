@@ -47,18 +47,18 @@ const TopNav: React.FC = () => {
           </button>
         </div>
 
-        <div className={`top-nav__menu ${isMenuOpen ? 'top-nav__menu--open' : ''}`}>
+        <div className={`top-nav__items ${isMenuOpen ? 'top-nav__items--open' : ''}`}>
         {isOrgAdmin && (
-          <div className="top-nav__links">
+          <>
             <Link to="/organisation/members">Ledenoverzicht</Link>
             <Link to="/organisation/members/new">Nieuw lid</Link>
             <Link to="/organisation/members/import">Bulk upload</Link>
-          </div>
+          </>
         )}
 
           <div className="top-nav__account">
             {user && (
-              <span className="top-nav__user">
+              <span>
                 {user.first_name} {user.last_name}
               </span>
             )}

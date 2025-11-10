@@ -41,15 +41,13 @@ const MemberTopNav: React.FC = () => {
           </button>
         </div>
 
-        <div className={`top-nav__menu ${isMenuOpen ? 'top-nav__menu--open' : ''}`}>
-          <div className="top-nav__links">
-            <NavLink to="/portal/dashboard">Dashboard</NavLink>
-            <NavLink to="/portal/profile">Mijn gegevens</NavLink>
-            <NavLink to="/portal/contribution">Mijn contributie</NavLink>
-          </div>
+        <div className={`top-nav__items ${isMenuOpen ? 'top-nav__items--open' : ''}`}>
+          <NavLink to="/portal/dashboard">Dashboard</NavLink>
+          <NavLink to="/portal/profile">Mijn gegevens</NavLink>
+          <NavLink to="/portal/contribution">Mijn contributie</NavLink>
           <div className="top-nav__account">
             {memberUser && (
-              <span className="top-nav__user">
+              <span>
                 {memberUser.member.first_name} {memberUser.member.last_name}
               </span>
             )}
