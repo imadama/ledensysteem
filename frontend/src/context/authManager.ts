@@ -16,7 +16,25 @@ class AuthManager {
   public clearAuth(): void {
     this.currentState = null
     this.notify()
-    if (window.location.pathname !== '/login') {
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const path = window.location.pathname
+
+    if (path.startsWith('/portal')) {
+      if (path.startsWith('/portal/activate')) {
+        return
+      }
+
+      if (path !== '/portal/login') {
+        window.location.assign('/portal/login')
+      }
+      return
+    }
+
+    if (path !== '/login') {
         window.location.assign('/login')
     }
   }

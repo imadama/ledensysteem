@@ -19,7 +19,13 @@ class MemberService
     {
         $organisationId = $this->requireOrganisationId($user);
 
-        $query = Member::query()->where('organisation_id', $organisationId);
+        $query = Member::query()
+            ->with([
+                'user.roles',
+                'latestMemberInvitation',
+                'pendingMemberInvitation',
+            ])
+            ->where('organisation_id', $organisationId);
 
         $this->applySearchFilters($query, $filters);
         $this->applyStatusFilter($query, $filters);
@@ -92,6 +98,11 @@ class MemberService
 
         /** @var Member|null $member */
         $member = Member::query()
+            ->with([
+                'user.roles',
+                'latestMemberInvitation',
+                'pendingMemberInvitation',
+            ])
             ->where('organisation_id', $organisationId)
             ->find($memberId);
 

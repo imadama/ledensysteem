@@ -14,6 +14,7 @@ class RolesAndAdminSeeder extends Seeder
         $roles = [
             ['name' => 'platform_admin', 'description' => 'Beheerder van het platform'],
             ['name' => 'org_admin', 'description' => 'Beheerder van een organisatie'],
+            ['name' => 'member', 'description' => 'Lid met een persoonlijk account'],
         ];
 
         foreach ($roles as $roleData) {

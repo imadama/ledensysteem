@@ -28,7 +28,16 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const status = error.response?.status
+    const url: string | undefined = error.config?.url
+
+    if (
+      status === 401 &&
+      url &&
+      !url.startsWith('/api/member-activation') &&
+      !url.startsWith('/api/auth/login') &&
+      !url.startsWith('/api/auth/register')
+    ) {
       authManager.clearAuth()
     }
 

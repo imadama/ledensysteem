@@ -2,13 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiClient } from '../api/axios'
 
+type AccountStatus = 'none' | 'invited' | 'active' | 'blocked'
+
 type Member = {
   id: number
   member_number: string | null
+  email: string | null
   full_name: string
   city: string | null
   contribution_amount: string | null
   status: 'active' | 'inactive'
+  account_status: AccountStatus
+  account_email: string | null
+  last_invitation_sent_at: string | null
 }
 
 type Meta = {
@@ -23,6 +29,8 @@ const OrganisationMembersListPage: React.FC = () => {
   const [meta, setMeta] = useState<Meta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [rowLoading, setRowLoading] = useState<Record<number, boolean>>({})
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -68,6 +76,7 @@ const OrganisationMembersListPage: React.FC = () => {
 
         setMembers(data.data)
         setMeta(data.meta)
+        setSuccessMessage(null)
       } catch (err) {
         if (!isMounted || controller.signal.aborted) {
           return
@@ -135,6 +144,149 @@ const OrganisationMembersListPage: React.FC = () => {
     }
   }
 
+  const setRowLoadingState = (memberId: number, value: boolean) => {
+    setRowLoading((prev) => ({
+      ...prev,
+      [memberId]: value,
+    }))
+  }
+
+  const updateMemberRow = (memberId: number, payload: Partial<Member>) => {
+    setMembers((prev) =>
+      prev.map((item) =>
+        item.id === memberId
+          ? {
+              ...item,
+              ...payload,
+            }
+          : item,
+      ),
+    )
+  }
+
+  const getAccountStatusLabel = (status: AccountStatus) => {
+    switch (status) {
+      case 'invited':
+        return 'Uitgenodigd'
+      case 'active':
+        return 'Actief'
+      case 'blocked':
+        return 'Geblokkeerd'
+      default:
+        return 'Geen account'
+    }
+  }
+
+  const formatDateTime = (dateTime: string | null) => {
+    if (!dateTime) {
+      return null
+    }
+
+    try {
+      return new Date(dateTime).toLocaleString('nl-NL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      return dateTime
+    }
+  }
+
+  const handleInviteMember = async (member: Member) => {
+    if (rowLoading[member.id]) {
+      return
+    }
+
+    setError(null)
+    setSuccessMessage(null)
+    setRowLoadingState(member.id, true)
+
+    try {
+      const { data } = await apiClient.post<{ data: { created_at?: string | null } }>(
+        `/api/organisation/members/${member.id}/invite`,
+      )
+
+      updateMemberRow(member.id, {
+        account_status: 'invited',
+        last_invitation_sent_at: data.data.created_at ?? new Date().toISOString(),
+      })
+      setSuccessMessage('Uitnodiging succesvol verstuurd.')
+    } catch (err: any) {
+      console.error('Uitnodiging versturen mislukt', err)
+      const message =
+        err.response?.data?.message ??
+        (err.response?.status === 422
+          ? 'Uitnodiging kon niet worden verstuurd.'
+          : 'Kon uitnodiging niet versturen. Probeer het later opnieuw.')
+      setError(message)
+    } finally {
+      setRowLoadingState(member.id, false)
+    }
+  }
+
+  const handleBlockAccount = async (member: Member) => {
+    if (rowLoading[member.id]) {
+      return
+    }
+
+    setError(null)
+    setSuccessMessage(null)
+    setRowLoadingState(member.id, true)
+
+    try {
+      const { data } = await apiClient.patch<{ data: Member }>(
+        `/api/organisation/members/${member.id}/block-account`,
+      )
+
+      updateMemberRow(member.id, {
+        account_status: data.data.account_status,
+        account_email: data.data.account_email,
+        last_invitation_sent_at: data.data.last_invitation_sent_at,
+      })
+      setSuccessMessage('Accounttoegang geblokkeerd.')
+    } catch (err: any) {
+      console.error('Blokkeren mislukt', err)
+      const message =
+        err.response?.data?.message ?? 'Kon account niet blokkeren. Probeer het later opnieuw.'
+      setError(message)
+    } finally {
+      setRowLoadingState(member.id, false)
+    }
+  }
+
+  const handleUnblockAccount = async (member: Member) => {
+    if (rowLoading[member.id]) {
+      return
+    }
+
+    setError(null)
+    setSuccessMessage(null)
+    setRowLoadingState(member.id, true)
+
+    try {
+      const { data } = await apiClient.patch<{ data: Member }>(
+        `/api/organisation/members/${member.id}/unblock-account`,
+      )
+
+      updateMemberRow(member.id, {
+        account_status: data.data.account_status,
+        account_email: data.data.account_email,
+        last_invitation_sent_at: data.data.last_invitation_sent_at,
+      })
+      setSuccessMessage('Accounttoegang gedeblokkeerd.')
+    } catch (err: any) {
+      console.error('Deblokkeren mislukt', err)
+      const message =
+        err.response?.data?.message ?? 'Kon account niet deblokkeren. Probeer het later opnieuw.'
+      setError(message)
+    } finally {
+      setRowLoadingState(member.id, false)
+    }
+  }
+
   const totalPages = meta?.last_page ?? 1
 
   const paginationPages = useMemo(() => {
@@ -165,7 +317,7 @@ const OrganisationMembersListPage: React.FC = () => {
       </div>
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <form onSubmit={handleSearchSubmit} className="form-inline" style={{ gap: '1rem' }}>
+        <form onSubmit={handleSearchSubmit} className="form-inline">
           <input
             type="text"
             value={searchInput}
@@ -187,6 +339,7 @@ const OrganisationMembersListPage: React.FC = () => {
 
       {isLoading && <div>Bezig met laden...</div>}
       {error && <div className="alert alert--error">{error}</div>}
+      {successMessage && <div className="alert alert--success">{successMessage}</div>}
 
       {!isLoading && members.length === 0 && !error && (
         <div className="card">Geen leden gevonden voor deze filters.</div>
@@ -194,6 +347,7 @@ const OrganisationMembersListPage: React.FC = () => {
 
       {!isLoading && members.length > 0 && (
         <div className="card">
+          <div className="table-responsive">
           <table className="table">
             <thead>
               <tr>
@@ -214,6 +368,7 @@ const OrganisationMembersListPage: React.FC = () => {
                 </th>
                 <th>Contributie</th>
                 <th>Status</th>
+                <th>Accountstatus</th>
                 <th>Acties</th>
               </tr>
             </thead>
@@ -233,6 +388,14 @@ const OrganisationMembersListPage: React.FC = () => {
                       {member.status === 'active' ? 'Actief' : 'Inactief'}
                     </span>
                   </td>
+                  <td>
+                    <div className="chip">{getAccountStatusLabel(member.account_status)}</div>
+                    {member.last_invitation_sent_at && (
+                      <div className="text-muted">
+                        Laatste uitnodiging: {formatDateTime(member.last_invitation_sent_at)}
+                      </div>
+                    )}
+                  </td>
                   <td className="table-actions">
                     <Link className="button button--small" to={`/organisation/members/${member.id}`}>
                       Details
@@ -244,11 +407,57 @@ const OrganisationMembersListPage: React.FC = () => {
                     >
                       {member.status === 'active' ? 'Deactiveer' : 'Activeer'}
                     </button>
+                    {member.account_status === 'none' && !!member.email && (
+                      <button
+                        className="button button--small"
+                        type="button"
+                        disabled={rowLoading[member.id]}
+                        onClick={() => handleInviteMember(member)}
+                      >
+                        {rowLoading[member.id] ? 'Versturen...' : 'Uitnodigen'}
+                      </button>
+                    )}
+                    {member.account_status === 'invited' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="badge badge--info">Uitnodiging verstuurd</span>
+                        {member.email && (
+                          <button
+                            className="button button--small button--secondary"
+                            type="button"
+                            disabled={rowLoading[member.id]}
+                            onClick={() => handleInviteMember(member)}
+                          >
+                            {rowLoading[member.id] ? 'Bezig...' : 'Opnieuw versturen'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {member.account_status === 'active' && (
+                      <button
+                        className="button button--small button--danger"
+                        type="button"
+                        disabled={rowLoading[member.id]}
+                        onClick={() => handleBlockAccount(member)}
+                      >
+                        {rowLoading[member.id] ? 'Bezig...' : 'Blokkeer toegang'}
+                      </button>
+                    )}
+                    {member.account_status === 'blocked' && (
+                      <button
+                        className="button button--small"
+                        type="button"
+                        disabled={rowLoading[member.id]}
+                        onClick={() => handleUnblockAccount(member)}
+                      >
+                        {rowLoading[member.id] ? 'Bezig...' : 'Deblokkeer toegang'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
 
           {meta && meta.last_page > 1 && (
             <div className="pagination">

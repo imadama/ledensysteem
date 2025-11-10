@@ -1,10 +1,17 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MemberActivationController;
+use App\Http\Controllers\Api\Member\SelfServiceController;
 use App\Http\Controllers\Api\Organisation\MemberController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('member-activation')->group(function (): void {
+    Route::get('{token}', [MemberActivationController::class, 'show']);
+    Route::post('{token}', [MemberActivationController::class, 'store']);
+});
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register-organisation', [AuthController::class, 'registerOrganisation']);
@@ -32,9 +39,22 @@ Route::middleware(['auth:sanctum', 'role:org_admin'])
         Route::post('members/import/confirm', [MemberController::class, 'confirmImport']);
         Route::get('members', [MemberController::class, 'index']);
         Route::post('members', [MemberController::class, 'store']);
+        Route::post('members/invite-bulk', [MemberController::class, 'inviteBulk']);
+        Route::post('members/{id}/invite', [MemberController::class, 'invite']);
         Route::get('members/{id}', [MemberController::class, 'show']);
         Route::put('members/{id}', [MemberController::class, 'update']);
         Route::patch('members/{id}/status', [MemberController::class, 'updateStatus']);
+        Route::patch('members/{id}/block-account', [MemberController::class, 'blockAccount']);
+        Route::patch('members/{id}/unblock-account', [MemberController::class, 'unblockAccount']);
+    });
+
+Route::middleware(['auth:sanctum', 'role:member'])
+    ->prefix('member')
+    ->group(function (): void {
+        Route::get('profile', [SelfServiceController::class, 'profile']);
+        Route::put('profile', [SelfServiceController::class, 'updateProfile']);
+        Route::get('contribution', [SelfServiceController::class, 'contribution']);
+        Route::get('contribution-history', [SelfServiceController::class, 'contributionHistory']);
     });
 
 Route::middleware(['auth:sanctum', 'role:platform_admin'])

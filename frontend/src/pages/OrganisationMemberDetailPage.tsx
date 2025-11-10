@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import MemberForm, { type MemberFormErrors, type MemberFormValues } from '../components/Organisation/MemberForm'
 import { apiClient } from '../api/axios'
 
+type AccountStatus = 'none' | 'invited' | 'active' | 'blocked'
+
 type MemberResponse = {
   id: number
   member_number: string | null
@@ -23,6 +25,9 @@ type MemberResponse = {
   contribution_note: string | null
   created_at: string | null
   updated_at: string | null
+  account_status: AccountStatus
+  account_email: string | null
+  last_invitation_sent_at: string | null
 }
 
 const OrganisationMemberDetailPage: React.FC = () => {
@@ -37,6 +42,13 @@ const OrganisationMemberDetailPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [statusUpdating, setStatusUpdating] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>('none')
+  const [accountEmail, setAccountEmail] = useState<string | null>(null)
+  const [lastInvitationSentAt, setLastInvitationSentAt] = useState<string | null>(null)
+  const [accountAction, setAccountAction] = useState<'invite' | 'block' | 'unblock' | null>(null)
+  const [accountError, setAccountError] = useState<string | null>(null)
+  const [accountSuccess, setAccountSuccess] = useState<string | null>(null)
+  const isAccountActionLoading = accountAction !== null
 
   useEffect(() => {
     let isMounted = true
@@ -80,6 +92,11 @@ const OrganisationMemberDetailPage: React.FC = () => {
           status: member.status,
         })
         setStatus(member.status)
+        setAccountStatus(member.account_status)
+        setAccountEmail(member.account_email)
+        setLastInvitationSentAt(member.last_invitation_sent_at)
+        setAccountError(null)
+        setAccountSuccess(null)
       } catch (error: any) {
         if (!isMounted || controller.signal.aborted) {
           return
@@ -167,6 +184,125 @@ const OrganisationMemberDetailPage: React.FC = () => {
     }
   }
 
+  const getAccountStatusLabel = (status: AccountStatus) => {
+    switch (status) {
+      case 'invited':
+        return 'Uitgenodigd'
+      case 'active':
+        return 'Actief'
+      case 'blocked':
+        return 'Geblokkeerd'
+      default:
+        return 'Geen account'
+    }
+  }
+
+  const formatDateTime = (value: string | null) => {
+    if (!value) {
+      return null
+    }
+
+    try {
+      return new Date(value).toLocaleString('nl-NL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      return value
+    }
+  }
+
+  const handleInviteMember = async () => {
+    if (!id || accountAction) {
+      return
+    }
+
+    setAccountError(null)
+    setAccountSuccess(null)
+    setAccountAction('invite')
+
+    try {
+      const { data } = await apiClient.post<{ data: { created_at?: string | null } }>(
+        `/api/organisation/members/${id}/invite`,
+      )
+
+      setAccountStatus('invited')
+      setLastInvitationSentAt(data.data.created_at ?? new Date().toISOString())
+      setAccountSuccess('Uitnodiging verstuurd.')
+    } catch (error: any) {
+      console.error('Uitnodiging versturen mislukt', error)
+      const message =
+        error.response?.data?.message ??
+        (error.response?.status === 422
+          ? 'Uitnodiging kon niet worden verstuurd.'
+          : 'Kon uitnodiging niet versturen. Probeer het later opnieuw.')
+      setAccountError(message)
+    } finally {
+      setAccountAction(null)
+    }
+  }
+
+  const handleBlockAccount = async () => {
+    if (!id || accountAction) {
+      return
+    }
+
+    setAccountError(null)
+    setAccountSuccess(null)
+    setAccountAction('block')
+
+    try {
+      const { data } = await apiClient.patch<{ data: MemberResponse }>(
+        `/api/organisation/members/${id}/block-account`,
+      )
+      const member = data.data
+
+      setAccountStatus(member.account_status)
+      setAccountEmail(member.account_email)
+      setLastInvitationSentAt(member.last_invitation_sent_at)
+      setAccountSuccess('Accounttoegang geblokkeerd.')
+    } catch (error: any) {
+      console.error('Account blokkeren mislukt', error)
+      const message =
+        error.response?.data?.message ?? 'Kon account niet blokkeren. Probeer het later opnieuw.'
+      setAccountError(message)
+    } finally {
+      setAccountAction(null)
+    }
+  }
+
+  const handleUnblockAccount = async () => {
+    if (!id || accountAction) {
+      return
+    }
+
+    setAccountError(null)
+    setAccountSuccess(null)
+    setAccountAction('unblock')
+
+    try {
+      const { data } = await apiClient.patch<{ data: MemberResponse }>(
+        `/api/organisation/members/${id}/unblock-account`,
+      )
+      const member = data.data
+
+      setAccountStatus(member.account_status)
+      setAccountEmail(member.account_email)
+      setLastInvitationSentAt(member.last_invitation_sent_at)
+      setAccountSuccess('Accounttoegang gedeblokkeerd.')
+    } catch (error: any) {
+      console.error('Account deblokkeren mislukt', error)
+      const message =
+        error.response?.data?.message ?? 'Kon account niet deblokkeren. Probeer het later opnieuw.'
+      setAccountError(message)
+    } finally {
+      setAccountAction(null)
+    }
+  }
+
   if (isLoading) {
     return <div>Bezig met laden...</div>
   }
@@ -202,6 +338,77 @@ const OrganisationMemberDetailPage: React.FC = () => {
           >
             {statusUpdating ? 'Bezig...' : status === 'active' ? 'Deactiveer lid' : 'Activeer lid'}
           </button>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <h2>Account</h2>
+        {accountError && <div className="alert alert--error">{accountError}</div>}
+        {accountSuccess && <div className="alert alert--success">{accountSuccess}</div>}
+        <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div>
+            <strong>Status</strong>
+            <div>{getAccountStatusLabel(accountStatus)}</div>
+          </div>
+          <div>
+            <strong>Account e-mail</strong>
+            <div>{accountEmail ?? initialValues.email ?? 'Niet bekend'}</div>
+          </div>
+          <div>
+            <strong>Laatste uitnodiging</strong>
+            <div>{formatDateTime(lastInvitationSentAt) ?? 'Nog niet verstuurd'}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {accountStatus === 'none' && (
+            initialValues.email ? (
+              <button
+                type="button"
+                className="button"
+                disabled={isAccountActionLoading}
+                onClick={handleInviteMember}
+              >
+                {accountAction === 'invite' ? 'Versturen...' : 'Uitnodiging versturen'}
+              </button>
+            ) : (
+              <span className="text-muted">Geen e-mailadres bekend om uit te nodigen.</span>
+            )
+          )}
+          {accountStatus === 'invited' && (
+            <>
+              <span className="badge badge--info">Uitnodiging verstuurd</span>
+              {initialValues.email && (
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  disabled={isAccountActionLoading}
+                  onClick={handleInviteMember}
+                >
+                  {accountAction === 'invite' ? 'Versturen...' : 'Opnieuw versturen'}
+                </button>
+              )}
+            </>
+          )}
+          {accountStatus === 'active' && (
+            <button
+              type="button"
+              className="button button--danger"
+              disabled={isAccountActionLoading}
+              onClick={handleBlockAccount}
+            >
+              {accountAction === 'block' ? 'Bezig...' : 'Blokkeer toegang'}
+            </button>
+          )}
+          {accountStatus === 'blocked' && (
+            <button
+              type="button"
+              className="button"
+              disabled={isAccountActionLoading}
+              onClick={handleUnblockAccount}
+            >
+              {accountAction === 'unblock' ? 'Bezig...' : 'Deblokkeer toegang'}
+            </button>
+          )}
         </div>
       </div>
 

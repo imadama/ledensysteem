@@ -63,6 +63,7 @@ const PlatformOrganisationsPage: React.FC = () => {
       {loading ? (
         <div>Bezig met laden...</div>
       ) : (
+        <div className="table-responsive">
         <table className="table">
           <thead>
             <tr>
@@ -99,7 +100,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   </span>
                 </td>
                 <td>
-                  <div className="table__actions">
+                    <div className="table-actions">
                     <Link className="button" to={`/platform/organisations/${organisation.id}`}>
                       Details
                     </Link>
@@ -132,6 +133,7 @@ const PlatformOrganisationsPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

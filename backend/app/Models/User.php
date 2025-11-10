@@ -2,20 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\OrganisationScoped;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, OrganisationScoped, MustVerifyEmailTrait;
+    use HasApiTokens, HasFactory, Notifiable, OrganisationScoped, MustVerifyEmailTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -30,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'status',
         'organisation_id',
+        'member_id',
     ];
 
     /**
@@ -58,6 +60,28 @@ class User extends Authenticatable implements MustVerifyEmail
     public function organisation(): BelongsTo
     {
         return $this->belongsTo(Organisation::class);
+    }
+
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(Member::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $user): void {
+            if (! $user->member_id) {
+                return;
+            }
+
+            $member = $user->relationLoaded('member')
+                ? $user->getRelation('member')
+                : Member::find($user->member_id);
+
+            if ($member) {
+                $user->organisation_id = $member->organisation_id;
+            }
+        });
     }
 
     public function roles(): BelongsToMany

@@ -155,6 +155,7 @@ const OrganisationUsersPage: React.FC = () => {
       {loading ? (
         <div style={{ marginTop: '2rem' }}>Bezig met laden...</div>
       ) : (
+        <div className="table-responsive">
         <table className="table">
           <thead>
             <tr>
@@ -179,7 +180,7 @@ const OrganisationUsersPage: React.FC = () => {
                 </td>
                 <td>{user.roles.join(', ')}</td>
                 <td>
-                  <div className="table__actions">
+                  <div className="table-actions">
                     {user.status !== 'blocked' ? (
                       <button className="button button--secondary" onClick={() => handleBlock(user.id)}>
                         Blokkeer
@@ -205,6 +206,7 @@ const OrganisationUsersPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

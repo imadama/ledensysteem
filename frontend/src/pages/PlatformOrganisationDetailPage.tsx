@@ -102,7 +102,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
             {organisation.type} | {organisation.city ?? ''} {organisation.country ?? ''}
           </p>
         </div>
-        <div className="table__actions">
+        <div className="table-actions">
           <button className="button button--secondary" onClick={() => navigate(-1)}>
             Terug
           </button>
@@ -142,6 +142,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
 
       <section style={{ marginTop: '2rem' }}>
         <h2>Gebruikers</h2>
+        <div className="table-responsive">
         <table className="table">
           <thead>
             <tr>
@@ -169,6 +170,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
             )}
           </tbody>
         </table>
+        </div>
       </section>
 
       <div style={{ marginTop: '1.5rem' }}>

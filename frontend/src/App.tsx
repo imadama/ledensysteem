@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './context/AuthContext'
+import { MemberAuthProvider } from './context/MemberAuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import MemberProtectedRoute from './components/MemberProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import RegisterOrganisationPage from './pages/RegisterOrganisationPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -15,15 +17,27 @@ import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
 import OrganisationMemberCreatePage from './pages/OrganisationMemberCreatePage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
 import OrganisationMembersImportPage from './pages/OrganisationMembersImportPage'
+import MemberLoginPage from './pages/member/MemberLoginPage'
+import MemberActivationPage from './pages/member/MemberActivationPage'
+import MemberDashboardPage from './pages/member/MemberDashboardPage'
+import MemberProfilePage from './pages/member/MemberProfilePage'
+import MemberContributionPage from './pages/member/MemberContributionPage'
 
 function App() {
   return (
     <AuthProvider>
+      <MemberAuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register-organisation" element={<RegisterOrganisationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+          <Route path="/portal/login" element={<MemberLoginPage />} />
+          <Route path="/portal/activate" element={<MemberActivationPage />} />
+          <Route path="/portal/dashboard" element={<MemberProtectedRoute component={MemberDashboardPage} />} />
+          <Route path="/portal/profile" element={<MemberProtectedRoute component={MemberProfilePage} />} />
+          <Route path="/portal/contribution" element={<MemberProtectedRoute component={MemberContributionPage} />} />
 
         <Route path="/dashboard" element={<ProtectedRoute component={DashboardPage} />} />
         <Route
@@ -59,9 +73,11 @@ function App() {
           element={<ProtectedRoute component={PlatformOrganisationDetailPage} />}
         />
 
+          <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </MemberAuthProvider>
     </AuthProvider>
   )
 }
