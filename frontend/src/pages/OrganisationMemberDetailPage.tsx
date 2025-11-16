@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MemberForm, { type MemberFormErrors, type MemberFormValues } from '../components/Organisation/MemberForm'
 import { apiClient } from '../api/axios'
@@ -30,6 +30,21 @@ type MemberResponse = {
   last_invitation_sent_at: string | null
 }
 
+type ContributionPaymentInfo = {
+  transaction_id: number | null
+  status: string | null
+  type: string | null
+  date: string | null
+}
+
+type ContributionRecord = {
+  id: number
+  period: string | null
+  amount: number | string | null
+  status: string
+  payment: ContributionPaymentInfo | null
+}
+
 const OrganisationMemberDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -49,6 +64,11 @@ const OrganisationMemberDetailPage: React.FC = () => {
   const [accountError, setAccountError] = useState<string | null>(null)
   const [accountSuccess, setAccountSuccess] = useState<string | null>(null)
   const isAccountActionLoading = accountAction !== null
+  const [activeTab, setActiveTab] = useState<'details' | 'payments'>('details')
+  const [contributions, setContributions] = useState<ContributionRecord[]>([])
+  const [contributionsLoading, setContributionsLoading] = useState(false)
+  const [contributionsError, setContributionsError] = useState<string | null>(null)
+  const [contributionsLoaded, setContributionsLoaded] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -120,6 +140,39 @@ const OrganisationMemberDetailPage: React.FC = () => {
       controller.abort()
     }
   }, [id])
+
+  const fetchContributions = useCallback(async () => {
+    if (!id) {
+      return
+    }
+
+    setContributionsLoading(true)
+    setContributionsError(null)
+
+    try {
+      const { data } = await apiClient.get<{ data: ContributionRecord[] }>(
+        `/api/organisation/members/${id}/contributions`,
+      )
+      setContributions(data.data)
+      setContributionsLoaded(true)
+    } catch (error) {
+      console.error('Betalingen ophalen mislukt', error)
+      setContributionsError('Kon betalingen niet ophalen. Probeer het later opnieuw.')
+    } finally {
+      setContributionsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    setContributions([])
+    setContributionsLoaded(false)
+  }, [id])
+
+  useEffect(() => {
+    if (activeTab === 'payments' && !contributionsLoaded) {
+      void fetchContributions()
+    }
+  }, [activeTab, contributionsLoaded, fetchContributions])
 
   const handleSubmit = async (values: MemberFormValues) => {
     if (!id) {
@@ -211,6 +264,72 @@ const OrganisationMemberDetailPage: React.FC = () => {
         minute: '2-digit',
       })
     } catch {
+      return value
+    }
+  }
+
+  const formatPeriod = (value: string | null) => {
+    if (!value) {
+      return 'Onbekend'
+    }
+
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+      return value
+    }
+
+    return date.toLocaleDateString('nl-NL', {
+      year: 'numeric',
+      month: 'long',
+    })
+  }
+
+  const formatAmount = (value: number | string | null) => {
+    if (value === null || value === '') {
+      return '—'
+    }
+
+    const numericValue = typeof value === 'string' ? Number.parseFloat(value) : value
+
+    if (Number.isNaN(numericValue)) {
+      return '—'
+    }
+
+    return `€ ${numericValue.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}`
+  }
+
+  const getContributionStatusLabel = (value: string) => {
+    switch (value) {
+      case 'open':
+        return 'Open'
+      case 'processing':
+        return 'In behandeling'
+      case 'paid':
+        return 'Betaald'
+      case 'failed':
+        return 'Mislukt'
+      case 'canceled':
+        return 'Geannuleerd'
+      default:
+        return value
+    }
+  }
+
+  const getPaymentStatusLabel = (value: string | null) => {
+    if (!value) {
+      return 'Geen betaling'
+    }
+
+    switch (value) {
+      case 'processing':
+        return 'In behandeling'
+      case 'succeeded':
+        return 'Gelukt'
+      case 'failed':
+        return 'Mislukt'
+      case 'canceled':
+        return 'Geannuleerd'
+      default:
       return value
     }
   }
@@ -325,7 +444,9 @@ const OrganisationMemberDetailPage: React.FC = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>{initialValues.first_name} {initialValues.last_name}</h1>
+        <h1>
+          {initialValues.first_name} {initialValues.last_name}
+        </h1>
         <div className="page-header__actions">
           <span className={`badge badge--${status === 'active' ? 'success' : 'secondary'}`}>
             {status === 'active' ? 'Actief' : 'Inactief'}
@@ -341,6 +462,25 @@ const OrganisationMemberDetailPage: React.FC = () => {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className={`button ${activeTab === 'details' ? '' : 'button--secondary'}`}
+          onClick={() => setActiveTab('details')}
+        >
+          Gegevens
+        </button>
+        <button
+          type="button"
+          className={`button ${activeTab === 'payments' ? '' : 'button--secondary'}`}
+          onClick={() => setActiveTab('payments')}
+        >
+          Betalingen
+        </button>
+      </div>
+
+      {activeTab === 'details' ? (
+        <>
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <h2>Account</h2>
         {accountError && <div className="alert alert--error">{accountError}</div>}
@@ -360,8 +500,8 @@ const OrganisationMemberDetailPage: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {accountStatus === 'none' && (
-            initialValues.email ? (
+              {accountStatus === 'none' &&
+                (initialValues.email ? (
               <button
                 type="button"
                 className="button"
@@ -372,8 +512,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
               </button>
             ) : (
               <span className="text-muted">Geen e-mailadres bekend om uit te nodigen.</span>
-            )
-          )}
+                ))}
           {accountStatus === 'invited' && (
             <>
               <span className="badge badge--info">Uitnodiging verstuurd</span>
@@ -422,6 +561,43 @@ const OrganisationMemberDetailPage: React.FC = () => {
           submitLabel="Wijzigingen opslaan"
         />
       </div>
+        </>
+      ) : (
+        <div className="card">
+          <h2>Betalingen</h2>
+          {contributionsError && <div className="alert alert--error">{contributionsError}</div>}
+          {contributionsLoading ? (
+            <p>Betalingen worden geladen...</p>
+          ) : contributions.length > 0 ? (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Periode</th>
+                    <th>Bedrag</th>
+                    <th>Status contributie</th>
+                    <th>Status betaling</th>
+                    <th>Betaald op</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contributions.map((record) => (
+                    <tr key={record.id}>
+                      <td>{formatPeriod(record.period)}</td>
+                      <td>{formatAmount(record.amount)}</td>
+                      <td>{getContributionStatusLabel(record.status)}</td>
+                      <td>{getPaymentStatusLabel(record.payment?.status ?? null)}</td>
+                      <td>{formatDateTime(record.payment?.date ?? null) ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p>Geen contributies gevonden.</p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

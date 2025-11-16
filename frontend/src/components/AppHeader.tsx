@@ -152,6 +152,11 @@ const AppHeader: React.FC = () => {
           </button>
 
           <div className={`app-header__dropdown ${isDropdownOpen ? 'app-header__dropdown--open' : ''}`}>
+            {roles.includes('org_admin') && (
+              <NavLink to="/organisation/subscription" className="app-header__dropdown-link">
+                Abonnement
+              </NavLink>
+            )}
             <NavLink to="/settings" className="app-header__dropdown-link">
               Instellingen
             </NavLink>

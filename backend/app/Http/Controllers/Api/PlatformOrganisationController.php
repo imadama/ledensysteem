@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Organisation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class PlatformOrganisationController extends Controller
@@ -14,7 +13,10 @@ class PlatformOrganisationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $organisations = Organisation::query()
-            ->with(['users' => fn ($query) => $query->with('roles')->orderBy('created_at')->limit(1)])
+            ->with([
+                'users' => fn ($query) => $query->with('roles')->orderBy('created_at')->limit(1),
+                'currentSubscription.plan',
+            ])
             ->orderByDesc('created_at')
             ->paginate($request->integer('per_page', 15));
 
@@ -42,6 +44,7 @@ class PlatformOrganisationController extends Controller
                     ->with('roles')
                     ->orderBy('last_name')
                     ->orderBy('first_name'),
+                'currentSubscription.plan',
             ])
             ->findOrFail($id);
 
@@ -83,7 +86,11 @@ class PlatformOrganisationController extends Controller
             'country' => $organisation->country,
             'contact_email' => $organisation->contact_email,
             'status' => $organisation->status,
+            'billing_status' => $organisation->billing_status,
+            'billing_note' => $organisation->billing_note,
             'created_at' => $organisation->created_at?->toIso8601String(),
+            'subscription' => $this->transformSubscriptionSummary($organisation),
+            'has_payment_issues' => $this->organisationHasPaymentIssues($organisation),
             'primary_contact' => $primaryContact ? [
                 'id' => $primaryContact->id,
                 'first_name' => $primaryContact->first_name,
@@ -107,6 +114,38 @@ class PlatformOrganisationController extends Controller
                     'roles' => $user->roles->pluck('name')->values()->all(),
                 ])->values()->all(),
         ];
+    }
+
+    protected function transformSubscriptionSummary(Organisation $organisation): ?array
+    {
+        $subscription = $organisation->currentSubscription;
+
+        if (! $subscription) {
+            return null;
+        }
+
+        $plan = $subscription->plan;
+
+        return [
+            'plan_name' => $plan?->name,
+            'status' => $subscription->status,
+            'current_period_end' => $subscription->current_period_end?->toIso8601String(),
+        ];
+    }
+
+    protected function organisationHasPaymentIssues(Organisation $organisation): bool
+    {
+        $subscription = $organisation->currentSubscription;
+
+        if (! $subscription) {
+            return false;
+        }
+
+        if (in_array($subscription->status, ['past_due', 'unpaid'], true)) {
+            return true;
+        }
+
+        return $organisation->billing_status === 'restricted';
     }
 }
 

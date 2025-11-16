@@ -2,6 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { apiClient } from '../api/axios'
 import { authManager } from './authManager'
 
+type SubscriptionSummary = {
+  plan?: {
+    id: number
+    name: string
+  } | null
+  status?: string | null
+  current_period_end?: string | null
+}
+
 type Organisation = {
   id: number
   name: string
@@ -9,6 +18,9 @@ type Organisation = {
   city?: string | null
   country?: string | null
   contact_email?: string | null
+  billing_status?: string | null
+  billing_note?: string | null
+  subscription?: SubscriptionSummary | null
 }
 
 type User = {
@@ -66,6 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshMe])
 
   const login = useCallback(async (credentials: { email: string; password: string }) => {
+    await apiClient.get('/sanctum/csrf-cookie')
     const { data } = await apiClient.post<User>('/api/auth/login', credentials)
     setUser(data)
     authManager.setAuth({

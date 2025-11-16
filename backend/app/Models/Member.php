@@ -69,6 +69,11 @@ class Member extends Model
         return $this->hasMany(MemberContributionRecord::class);
     }
 
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
     public function user(): HasOne
     {
         return $this->hasOne(User::class);

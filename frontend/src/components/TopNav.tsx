@@ -53,6 +53,8 @@ const TopNav: React.FC = () => {
             <Link to="/organisation/members">Ledenoverzicht</Link>
             <Link to="/organisation/members/new">Nieuw lid</Link>
             <Link to="/organisation/members/import">Bulk upload</Link>
+            <Link to="/organisation/settings/payments">Betalingen</Link>
+            <Link to="/organisation/contributions">Contributies</Link>
           </>
         )}
 
@@ -62,9 +64,9 @@ const TopNav: React.FC = () => {
                 {user.first_name} {user.last_name}
               </span>
             )}
-        <button className="top-nav__logout" onClick={handleLogout}>
-          Uitloggen
-        </button>
+            <button className="top-nav__logout" onClick={handleLogout}>
+              Uitloggen
+            </button>
           </div>
         </div>
       </div>

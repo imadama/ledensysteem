@@ -17,11 +17,16 @@ import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
 import OrganisationMemberCreatePage from './pages/OrganisationMemberCreatePage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
 import OrganisationMembersImportPage from './pages/OrganisationMembersImportPage'
+import OrganisationPaymentsSettingsPage from './pages/OrganisationPaymentsSettingsPage'
+import OrganisationContributionsOverviewPage from './pages/OrganisationContributionsOverviewPage'
+import OrganisationSubscriptionPage from './pages/OrganisationSubscriptionPage'
 import MemberLoginPage from './pages/member/MemberLoginPage'
 import MemberActivationPage from './pages/member/MemberActivationPage'
 import MemberDashboardPage from './pages/member/MemberDashboardPage'
 import MemberProfilePage from './pages/member/MemberProfilePage'
 import MemberContributionPage from './pages/member/MemberContributionPage'
+import MemberContributionSuccessPage from './pages/member/MemberContributionSuccessPage'
+import MemberContributionCancelPage from './pages/member/MemberContributionCancelPage'
 
 function App() {
   return (
@@ -38,6 +43,8 @@ function App() {
           <Route path="/portal/dashboard" element={<MemberProtectedRoute component={MemberDashboardPage} />} />
           <Route path="/portal/profile" element={<MemberProtectedRoute component={MemberProfilePage} />} />
           <Route path="/portal/contribution" element={<MemberProtectedRoute component={MemberContributionPage} />} />
+          <Route path="/portal/contribution/success" element={<MemberProtectedRoute component={MemberContributionSuccessPage} />} />
+          <Route path="/portal/contribution/cancel" element={<MemberProtectedRoute component={MemberContributionCancelPage} />} />
 
         <Route path="/dashboard" element={<ProtectedRoute component={DashboardPage} />} />
         <Route
@@ -59,6 +66,18 @@ function App() {
         <Route
           path="/organisation/members/import"
           element={<ProtectedRoute component={OrganisationMembersImportPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/settings/payments"
+          element={<ProtectedRoute component={OrganisationPaymentsSettingsPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/contributions"
+          element={<ProtectedRoute component={OrganisationContributionsOverviewPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/subscription"
+          element={<ProtectedRoute component={OrganisationSubscriptionPage} roles={['org_admin']} />}
         />
         <Route
           path="/organisation/members/:id"

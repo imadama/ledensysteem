@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../../api/axios'
 
 type ContributionInfo = {
@@ -19,34 +19,61 @@ type ContributionRecord = {
   updated_at: string | null
 }
 
+type OpenContribution = {
+  id: number
+  period: string | null
+  amount: number | string | null
+  status: string
+}
+
 const MemberContributionPage: React.FC = () => {
   const [info, setInfo] = useState<ContributionInfo | null>(null)
   const [history, setHistory] = useState<ContributionRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [openContributions, setOpenContributions] = useState<OpenContribution[]>([])
+  const [openLoading, setOpenLoading] = useState(false)
+  const [openError, setOpenError] = useState<string | null>(null)
+  const [payingId, setPayingId] = useState<number | null>(null)
+  const [payError, setPayError] = useState<string | null>(null)
+
+  const loadAgreementAndHistory = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [infoResponse, historyResponse] = await Promise.all([
+        apiClient.get<{ data: ContributionInfo }>('/api/member/contribution'),
+        apiClient.get<{ data: ContributionRecord[] }>('/api/member/contribution-history'),
+      ])
+
+      setInfo(infoResponse.data.data)
+      setHistory(historyResponse.data.data)
+    } catch (err: any) {
+      console.error('Contributie ophalen mislukt', err)
+      setError(err.response?.data?.message ?? 'Kon contributiegegevens niet laden.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadOpenContributions = useCallback(async () => {
+    setOpenLoading(true)
+    setOpenError(null)
+    try {
+      const { data } = await apiClient.get<{ data: OpenContribution[] }>('/api/member/contribution-open')
+      setOpenContributions(data.data)
+    } catch (err: any) {
+      console.error('Openstaande bijdragen ophalen mislukt', err)
+      setOpenError(err.response?.data?.message ?? 'Kon openstaande bijdragen niet laden.')
+    } finally {
+      setOpenLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [infoResponse, historyResponse] = await Promise.all([
-          apiClient.get<{ data: ContributionInfo }>('/api/member/contribution'),
-          apiClient.get<{ data: ContributionRecord[] }>('/api/member/contribution-history'),
-        ])
-
-        setInfo(infoResponse.data.data)
-        setHistory(historyResponse.data.data)
-      } catch (err: any) {
-        console.error('Contributie ophalen mislukt', err)
-        setError(err.response?.data?.message ?? 'Kon contributiegegevens niet laden.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadData()
-  }, [])
+    void loadAgreementAndHistory()
+    void loadOpenContributions()
+  }, [loadAgreementAndHistory, loadOpenContributions])
 
   const formatAmount = (amount: string | null) => {
     if (!amount) {
@@ -58,6 +85,86 @@ const MemberContributionPage: React.FC = () => {
     }
     return `€ ${parsed.toFixed(2)}`
   }
+
+  const formatOpenAmount = (amount: number | string | null) => {
+    if (amount === null || amount === '') {
+      return '-'
+    }
+
+    const numeric = typeof amount === 'string' ? Number.parseFloat(amount) : amount
+    if (Number.isNaN(numeric)) {
+      return '-'
+    }
+
+    return `€ ${numeric.toFixed(2)}`
+  }
+
+  const formatPeriod = (period: string | null) => {
+    if (!period) {
+      return '-'
+    }
+
+    const date = new Date(period)
+    if (Number.isNaN(date.getTime())) {
+      return period
+    }
+
+    return date.toLocaleDateString('nl-NL', {
+      year: 'numeric',
+      month: 'long',
+    })
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Open'
+      case 'processing':
+        return 'In behandeling'
+      case 'paid':
+        return 'Betaald'
+      case 'failed':
+        return 'Mislukt'
+      case 'canceled':
+        return 'Geannuleerd'
+      default:
+        return status
+    }
+  }
+
+  const handlePay = async (contributionId: number) => {
+    setPayError(null)
+    setPayingId(contributionId)
+
+    try {
+      const origin = window.location.origin
+      const successUrl = `${origin}/portal/contribution/success`
+      const cancelUrl = `${origin}/portal/contribution/cancel`
+
+      const { data } = await apiClient.post<{
+        checkout_url: string
+      }>('/api/member/contribution-pay', {
+        contribution_id: contributionId,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      })
+
+      window.location.href = data.checkout_url
+    } catch (err: any) {
+      console.error('Betaling starten mislukt', err)
+      const message =
+        err.response?.data?.message ?? 'Kon de betaalpagina niet openen. Probeer het later opnieuw.'
+      setPayError(message)
+      await loadOpenContributions()
+    } finally {
+      setPayingId(null)
+    }
+  }
+
+  const hasOpenContributions = useMemo(
+    () => openContributions.some((item) => ['open', 'failed'].includes(item.status)),
+    [openContributions],
+  )
 
   return (
     <div className="card">
@@ -92,6 +199,52 @@ const MemberContributionPage: React.FC = () => {
                 <div>{info?.contribution_note ?? 'Geen opmerking'}</div>
               </div>
             </div>
+          </section>
+
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>Openstaande bijdragen</h2>
+            {payError && <div className="alert alert--error">{payError}</div>}
+            {openError && <div className="alert alert--error">{openError}</div>}
+            {openLoading ? (
+              <p>Openstaande bijdragen worden geladen...</p>
+            ) : !hasOpenContributions ? (
+              <p>Je hebt momenteel geen openstaande bijdragen.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Periode</th>
+                      <th>Bedrag</th>
+                      <th>Status</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {openContributions.map((record) => {
+                      const isPayable = ['open', 'failed'].includes(record.status)
+                      return (
+                        <tr key={record.id}>
+                          <td>{formatPeriod(record.period)}</td>
+                          <td>{formatOpenAmount(record.amount)}</td>
+                          <td>{getStatusLabel(record.status)}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="button"
+                              onClick={() => handlePay(record.id)}
+                              disabled={!isPayable || payingId === record.id}
+                            >
+                              {payingId === record.id ? 'Bezig...' : isPayable ? 'Betaal nu' : '—'}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section>

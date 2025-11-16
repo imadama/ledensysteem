@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToGroup('api', EnsureFrontendRequestsAreStateful::class);
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'billing.status' => \App\Http\Middleware\CheckOrganisationBillingStatus::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

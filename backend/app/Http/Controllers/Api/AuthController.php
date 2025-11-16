@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 
 use App\Models\Organisation;
+use App\Models\OrganisationSubscription;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
@@ -67,7 +68,7 @@ class AuthController extends Controller
             return [$organisation, $user];
         });
 
-        $user->refresh()->load('roles', 'organisation');
+        $user->refresh()->load('roles', 'organisation.currentSubscription.plan');
 
         return response()->json(
             [
@@ -94,7 +95,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         /** @var User $user */
-        $user = $request->user()->load('roles', 'organisation');
+        $user = $request->user()->load('roles', 'organisation.currentSubscription.plan');
 
         if ($user->status !== 'active') {
             $this->logoutUser($request);
@@ -125,7 +126,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         /** @var User $user */
-        $user = $request->user()->load('roles', 'organisation');
+        $user = $request->user()->load('roles', 'organisation.currentSubscription.plan');
 
         return response()->json($this->transformUser($user));
     }
@@ -201,21 +202,49 @@ class AuthController extends Controller
             'status' => $user->status,
             'roles' => $user->roles->pluck('name')->values()->all(),
             'organisation' => $user->organisation
-                ? $this->transformOrganisation($user->organisation)
+                ? $this->transformOrganisation($user->organisation, $user)
                 : null,
         ];
     }
 
-    protected function transformOrganisation(Organisation $organisation): array
+    protected function transformOrganisation(Organisation $organisation, ?User $forUser = null): array
     {
+        $subscriptionSummary = null;
+
+        if ($forUser && $forUser->roles->contains('org_admin')) {
+            $organisation->loadMissing('currentSubscription.plan');
+            $subscriptionSummary = $this->transformSubscription($organisation->currentSubscription);
+        }
+
         return [
             'id' => $organisation->id,
             'name' => $organisation->name,
             'type' => $organisation->type,
             'status' => $organisation->status,
+            'billing_status' => $organisation->billing_status,
+            'billing_note' => $organisation->billing_note,
             'city' => $organisation->city,
             'country' => $organisation->country,
             'contact_email' => $organisation->contact_email,
+            'subscription' => $subscriptionSummary,
+        ];
+    }
+
+    protected function transformSubscription(?OrganisationSubscription $subscription): ?array
+    {
+        if (! $subscription) {
+            return null;
+        }
+
+        $plan = $subscription->plan;
+
+        return [
+            'plan' => $plan ? [
+                'id' => $plan->id,
+                'name' => $plan->name,
+            ] : null,
+            'status' => $subscription->status,
+            'current_period_end' => $subscription->current_period_end?->toIso8601String(),
         ];
     }
 }

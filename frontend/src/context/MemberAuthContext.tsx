@@ -32,7 +32,7 @@ type MemberAuthContextValue = {
   isLoading: boolean
   memberLogin: (credentials: { email: string; password: string }) => Promise<void>
   memberLogout: () => Promise<void>
-  loadCurrentMember: () => Promise<void>
+  loadCurrentMember: () => Promise<MemberProfile | null>
 }
 
 const MemberAuthContext = createContext<MemberAuthContextValue | undefined>(undefined)

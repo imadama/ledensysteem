@@ -11,6 +11,13 @@ type OrganisationSummary = {
   contact_email: string
   status: string
   created_at: string
+  billing_status?: string | null
+  billing_note?: string | null
+  subscription?: {
+    plan_name?: string | null
+    status?: string | null
+    current_period_end?: string | null
+  } | null
   primary_contact: {
     id: number
     first_name: string
@@ -126,6 +133,42 @@ const PlatformOrganisationDetailPage: React.FC = () => {
           <dd>{organisation.contact_email}</dd>
           <dt>Status</dt>
           <dd>{organisation.status}</dd>
+          {organisation.billing_status && (
+            <>
+              <dt>Betalingsstatus</dt>
+              <dd>
+                <span
+                  className={`badge ${
+                    organisation.billing_status === 'ok'
+                      ? 'badge--success'
+                      : organisation.billing_status === 'restricted'
+                        ? 'badge--danger'
+                        : 'badge--warning'
+                  }`}
+                >
+                  {organisation.billing_status}
+                </span>
+                {organisation.billing_note && <div>{organisation.billing_note}</div>}
+              </dd>
+            </>
+          )}
+          {organisation.subscription && (
+            <>
+              <dt>Abonnement</dt>
+              <dd>
+                <div>{organisation.subscription.plan_name ?? 'Geen pakket'}</div>
+                {organisation.subscription.status && (
+                  <div>Status: {organisation.subscription.status}</div>
+                )}
+                {organisation.subscription.current_period_end && (
+                  <div>
+                    Periode tot:{' '}
+                    {new Date(organisation.subscription.current_period_end).toLocaleString('nl-NL')}
+                  </div>
+                )}
+              </dd>
+            </>
+          )}
           <dt>Aangemaakt op</dt>
           <dd>{new Date(organisation.created_at).toLocaleString()}</dd>
           {organisation.primary_contact && (

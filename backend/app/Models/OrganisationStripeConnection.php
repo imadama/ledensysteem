@@ -6,24 +6,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class MemberContributionRecord extends Model
+class OrganisationStripeConnection extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'member_id',
-        'period',
-        'amount',
+        'organisation_id',
+        'stripe_account_id',
         'status',
-        'note',
-        'payment_transaction_id',
+        'activated_at',
+        'last_error',
     ];
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'status' => 'open',
+        'status' => 'none',
     ];
 
     /**
@@ -32,20 +31,12 @@ class MemberContributionRecord extends Model
     protected function casts(): array
     {
         return [
-            'period' => 'date',
-            'amount' => 'decimal:2',
+            'activated_at' => 'datetime',
         ];
     }
 
-    public function member(): BelongsTo
+    public function organisation(): BelongsTo
     {
-        return $this->belongsTo(Member::class);
-    }
-
-    public function paymentTransaction(): BelongsTo
-    {
-        return $this->belongsTo(PaymentTransaction::class);
+        return $this->belongsTo(Organisation::class);
     }
 }
-
-

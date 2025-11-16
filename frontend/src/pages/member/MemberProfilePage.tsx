@@ -105,8 +105,6 @@ const MemberProfilePage: React.FC = () => {
     )
   }
 
-  const member = memberUser.member
-
   return (
     <div className="card">
       <h1>Mijn gegevens</h1>

@@ -11,6 +11,14 @@ type OrganisationSummary = {
   contact_email: string
   status: string
   created_at: string
+  billing_status?: string | null
+  billing_note?: string | null
+  subscription?: {
+    plan_name?: string | null
+    status?: string | null
+    current_period_end?: string | null
+  } | null
+  has_payment_issues?: boolean
   primary_contact: {
     id: number
     first_name: string
@@ -24,6 +32,7 @@ const PlatformOrganisationsPage: React.FC = () => {
   const [organisations, setOrganisations] = useState<OrganisationSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [onlyIssues, setOnlyIssues] = useState(false)
 
   const loadOrganisations = async () => {
     setLoading(true)
@@ -60,6 +69,17 @@ const PlatformOrganisationsPage: React.FC = () => {
 
       {error && <div className="alert alert--error">{error}</div>}
 
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <input
+            type="checkbox"
+            checked={onlyIssues}
+            onChange={(event) => setOnlyIssues(event.target.checked)}
+          />
+          Toon alleen organisaties met betalingsproblemen
+        </label>
+      </div>
+
       {loading ? (
         <div>Bezig met laden...</div>
       ) : (
@@ -71,11 +91,15 @@ const PlatformOrganisationsPage: React.FC = () => {
               <th>Type</th>
               <th>Contact</th>
               <th>Status</th>
+              <th>Abonnement</th>
+              <th>Betaalstatus</th>
               <th>Acties</th>
             </tr>
           </thead>
           <tbody>
-            {organisations.map((organisation) => (
+            {organisations
+              .filter((organisation) => (onlyIssues ? organisation.has_payment_issues : true))
+              .map((organisation) => (
               <tr key={organisation.id}>
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -98,6 +122,31 @@ const PlatformOrganisationsPage: React.FC = () => {
                   <span className={`badge ${organisation.status === 'active' ? 'badge--success' : 'badge--danger'}`}>
                     {organisation.status}
                   </span>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span>{organisation.subscription?.plan_name ?? 'Geen'}</span>
+                    {organisation.subscription?.status && (
+                      <small>Status: {organisation.subscription?.status}</small>
+                    )}
+                  </div>
+                </td>
+                <td>
+                  {organisation.billing_status ? (
+                    <span
+                      className={`badge ${
+                        organisation.billing_status === 'ok'
+                          ? 'badge--success'
+                          : organisation.billing_status === 'restricted'
+                            ? 'badge--danger'
+                            : 'badge--warning'
+                      }`}
+                    >
+                      {organisation.billing_status}
+                    </span>
+                  ) : (
+                    <span className="badge badge--secondary">n.v.t.</span>
+                  )}
                 </td>
                 <td>
                     <div className="table-actions">
@@ -126,7 +175,7 @@ const PlatformOrganisationsPage: React.FC = () => {
             ))}
             {organisations.length === 0 && !loading && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center' }}>
+                <td colSpan={7} style={{ textAlign: 'center' }}>
                   Geen organisaties gevonden.
                 </td>
               </tr>
