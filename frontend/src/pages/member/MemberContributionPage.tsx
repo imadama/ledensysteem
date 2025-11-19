@@ -38,22 +38,22 @@ const MemberContributionPage: React.FC = () => {
   const [payError, setPayError] = useState<string | null>(null)
 
   const loadAgreementAndHistory = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [infoResponse, historyResponse] = await Promise.all([
-        apiClient.get<{ data: ContributionInfo }>('/api/member/contribution'),
-        apiClient.get<{ data: ContributionRecord[] }>('/api/member/contribution-history'),
-      ])
+      setLoading(true)
+      setError(null)
+      try {
+        const [infoResponse, historyResponse] = await Promise.all([
+          apiClient.get<{ data: ContributionInfo }>('/api/member/contribution'),
+          apiClient.get<{ data: ContributionRecord[] }>('/api/member/contribution-history'),
+        ])
 
-      setInfo(infoResponse.data.data)
-      setHistory(historyResponse.data.data)
-    } catch (err: any) {
-      console.error('Contributie ophalen mislukt', err)
-      setError(err.response?.data?.message ?? 'Kon contributiegegevens niet laden.')
-    } finally {
-      setLoading(false)
-    }
+        setInfo(infoResponse.data.data)
+        setHistory(historyResponse.data.data)
+      } catch (err: any) {
+        console.error('Contributie ophalen mislukt', err)
+        setError(err.response?.data?.message ?? 'Kon contributiegegevens niet laden.')
+      } finally {
+        setLoading(false)
+      }
   }, [])
 
   const loadOpenContributions = useCallback(async () => {

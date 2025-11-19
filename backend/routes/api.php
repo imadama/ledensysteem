@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Organisation\MemberController;
 use App\Http\Controllers\Api\Organisation\PaymentConnectionController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
+use App\Http\Controllers\Api\PlatformPlanController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\PlanController;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +58,7 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
         Route::get('members/{memberId}/contributions', [ContributionReportController::class, 'memberContributions']);
 
         Route::get('contributions/summary', [ContributionReportController::class, 'organisationSummary']);
+        Route::get('subscription', [SubscriptionController::class, 'show']);
         Route::post('subscription/start', [SubscriptionController::class, 'start']);
 
         Route::prefix('payments')->group(function (): void {
@@ -84,6 +86,9 @@ Route::middleware(['auth:sanctum', 'role:platform_admin'])
         Route::get('organisations/{id}', [PlatformOrganisationController::class, 'show']);
         Route::patch('organisations/{id}/activate', [PlatformOrganisationController::class, 'activate']);
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);
+        Route::get('plans', [PlatformPlanController::class, 'index']);
+        Route::post('plans', [PlatformPlanController::class, 'store']);
+        Route::put('plans/{id}', [PlatformPlanController::class, 'update']);
     });
 
 Route::post('stripe/webhook', StripeWebhookController::class);

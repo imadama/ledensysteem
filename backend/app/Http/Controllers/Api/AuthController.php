@@ -211,7 +211,13 @@ class AuthController extends Controller
     {
         $subscriptionSummary = null;
 
-        if ($forUser && $forUser->roles->contains('org_admin')) {
+        // Check of user org_admin rol heeft (gebruik geladen roles als beschikbaar)
+        $isOrgAdmin = $forUser && (
+            ($forUser->relationLoaded('roles') && $forUser->roles->contains(fn ($role) => $role->name === 'org_admin'))
+            || $forUser->hasRole('org_admin')
+        );
+
+        if ($isOrgAdmin) {
             $organisation->loadMissing('currentSubscription.plan');
             $subscriptionSummary = $this->transformSubscription($organisation->currentSubscription);
         }

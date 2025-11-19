@@ -25,7 +25,10 @@ const AppHeader: React.FC = () => {
     }
 
     if (roles.includes('platform_admin')) {
-      items.push({ to: '/platform/organisations', label: 'Platform' })
+      items.push(
+        { to: '/platform/organisations', label: 'Platform' },
+        { to: '/platform/plans', label: 'Plannen' },
+      )
     }
 
     return items

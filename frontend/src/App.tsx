@@ -13,6 +13,7 @@ import OrganisationDashboardPage from './pages/OrganisationDashboardPage'
 import OrganisationUsersPage from './pages/OrganisationUsersPage'
 import PlatformOrganisationsPage from './pages/PlatformOrganisationsPage'
 import PlatformOrganisationDetailPage from './pages/PlatformOrganisationDetailPage'
+import PlatformPlansPage from './pages/PlatformPlansPage'
 import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
 import OrganisationMemberCreatePage from './pages/OrganisationMemberCreatePage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
@@ -90,6 +91,10 @@ function App() {
         <Route
           path="/platform/organisations/:id"
           element={<ProtectedRoute component={PlatformOrganisationDetailPage} />}
+        />
+        <Route
+          path="/platform/plans"
+          element={<ProtectedRoute component={PlatformPlansPage} roles={['platform_admin']} />}
         />
 
           <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />

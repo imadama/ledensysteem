@@ -31,7 +31,7 @@ const statusLabels: Record<string, string> = {
   active: 'Actief',
   past_due: 'Achterstallig',
   canceled: 'Beëindigd',
-  incomplete: 'Onvolledig',
+  incomplete: 'Wordt verwerkt',
   incomplete_expired: 'Onvolledig verlopen',
   warning: 'Waarschuwing',
   restricted: 'Geblokkeerd',
@@ -93,7 +93,7 @@ const OrganisationSubscriptionPage: React.FC = () => {
     if (cancelled) {
       setStatusMessage('Betaling geannuleerd of onderbroken.')
     } else {
-      setStatusMessage('Betaling wordt gecontroleerd...')
+    setStatusMessage('Betaling wordt gecontroleerd...')
     }
 
     void (async () => {
@@ -126,7 +126,17 @@ const OrganisationSubscriptionPage: React.FC = () => {
       window.location.href = data.checkout_url
     } catch (err: any) {
       console.error('Abonnement starten mislukt', err)
-      setCheckoutError(err.response?.data?.message ?? 'Kon de abonnementscheckout niet starten.')
+      const errorData = err.response?.data
+      let errorMessage = errorData?.message ?? 'Kon de abonnementscheckout niet starten.'
+      
+      // Toon specifieke Stripe errors als die er zijn
+      if (errorData?.errors?.stripe && Array.isArray(errorData.errors.stripe) && errorData.errors.stripe.length > 0) {
+        errorMessage = `Stripe error: ${errorData.errors.stripe[0]}`
+      } else if (errorData?.errors?.stripe) {
+        errorMessage = `Stripe error: ${errorData.errors.stripe}`
+      }
+      
+      setCheckoutError(errorMessage)
       setIsCheckout(false)
     }
   }
@@ -149,13 +159,21 @@ const OrganisationSubscriptionPage: React.FC = () => {
       <div className="card" style={{ marginBottom: '2rem', maxWidth: '720px' }}>
         <h2>Huidig abonnement</h2>
         {subscription ? (
-          <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', rowGap: '0.75rem', columnGap: '1rem' }}>
-            <><dt>Pakket</dt><dd>{subscription.plan?.name ?? 'Onbekend'}</dd></>
-            <><dt>Status</dt><dd>{statusLabel}</dd></>
-            {subscription.current_period_end && (
-              <><dt>Huidige periode tot</dt><dd>{new Date(subscription.current_period_end).toLocaleString('nl-NL')}</dd></>
+          <>
+            <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', rowGap: '0.75rem', columnGap: '1rem' }}>
+              <><dt>Pakket</dt><dd>{subscription.plan?.name ?? 'Onbekend'}</dd></>
+              <><dt>Status</dt><dd>{statusLabel}</dd></>
+              {subscription.current_period_end && (
+                <><dt>Huidige periode tot</dt><dd>{new Date(subscription.current_period_end).toLocaleString('nl-NL')}</dd></>
+              )}
+            </dl>
+            {subscription.status === 'incomplete' && (
+              <div className="alert alert--info" style={{ marginTop: '1rem' }}>
+                <strong>Abonnement wordt verwerkt</strong>
+                <div>Je betaling is ontvangen. Het abonnement wordt momenteel geactiveerd. Dit kan enkele minuten duren.</div>
+              </div>
             )}
-          </dl>
+          </>
         ) : (
           <p>Er is nog geen abonnement actief.</p>
         )}
