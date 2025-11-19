@@ -23,7 +23,12 @@ const MemberLoginPage: React.FC = () => {
       const from = (location.state as { from?: Location })?.from?.pathname ?? '/portal/dashboard'
       navigate(from, { replace: true })
     } catch (err: any) {
-      console.error('Member login failed', err)
+      console.error('Member login failed', {
+        error: err,
+        message: err?.message,
+        response: err?.response?.data,
+        status: err?.response?.status,
+      })
       setError(err?.message ?? 'Inloggen mislukt. Controleer je gegevens.')
     } finally {
       setLoading(false)

@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useMemberAuth } from '../context/MemberAuthContext'
 import { useState, useEffect } from 'react'
 
@@ -9,23 +9,34 @@ const MemberTopNav: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const handleLogout = async () => {
-    await memberLogout()
-    setIsMenuOpen(false)
-    navigate('/portal/login', { replace: true })
+    try {
+      setIsMenuOpen(false)
+      await memberLogout()
+      navigate('/portal/login', { replace: true })
+    } catch (error) {
+      console.error('Error logging out', error)
+    }
   }
 
   useEffect(() => {
     setIsMenuOpen(false)
   }, [location.pathname])
 
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(path + '/')
+  }
+
   return (
     <nav className="top-nav top-nav--member">
       <div className="top-nav__inner">
         <div className="top-nav__container">
           <div className="top-nav__brand-wrapper">
-            <NavLink to="/portal/dashboard" className="top-nav__brand">
+            <Link to="/portal/dashboard" className="top-nav__brand">
               Ledenportaal
-            </NavLink>
+            </Link>
+            {memberUser?.organisation?.name && (
+              <span className="top-nav__organisation">{memberUser.organisation.name}</span>
+            )}
           </div>
 
           <button
@@ -42,16 +53,23 @@ const MemberTopNav: React.FC = () => {
         </div>
 
         <div className={`top-nav__items ${isMenuOpen ? 'top-nav__items--open' : ''}`}>
-          <NavLink to="/portal/dashboard">Dashboard</NavLink>
-          <NavLink to="/portal/profile">Mijn gegevens</NavLink>
-          <NavLink to="/portal/contribution">Mijn contributie</NavLink>
+          <Link to="/portal/dashboard" className={isActive('/portal/dashboard') ? 'active' : ''}>
+            Dashboard
+          </Link>
+          <Link to="/portal/profile" className={isActive('/portal/profile') ? 'active' : ''}>
+            Mijn gegevens
+          </Link>
+          <Link to="/portal/contribution" className={isActive('/portal/contribution') ? 'active' : ''}>
+            Mijn contributie
+          </Link>
+
           <div className="top-nav__account">
             {memberUser && (
               <span>
                 {memberUser.member.first_name} {memberUser.member.last_name}
               </span>
             )}
-            <button className="top-nav__logout" type="button" onClick={handleLogout}>
+            <button className="top-nav__logout" onClick={handleLogout}>
               Uitloggen
             </button>
           </div>

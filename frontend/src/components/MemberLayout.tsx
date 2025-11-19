@@ -6,7 +6,7 @@ type MemberLayoutProps = {
 
 const MemberLayout: React.FC<MemberLayoutProps> = ({ children }) => {
   return (
-    <div className="app-shell app-shell--member">
+    <div className="app-shell">
       <MemberTopNav />
       <main className="app-shell__main">{children}</main>
     </div>

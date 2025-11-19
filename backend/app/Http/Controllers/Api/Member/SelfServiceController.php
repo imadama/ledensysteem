@@ -96,10 +96,16 @@ class SelfServiceController extends Controller
     {
         $user = $request->user();
 
-        if (! $user || ! $user->member_id) {
+        if (! $user) {
+            abort(403, 'Gebruiker niet geauthenticeerd.');
+        }
+
+        if (! $user->member_id) {
             abort(403, 'Geen lid gevonden voor deze gebruiker.');
         }
 
+        // Laad de member relatie expliciet
+        $user->loadMissing('member');
         $member = $user->member;
 
         if (! $member) {
