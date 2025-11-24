@@ -36,6 +36,12 @@ const MemberContributionPage: React.FC = () => {
   const [openError, setOpenError] = useState<string | null>(null)
   const [payingId, setPayingId] = useState<number | null>(null)
   const [payError, setPayError] = useState<string | null>(null)
+  const [manualAmount, setManualAmount] = useState<string>('')
+  const [manualNote, setManualNote] = useState<string>('')
+  const [setupRecurring, setSetupRecurring] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'sepa'>('card')
+  const [manualPaying, setManualPaying] = useState(false)
+  const [manualError, setManualError] = useState<string | null>(null)
 
   const loadAgreementAndHistory = useCallback(async () => {
       setLoading(true)
@@ -161,6 +167,45 @@ const MemberContributionPage: React.FC = () => {
     }
   }
 
+  const handleManualPay = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setManualError(null)
+
+    const amount = Number.parseFloat(manualAmount)
+    if (Number.isNaN(amount) || amount <= 0) {
+      setManualError('Voer een geldig bedrag in (groter dan 0).')
+      return
+    }
+
+    setManualPaying(true)
+
+    try {
+      const origin = window.location.origin
+      const successUrl = `${origin}/portal/contribution/success`
+      const cancelUrl = `${origin}/portal/contribution/cancel`
+
+      const { data } = await apiClient.post<{
+        checkout_url: string
+      }>('/api/member/contribution-pay-manual', {
+        amount: amount,
+        note: manualNote || null,
+        setup_recurring: setupRecurring,
+        payment_method: setupRecurring ? paymentMethod : null,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      })
+
+      window.location.href = data.checkout_url
+    } catch (err: any) {
+      console.error('Betaling starten mislukt', err)
+      const message =
+        err.response?.data?.message ?? 'Kon de betaalpagina niet openen. Probeer het later opnieuw.'
+      setManualError(message)
+    } finally {
+      setManualPaying(false)
+    }
+  }
+
   const hasOpenContributions = useMemo(
     () => openContributions.some((item) => ['open', 'failed'].includes(item.status)),
     [openContributions],
@@ -199,6 +244,79 @@ const MemberContributionPage: React.FC = () => {
                 <div>{info?.contribution_note ?? 'Geen opmerking'}</div>
               </div>
             </div>
+          </section>
+
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>Vrije contributie</h2>
+            <p>Je kunt hier een vrijwillige bijdrage doen met een bedrag naar keuze.</p>
+            {manualError && <div className="alert alert--error">{manualError}</div>}
+            <form onSubmit={handleManualPay}>
+              <div className="form-group">
+                <label htmlFor="manual_amount">Bedrag (€)</label>
+                <input
+                  id="manual_amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={manualAmount}
+                  onChange={(e) => setManualAmount(e.target.value)}
+                  className="input"
+                  placeholder="0.00"
+                  required
+                  disabled={manualPaying}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="manual_note">Opmerking (optioneel)</label>
+                <textarea
+                  id="manual_note"
+                  value={manualNote}
+                  onChange={(e) => setManualNote(e.target.value)}
+                  className="input"
+                  rows={3}
+                  maxLength={1000}
+                  disabled={manualPaying}
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={setupRecurring}
+                    onChange={(e) => setSetupRecurring(e.target.checked)}
+                    disabled={manualPaying}
+                  />
+                  <span>Automatische incasso inschakelen (maandelijks afschrijven)</span>
+                </label>
+              </div>
+              {setupRecurring && (
+                <div className="form-group">
+                  <label htmlFor="payment_method">Betaalmethode voor automatische incasso</label>
+                  <select
+                    id="payment_method"
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value as 'card' | 'sepa')}
+                    className="input"
+                    disabled={manualPaying}
+                  >
+                    <option value="card">Creditcard / Debitcard</option>
+                    <option value="sepa">SEPA Incasso (Bankrekening)</option>
+                  </select>
+                  {paymentMethod === 'sepa' && (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                      Met SEPA incasso geeft u toestemming om maandelijks automatisch af te schrijven van uw bankrekening.
+                    </p>
+                  )}
+                </div>
+              )}
+              <button
+                type="submit"
+                className="button"
+                disabled={manualPaying || !manualAmount || Number.parseFloat(manualAmount) <= 0}
+              >
+                {manualPaying ? 'Bezig...' : setupRecurring ? 'Automatische incasso instellen' : 'Betaal contributie'}
+              </button>
+            </form>
           </section>
 
           <section style={{ marginBottom: '2rem' }}>

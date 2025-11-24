@@ -21,6 +21,7 @@ const AppHeader: React.FC = () => {
         { to: '/organisation/members', label: 'Leden' },
         { to: '/organisation/members/new', label: 'Nieuw lid' },
         { to: '/organisation/members/import', label: 'Import' },
+        { to: '/organisation/contributions', label: 'Contributies' },
       )
     }
 
@@ -160,9 +161,11 @@ const AppHeader: React.FC = () => {
                 Abonnement
               </NavLink>
             )}
-            <NavLink to="/settings" className="app-header__dropdown-link">
-              Instellingen
-            </NavLink>
+            {roles.includes('org_admin') && (
+              <NavLink to="/organisation/settings/payments" className="app-header__dropdown-link">
+                Instellingen
+              </NavLink>
+            )}
             <button type="button" className="app-header__dropdown-link app-header__dropdown-link--danger" onClick={handleLogout}>
               Uitloggen
             </button>

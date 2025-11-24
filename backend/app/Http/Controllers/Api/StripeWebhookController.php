@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MemberContributionRecord;
+use App\Models\MemberSubscription;
 use App\Models\OrganisationSubscription;
 use App\Models\Plan;
 use App\Models\PaymentTransaction;
@@ -182,7 +184,36 @@ class StripeWebhookController extends Controller
     private function handleSubscriptionCheckoutSession($object): void
     {
         $reference = data_get($object, 'client_reference_id');
-        if (! $reference || ! str_starts_with($reference, 'org_sub:')) {
+        if (! $reference) {
+            return;
+        }
+
+        // Handle member subscriptions
+        if (str_starts_with($reference, 'member_sub:')) {
+            $subscriptionId = (int) str_replace('member_sub:', '', $reference);
+
+            $subscription = MemberSubscription::query()
+                ->find($subscriptionId);
+
+            if (! $subscription) {
+                return;
+            }
+
+            $subscription->latest_checkout_session_id = data_get($object, 'id');
+            $subscription->stripe_subscription_id = data_get($object, 'subscription', $subscription->stripe_subscription_id);
+
+            if (! $subscription->stripe_customer_id) {
+                $subscription->stripe_customer_id = data_get($object, 'customer', $subscription->stripe_customer_id);
+            }
+
+            $subscription->status = 'incomplete';
+            $subscription->save();
+
+            return;
+        }
+
+        // Handle organisation subscriptions
+        if (! str_starts_with($reference, 'org_sub:')) {
             return;
         }
 
@@ -250,6 +281,19 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Try member subscription first
+        $memberSubscription = MemberSubscription::query()
+            ->when($stripeSubscriptionId, fn ($query) => $query->where('stripe_subscription_id', $stripeSubscriptionId))
+            ->when(! $stripeSubscriptionId && $customerId, fn ($query) => $query->where('stripe_customer_id', $customerId))
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($memberSubscription) {
+            $this->handleMemberSubscriptionEvent($type, $object, $memberSubscription);
+            return;
+        }
+
+        // Fall back to organisation subscription
         $subscription = OrganisationSubscription::query()
             ->with('plan')
             ->when($stripeSubscriptionId, fn ($query) => $query->where('stripe_subscription_id', $stripeSubscriptionId))
@@ -292,6 +336,27 @@ class StripeWebhookController extends Controller
         $this->updateOrganisationBillingStatus($subscription, $billingStatus, $billingNote);
     }
 
+    private function handleMemberSubscriptionEvent(string $type, $object, MemberSubscription $subscription): void
+    {
+        if (! $subscription->stripe_subscription_id && data_get($object, 'id')) {
+            $subscription->stripe_subscription_id = data_get($object, 'id');
+        }
+
+        $stripeStatus = data_get($object, 'status');
+        $subscription->status = $this->mapStripeSubscriptionStatus($stripeStatus);
+
+        $subscription->current_period_start = $this->timestampToDateTime(data_get($object, 'current_period_start'));
+        $subscription->current_period_end = $this->timestampToDateTime(data_get($object, 'current_period_end'));
+        $subscription->cancel_at = $this->timestampToDateTime(data_get($object, 'cancel_at'));
+        $subscription->canceled_at = $this->timestampToDateTime(data_get($object, 'canceled_at'));
+
+        $metadata = $subscription->metadata ?? [];
+        $metadata['stripe_subscription_status'] = $stripeStatus;
+        $subscription->metadata = $metadata;
+
+        $subscription->save();
+    }
+
     private function handleInvoiceEvent(string $type, $object): void
     {
         $customerId = data_get($object, 'customer');
@@ -301,6 +366,19 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Try member subscription first
+        $memberSubscription = MemberSubscription::query()
+            ->when($stripeSubscriptionId, fn ($query) => $query->where('stripe_subscription_id', $stripeSubscriptionId))
+            ->when(! $stripeSubscriptionId && $customerId, fn ($query) => $query->where('stripe_customer_id', $customerId))
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($memberSubscription) {
+            $this->handleMemberSubscriptionInvoice($type, $object, $memberSubscription);
+            return;
+        }
+
+        // Fall back to organisation subscription
         $subscription = OrganisationSubscription::query()
             ->when($stripeSubscriptionId, fn ($query) => $query->where('stripe_subscription_id', $stripeSubscriptionId))
             ->when(! $stripeSubscriptionId && $customerId, fn ($query) => $query->where('stripe_customer_id', $customerId))
@@ -380,6 +458,84 @@ class StripeWebhookController extends Controller
         ]);
     }
 
+    private function handleMemberSubscriptionInvoice(string $type, $object, MemberSubscription $subscription): void
+    {
+        if ($type === 'invoice.payment_failed') {
+            $subscription->status = 'past_due';
+            $metadata = $subscription->metadata ?? [];
+            $metadata['last_invoice_failure'] = [
+                'invoice_id' => data_get($object, 'id'),
+                'created_at' => $this->timestampToDateTime(data_get($object, 'created'))?->toIso8601String(),
+            ];
+            $subscription->metadata = $metadata;
+            $subscription->save();
+
+            return;
+        }
+
+        // invoice.payment_succeeded - maak contribution record aan
+        $subscription->status = 'active';
+        $subscription->current_period_end = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.end')) ?? $subscription->current_period_end;
+        $subscription->save();
+
+        $amountPaid = (int) data_get($object, 'amount_paid', 0);
+        $paymentIntentId = data_get($object, 'payment_intent');
+
+        if ($amountPaid <= 0 || ! $paymentIntentId) {
+            return;
+        }
+
+        $periodStart = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.start'));
+        $periodEnd = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.end'));
+
+        // Maak een contribution record aan voor deze maand
+        $contribution = MemberContributionRecord::create([
+            'member_id' => $subscription->member_id,
+            'amount' => round($amountPaid / 100, 2),
+            'status' => 'paid',
+            'period' => $periodStart,
+            'note' => __('Automatische incasso via subscription'),
+        ]);
+
+        // Maak of update payment transaction
+        $occurredAt = $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? now();
+
+        $transaction = PaymentTransaction::query()
+            ->where('stripe_payment_intent_id', $paymentIntentId)
+            ->first();
+
+        $metadata = [
+            'stripe_invoice_id' => data_get($object, 'id'),
+            'stripe_invoice_number' => data_get($object, 'number'),
+            'member_subscription_id' => (string) $subscription->id,
+            'member_contribution_id' => (string) $contribution->id,
+        ];
+
+        if (! $transaction) {
+            $transaction = PaymentTransaction::create([
+                'organisation_id' => $subscription->member->organisation_id,
+                'member_id' => $subscription->member_id,
+                'type' => 'contribution',
+                'amount' => round($amountPaid / 100, 2),
+                'currency' => strtoupper(strtolower((string) data_get($object, 'currency', 'eur'))),
+                'status' => 'succeeded',
+                'stripe_payment_intent_id' => $paymentIntentId,
+                'metadata' => $metadata,
+                'occurred_at' => $occurredAt,
+            ]);
+        } else {
+            $transaction->update([
+                'status' => 'succeeded',
+                'metadata' => array_merge($transaction->metadata ?? [], $metadata),
+                'occurred_at' => $occurredAt,
+            ]);
+        }
+
+        $contribution->update([
+            'payment_transaction_id' => $transaction->id,
+        ]);
+    }
+
     private function locateTransaction($clientReferenceId, ?string $sessionId, ?string $paymentIntentId): ?PaymentTransaction
     {
         if ($clientReferenceId !== null && is_numeric($clientReferenceId)) {
@@ -438,10 +594,20 @@ class StripeWebhookController extends Controller
         $transaction->loadMissing('memberContributionRecords');
 
         foreach ($transaction->memberContributionRecords as $record) {
-            $record->update([
+            $updates = [
                 'status' => 'paid',
                 'payment_transaction_id' => $transaction->id,
-            ]);
+            ];
+
+            // Als er geen period is ingesteld (bijv. vrije contributie), gebruik de betalingsdatum
+            if (! $record->period && $transaction->occurred_at) {
+                $updates['period'] = $transaction->occurred_at->startOfMonth();
+            } elseif (! $record->period) {
+                // Fallback naar huidige maand als occurred_at ook niet beschikbaar is
+                $updates['period'] = now()->startOfMonth();
+            }
+
+            $record->update($updates);
         }
     }
 

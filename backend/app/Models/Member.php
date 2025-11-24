@@ -74,6 +74,16 @@ class Member extends Model
         return $this->hasMany(PaymentTransaction::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(MemberSubscription::class);
+    }
+
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(MemberSubscription::class)->where('status', 'active')->latestOfMany();
+    }
+
     public function user(): HasOne
     {
         return $this->hasOne(User::class);

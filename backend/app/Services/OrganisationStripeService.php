@@ -125,6 +125,7 @@ class OrganisationStripeService
             $params['capabilities'] = [
                 'card_payments' => ['requested' => true],
                 'transfers' => ['requested' => true],
+                'sepa_debit_payments' => ['requested' => true],
             ];
         }
 

@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/axios'
 
 type MonthData = {
@@ -22,7 +20,20 @@ type MatrixResponse = {
   members: MemberData[]
 }
 
-const monthNames = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec']
+const monthNames = [
+  'Jan',
+  'Feb',
+  'Mrt',
+  'Apr',
+  'Mei',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Okt',
+  'Nov',
+  'Dec',
+]
 
 const monthNamesFull = [
   'Januari',
@@ -41,8 +52,7 @@ const monthNamesFull = [
 
 const currentYear = new Date().getFullYear()
 
-const OrganisationDashboardPage: React.FC = () => {
-  const { organisation } = useAuth()
+const OrganisationContributionsMatrixPage: React.FC = () => {
   const [year, setYear] = useState<number>(currentYear)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -61,7 +71,6 @@ const OrganisationDashboardPage: React.FC = () => {
         params: { year },
       })
 
-      console.log('Matrix data received:', data)
       setMatrixData(data)
     } catch (err: any) {
       console.error('Matrix ophalen mislukt', err)
@@ -137,40 +146,23 @@ const OrganisationDashboardPage: React.FC = () => {
 
   return (
     <div>
-      <h1>Welkom {organisation?.name ?? ''}</h1>
-      <p>Gebruik dit dashboard om je organisatie te beheren.</p>
-
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <h2>Snelle acties</h2>
-        <ul style={{ textAlign: 'left', lineHeight: 1.8 }}>
-          <li>
-            <Link to="/organisation/users">Beheerders beheren</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members">Ledenoverzicht</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members/new">Nieuw lid aanmaken</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members/import">Bulk upload leden</Link>
-          </li>
-        </ul>
+      <div className="page-header">
+        <h1>Contributiematrix</h1>
+        <p>Overzicht van betalingen per lid per maand</p>
       </div>
 
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Contributiematrix</h2>
+      <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px' }}>
+        <h2>Filters</h2>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
           <div>
-            <label className="form-label" htmlFor="year-select-matrix" style={{ marginRight: '0.5rem' }}>
-              Jaar:
+            <label className="form-label" htmlFor="year-select-matrix">
+              Jaar
             </label>
             <select
               id="year-select-matrix"
               className="form-input"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
-              style={{ display: 'inline-block', width: 'auto' }}
             >
               {yearOptions.map((optionYear) => (
                 <option key={optionYear} value={optionYear}>
@@ -180,8 +172,10 @@ const OrganisationDashboardPage: React.FC = () => {
             </select>
           </div>
         </div>
+      </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', fontSize: '0.875rem' }}>
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✓</span>
             <span>Betaald</span>
@@ -199,9 +193,11 @@ const OrganisationDashboardPage: React.FC = () => {
             <span>Geen contributie</span>
           </div>
         </div>
+      </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
+      {error && <div className="alert alert--error">{error}</div>}
 
+      <div className="card">
         {loading ? (
           <p>Bezig met laden...</p>
         ) : matrixData && matrixData.members.length > 0 ? (
@@ -253,10 +249,6 @@ const OrganisationDashboardPage: React.FC = () => {
                     </td>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
                       const monthData = member.months[month.toString()]
-                      // Debug: log for Irfan Karatas
-                      if (member.name === 'Irfan Karatas' && month === 11) {
-                        console.log('Irfan month 11 data:', monthData, 'All months:', member.months)
-                      }
                       return (
                         <td
                           key={month}
@@ -285,5 +277,5 @@ const OrganisationDashboardPage: React.FC = () => {
   )
 }
 
-export default OrganisationDashboardPage
+export default OrganisationContributionsMatrixPage
 

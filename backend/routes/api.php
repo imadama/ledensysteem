@@ -58,6 +58,7 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
         Route::get('members/{memberId}/contributions', [ContributionReportController::class, 'memberContributions']);
 
         Route::get('contributions/summary', [ContributionReportController::class, 'organisationSummary']);
+        Route::get('contributions/matrix', [ContributionReportController::class, 'membersPaymentMatrix']);
         Route::get('subscription', [SubscriptionController::class, 'show']);
         Route::post('subscription/start', [SubscriptionController::class, 'start']);
 
@@ -77,6 +78,7 @@ Route::middleware(['auth:sanctum', 'role:member', 'billing.status'])
         Route::get('contribution-history', [SelfServiceController::class, 'contributionHistory']);
         Route::get('contribution-open', [ContributionPaymentController::class, 'index']);
         Route::post('contribution-pay', [ContributionPaymentController::class, 'store']);
+        Route::post('contribution-pay-manual', [ContributionPaymentController::class, 'payManual']);
     });
 
 Route::middleware(['auth:sanctum', 'role:platform_admin'])
