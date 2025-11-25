@@ -1,6 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { User, Save } from 'lucide-react'
 import { useMemberAuth } from '../../context/MemberAuthContext'
 import { apiClient } from '../../api/axios'
+import { Card } from '../../components/ui/Card'
+import { Button } from '../../components/ui/Button'
 
 const MemberProfilePage: React.FC = () => {
   const { memberUser, isLoading, loadCurrentMember } = useMemberAuth()
@@ -92,107 +95,131 @@ const MemberProfilePage: React.FC = () => {
     ]
   }, [memberUser])
 
+  const inputClassName = "w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+
   if (isLoading && !memberUser) {
-    return <div className="card">Bezig met laden...</div>
+    return (
+      <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+    )
   }
 
   if (!memberUser) {
     return (
-      <div className="card">
-        <h1>Mijn gegevens</h1>
-        <p>De gegevens konden niet worden geladen. Probeer het later opnieuw.</p>
-      </div>
+      <Card className="p-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Mijn gegevens</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">De gegevens konden niet worden geladen. Probeer het later opnieuw.</p>
+      </Card>
     )
   }
 
   return (
-    <div className="card">
-      <h1>Mijn gegevens</h1>
-      <p>
-        Pas je contactgegevens aan. Naam en geboortedatum worden beheerd door de organisatie en zijn alleen-lezen.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Mijn gegevens</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Pas je contactgegevens aan. Naam en geboortedatum worden beheerd door de organisatie en zijn alleen-lezen.
+        </p>
+      </div>
 
       {readOnlyInfo && (
-        <div className="card card--subtle">
-          <div className="info-grid">
+        <Card className="p-6 bg-gray-50 dark:bg-gray-800/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {readOnlyInfo.map((item) => (
               <div key={item.label}>
-                <strong>{item.label}</strong>
-                <div>{item.value}</div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{item.label}</p>
+                <p className="text-gray-900 dark:text-white">{item.value}</p>
               </div>
             ))}
           </div>
+        </Card>
+      )}
+
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 px-4 py-3 rounded-lg">
+          {success}
         </div>
       )}
 
-      {error && <div className="alert alert--error">{error}</div>}
-      {success && <div className="alert alert--success">{success}</div>}
-
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form__group">
-          <label htmlFor="member-email">E-mailadres</label>
-          <input
-            id="member-email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form__group">
-          <label htmlFor="member-street">Straat en huisnummer</label>
-          <input
-            id="member-street"
-            name="street_address"
-            value={form.street_address}
-            onChange={handleChange}
-          />
-        </div>
-        <div className="form-row">
-          <div className="form__group">
-            <label htmlFor="member-postal">Postcode</label>
+      <Card className="p-6">
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="member-email" className={labelClassName}>E-mailadres</label>
             <input
-              id="member-postal"
-              name="postal_code"
-              value={form.postal_code}
+              id="member-email"
+              name="email"
+              type="email"
+              value={form.email}
               onChange={handleChange}
+              required
+              className={inputClassName}
             />
           </div>
-          <div className="form__group">
-            <label htmlFor="member-city">Plaats</label>
+          <div>
+            <label htmlFor="member-street" className={labelClassName}>Straat en huisnummer</label>
             <input
-              id="member-city"
-              name="city"
-              value={form.city}
+              id="member-street"
+              name="street_address"
+              value={form.street_address}
               onChange={handleChange}
+              className={inputClassName}
             />
           </div>
-        </div>
-        <div className="form-row">
-          <div className="form__group">
-            <label htmlFor="member-phone">Telefoonnummer</label>
-            <input
-              id="member-phone"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="member-postal" className={labelClassName}>Postcode</label>
+              <input
+                id="member-postal"
+                name="postal_code"
+                value={form.postal_code}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </div>
+            <div>
+              <label htmlFor="member-city" className={labelClassName}>Plaats</label>
+              <input
+                id="member-city"
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </div>
           </div>
-          <div className="form__group">
-            <label htmlFor="member-iban">IBAN</label>
-            <input
-              id="member-iban"
-              name="iban"
-              value={form.iban}
-              onChange={handleChange}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="member-phone" className={labelClassName}>Telefoonnummer</label>
+              <input
+                id="member-phone"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </div>
+            <div>
+              <label htmlFor="member-iban" className={labelClassName}>IBAN</label>
+              <input
+                id="member-iban"
+                name="iban"
+                value={form.iban}
+                onChange={handleChange}
+                className={inputClassName}
+              />
+            </div>
           </div>
-        </div>
-        <button className="button" type="submit" disabled={saving}>
-          {saving ? 'Bezig...' : 'Opslaan'}
-        </button>
-      </form>
+          <Button type="submit" disabled={saving}>
+            <Save size={16} />
+            {saving ? 'Bezig...' : 'Opslaan'}
+          </Button>
+        </form>
+      </Card>
     </div>
   )
 }

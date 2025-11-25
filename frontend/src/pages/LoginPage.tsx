@@ -1,7 +1,10 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth()
@@ -32,42 +35,63 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div className="card" style={{ maxWidth: 420, margin: '3rem auto' }}>
-      <h1>Inloggen</h1>
-      <p>Log in om toegang te krijgen tot het ledensysteem.</p>
-
-      {error && <div className="alert alert--error">{error}</div>}
-
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form__group">
-          <label htmlFor="login-email">E-mailadres</label>
-          <input
-            id="login-email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inloggen</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">Log in om toegang te krijgen tot het ledensysteem.</p>
         </div>
-        <div className="form__group">
-          <label htmlFor="login-password">Wachtwoord</label>
-          <input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </div>
-        <button className="button" type="submit" disabled={loading}>
-          {loading ? 'Bezig...' : 'Inloggen'}
-        </button>
-      </form>
 
-      <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <Link to="/forgot-password">Wachtwoord vergeten?</Link>
-        <Link to="/register-organisation">Nieuwe organisatie registreren</Link>
-      </div>
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              E-mailadres
+            </label>
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Wachtwoord
+            </label>
+            <input
+              id="login-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full" size="lg">
+            <LogIn size={16} />
+            {loading ? 'Bezig...' : 'Inloggen'}
+          </Button>
+        </form>
+
+        <div className="mt-6 space-y-2 text-center">
+          <Link to="/forgot-password" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+            Wachtwoord vergeten?
+          </Link>
+          <div>
+            <Link to="/register-organisation" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+              Nieuwe organisatie registreren
+            </Link>
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }

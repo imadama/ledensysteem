@@ -1,5 +1,9 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { Users, UserPlus, X, Ban, CheckCircle2, Trash2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 
 type OrgUser = {
   id: number
@@ -92,121 +96,162 @@ const OrganisationUsersPage: React.FC = () => {
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Beheerders</h1>
-        <button className="button" onClick={() => setShowForm((prev) => !prev)}>
-          {showForm ? 'Annuleren' : 'Nieuwe beheerder toevoegen'}
-        </button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Beheerders</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer organisatie beheerders</p>
+        </div>
+        <Button onClick={() => setShowForm((prev) => !prev)} variant={showForm ? 'secondary' : 'primary'}>
+          {showForm ? (
+            <>
+              <X size={16} />
+              Annuleren
+            </>
+          ) : (
+            <>
+              <UserPlus size={16} />
+              Nieuwe beheerder
+            </>
+          )}
+        </Button>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {showForm && (
-        <div className="card" style={{ marginTop: '1.5rem' }}>
-          <h2>Nieuwe beheerder</h2>
-          <form className="form" onSubmit={handleCreate}>
-            <div className="form__group">
-              <label htmlFor="new-first-name">Voornaam</label>
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Nieuwe beheerder</h3>
+          <form className="space-y-4" onSubmit={handleCreate}>
+            <div>
+              <label htmlFor="new-first-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Voornaam
+              </label>
               <input
                 id="new-first-name"
                 value={form.first_name}
                 onChange={(event) => setForm((prev) => ({ ...prev, first_name: event.target.value }))}
                 required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="form__group">
-              <label htmlFor="new-last-name">Achternaam</label>
+            <div>
+              <label htmlFor="new-last-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Achternaam
+              </label>
               <input
                 id="new-last-name"
                 value={form.last_name}
                 onChange={(event) => setForm((prev) => ({ ...prev, last_name: event.target.value }))}
                 required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="form__group">
-              <label htmlFor="new-email">E-mailadres</label>
+            <div>
+              <label htmlFor="new-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                E-mailadres
+              </label>
               <input
                 id="new-email"
                 type="email"
                 value={form.email}
                 onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
                 required
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <div className="form__group">
-              <label htmlFor="new-status">Status</label>
+            <div>
+              <label htmlFor="new-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Status
+              </label>
               <select
                 id="new-status"
                 value={form.status}
                 onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="pending">In afwachting</option>
                 <option value="active">Actief</option>
               </select>
             </div>
-            <button className="button" type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Opslaan...' : 'Uitnodiging versturen'}
-            </button>
+            </Button>
           </form>
-        </div>
+        </Card>
       )}
 
       {loading ? (
-        <div style={{ marginTop: '2rem' }}>Bezig met laden...</div>
+        <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
       ) : (
-        <div className="table-responsive">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Naam</th>
-              <th>E-mail</th>
-              <th>Status</th>
-              <th>Rollen</th>
-              <th>Acties</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td>
-                  {user.first_name} {user.last_name}
-                </td>
-                <td>{user.email}</td>
-                <td>
-                  <span className={`badge ${user.status === 'active' ? 'badge--success' : 'badge--danger'}`}>
-                    {user.status}
-                  </span>
-                </td>
-                <td>{user.roles.join(', ')}</td>
-                <td>
-                  <div className="table-actions">
-                    {user.status !== 'blocked' ? (
-                      <button className="button button--secondary" onClick={() => handleBlock(user.id)}>
-                        Blokkeer
-                      </button>
-                    ) : (
-                      <button className="button" onClick={() => handleUnblock(user.id)}>
-                        Deblokkeer
-                      </button>
-                    )}
-                    <button className="button button--secondary" onClick={() => handleDelete(user.id)}>
-                      Verwijder
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && !loading && (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'center' }}>
-                  Geen beheerders gevonden.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        </div>
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Naam</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">E-mail</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Rollen</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Acties</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">
+                      {user.first_name} {user.last_name}
+                    </td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{user.email}</td>
+                    <td className="py-4 px-4">
+                      {user.status === 'active' ? (
+                        <Badge variant="success">Actief</Badge>
+                      ) : (
+                        <Badge variant="error">Niet actief</Badge>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{user.roles.join(', ')}</td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end gap-2">
+                        {user.status !== 'blocked' ? (
+                          <Button variant="outline" size="sm" onClick={() => handleBlock(user.id)}>
+                            <Ban size={16} />
+                            Blokkeer
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => handleUnblock(user.id)}>
+                            <CheckCircle2 size={16} />
+                            Deblokkeer
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(user.id)}
+                          className="text-red-600 hover:text-red-700 border-red-300"
+                        >
+                          <Trash2 size={16} />
+                          Verwijder
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      Geen beheerders gevonden.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   )

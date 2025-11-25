@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Users, DollarSign, Clock, TrendingUp, UserPlus, Upload, Download } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 
 type MonthData = {
   status: string
@@ -77,39 +81,39 @@ const OrganisationDashboardPage: React.FC = () => {
 
   const getStatusIcon = (monthData: MonthData) => {
     if (!monthData) {
-      return <span style={{ color: '#94a3b8' }}>—</span>
+      return <span className="text-gray-400">—</span>
     }
 
     switch (monthData.status) {
       case 'paid':
-        return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✓</span>
+        return <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
       case 'open':
-        return <span style={{ color: '#dc2626', fontWeight: 'bold' }}>✗</span>
+        return <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
       case 'processing':
-        return <span style={{ color: '#f59e0b' }}>⏳</span>
+        return <span className="text-yellow-600 dark:text-yellow-400">⏳</span>
       case 'failed':
-        return <span style={{ color: '#6b7280' }}>⚠</span>
+        return <span className="text-gray-600 dark:text-gray-400">⚠</span>
       default:
-        return <span style={{ color: '#64748b' }}>?</span>
+        return <span className="text-gray-500 dark:text-gray-500">?</span>
     }
   }
 
-  const getStatusColor = (monthData: MonthData) => {
+  const getStatusColorClass = (monthData: MonthData) => {
     if (!monthData) {
-      return { backgroundColor: '#f8fafc' }
+      return 'bg-gray-50 dark:bg-gray-800/50'
     }
 
     switch (monthData.status) {
       case 'paid':
-        return { backgroundColor: '#dcfce7' }
+        return 'bg-green-50 dark:bg-green-900/20'
       case 'open':
-        return { backgroundColor: '#fee2e2' }
+        return 'bg-red-50 dark:bg-red-900/20'
       case 'processing':
-        return { backgroundColor: '#fef3c7' }
+        return 'bg-yellow-50 dark:bg-yellow-900/20'
       case 'failed':
-        return { backgroundColor: '#f3f4f6' }
+        return 'bg-gray-100 dark:bg-gray-800'
       default:
-        return { backgroundColor: '#ffffff' }
+        return 'bg-white dark:bg-gray-800'
     }
   }
 
@@ -135,42 +139,103 @@ const OrganisationDashboardPage: React.FC = () => {
     return lines.join('\n')
   }
 
-  return (
-    <div>
-      <h1>Welkom {organisation?.name ?? ''}</h1>
-      <p>Gebruik dit dashboard om je organisatie te beheren.</p>
+  const totalMembers = matrixData?.members.length || 0
+  const paidCount = matrixData?.members.reduce((sum, member) => {
+    return sum + Object.values(member.months).filter(m => m?.status === 'paid').length
+  }, 0) || 0
+  const openCount = matrixData?.members.reduce((sum, member) => {
+    return sum + Object.values(member.months).filter(m => m?.status === 'open').length
+  }, 0) || 0
 
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <h2>Snelle acties</h2>
-        <ul style={{ textAlign: 'left', lineHeight: 1.8 }}>
-          <li>
-            <Link to="/organisation/users">Beheerders beheren</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members">Ledenoverzicht</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members/new">Nieuw lid aanmaken</Link>
-          </li>
-          <li>
-            <Link to="/organisation/members/import">Bulk upload leden</Link>
-          </li>
-        </ul>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Organisatie Dashboard</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer je organisatie en contributies</p>
       </div>
 
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Contributiematrix</h2>
-          <div>
-            <label className="form-label" htmlFor="year-select-matrix" style={{ marginRight: '0.5rem' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totaal Leden</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalMembers}</p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Users className="text-green-600 dark:text-green-400" size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Betaalde Contributies</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{paidCount}</p>
+            </div>
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <DollarSign className="text-blue-600 dark:text-blue-400" size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Openstaande Contributies</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{openCount}</p>
+            </div>
+            <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+              <Clock className="text-yellow-600 dark:text-yellow-400" size={24} />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Snelle Acties</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link to="/organisation/users">
+            <Button variant="outline" className="w-full">
+              <Users size={16} />
+              Beheerders
+            </Button>
+          </Link>
+          <Link to="/organisation/members">
+            <Button variant="outline" className="w-full">
+              <Users size={16} />
+              Ledenoverzicht
+            </Button>
+          </Link>
+          <Link to="/organisation/members/new">
+            <Button variant="outline" className="w-full">
+              <UserPlus size={16} />
+              Nieuw Lid
+            </Button>
+          </Link>
+          <Link to="/organisation/members/import">
+            <Button variant="outline" className="w-full">
+              <Upload size={16} />
+              Bulk Upload
+            </Button>
+          </Link>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contributiematrix</h3>
+          <div className="flex items-center gap-2">
+            <label htmlFor="year-select-matrix" className="text-sm text-gray-600 dark:text-gray-400">
               Jaar:
             </label>
             <select
               id="year-select-matrix"
-              className="form-input"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
-              style={{ display: 'inline-block', width: 'auto' }}
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {yearOptions.map((optionYear) => (
                 <option key={optionYear} value={optionYear}>
@@ -181,51 +246,45 @@ const OrganisationDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', fontSize: '0.875rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#16a34a', fontWeight: 'bold' }}>✓</span>
-            <span>Betaald</span>
+        <div className="flex gap-4 mb-4 flex-wrap text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
+            <span className="text-gray-600 dark:text-gray-400">Betaald</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#dc2626', fontWeight: 'bold' }}>✗</span>
-            <span>Open</span>
+          <div className="flex items-center gap-2">
+            <span className="text-red-600 dark:text-red-400 font-bold">✗</span>
+            <span className="text-gray-600 dark:text-gray-400">Open</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#f59e0b' }}>⏳</span>
-            <span>In behandeling</span>
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-600 dark:text-yellow-400">⏳</span>
+            <span className="text-gray-600 dark:text-gray-400">In behandeling</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#94a3b8' }}>—</span>
-            <span>Geen contributie</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">—</span>
+            <span className="text-gray-600 dark:text-gray-400">Geen contributie</span>
           </div>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
 
         {loading ? (
-          <p>Bezig met laden...</p>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
         ) : matrixData && matrixData.members.length > 0 ? (
-          <div style={{ overflowX: 'auto', width: '100%' }}>
-            <table
-              className="table"
-              style={{
-                minWidth: '800px',
-                tableLayout: 'fixed',
-              }}
-            >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
               <thead>
-                <tr>
-                  <th style={{ position: 'sticky', left: 0, zIndex: 10, backgroundColor: '#eff3fb', minWidth: '150px' }}>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[150px]">
                     Lid
                   </th>
                   {monthNames.map((monthName, index) => (
                     <th
                       key={index + 1}
-                      style={{
-                        textAlign: 'center',
-                        minWidth: '60px',
-                        maxWidth: '60px',
-                      }}
+                      className="text-center py-3 px-2 text-sm font-medium text-gray-600 dark:text-gray-400 min-w-[60px] max-w-[60px]"
                     >
                       {monthName}
                     </th>
@@ -234,38 +293,21 @@ const OrganisationDashboardPage: React.FC = () => {
               </thead>
               <tbody>
                 {matrixData.members.map((member) => (
-                  <tr key={member.member_id}>
-                    <td
-                      style={{
-                        position: 'sticky',
-                        left: 0,
-                        zIndex: 5,
-                        backgroundColor: '#ffffff',
-                        fontWeight: 500,
-                      }}
-                    >
-                      <div style={{ fontSize: '0.875rem' }}>
+                  <tr key={member.member_id} className="border-b border-gray-100 dark:border-gray-800">
+                    <td className="sticky left-0 z-5 bg-white dark:bg-gray-800 font-medium py-3 px-4">
+                      <div className="text-sm">
                         {member.member_number && (
-                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{member.member_number}</div>
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">{member.member_number}</div>
                         )}
-                        <div>{member.name}</div>
+                        <div className="text-gray-900 dark:text-white">{member.name}</div>
                       </div>
                     </td>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
                       const monthData = member.months[month.toString()]
-                      // Debug: log for Irfan Karatas
-                      if (member.name === 'Irfan Karatas' && month === 11) {
-                        console.log('Irfan month 11 data:', monthData, 'All months:', member.months)
-                      }
                       return (
                         <td
                           key={month}
-                          style={{
-                            ...getStatusColor(monthData),
-                            textAlign: 'center',
-                            cursor: monthData ? 'help' : 'default',
-                            padding: '0.5rem',
-                          }}
+                          className={`${getStatusColorClass(monthData)} text-center py-2 px-2 ${monthData ? 'cursor-help' : ''}`}
                           title={formatTooltip(monthData, month)}
                         >
                           {getStatusIcon(monthData)}
@@ -278,9 +320,11 @@ const OrganisationDashboardPage: React.FC = () => {
             </table>
           </div>
         ) : (
-          <p>Geen leden gevonden voor {year}.</p>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            Geen leden gevonden voor {year}.
+          </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

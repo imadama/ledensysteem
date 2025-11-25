@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Search, UserPlus, Upload, Eye, ChevronUp, ChevronDown, Mail, Ban, CheckCircle2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 
 type AccountStatus = 'none' | 'invited' | 'active' | 'blocked'
 
@@ -302,194 +306,240 @@ const OrganisationMembersListPage: React.FC = () => {
     return pages
   }, [meta])
 
+  const SortButton: React.FC<{ column: 'full_name' | 'member_number' | 'city'; label: string }> = ({ column, label }) => {
+    const isActive = sortBy === column
+    return (
+      <button
+        type="button"
+        onClick={() => handleSort(column)}
+        className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+      >
+        {label}
+        {isActive && (sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+      </button>
+    )
+  }
+
   return (
-    <div>
-      <div className="page-header">
-        <h1>Ledenoverzicht</h1>
-        <div className="page-header__actions">
-          <Link className="button" to="/organisation/members/new">
-            Nieuw lid
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Ledenoverzicht</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer alle leden van je organisatie</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/organisation/members/new">
+            <Button>
+              <UserPlus size={16} />
+              Nieuw lid
+            </Button>
           </Link>
-          <Link className="button button--secondary" to="/organisation/members/import">
-            Bulk upload
+          <Link to="/organisation/members/import">
+            <Button variant="outline">
+              <Upload size={16} />
+              Bulk upload
+            </Button>
           </Link>
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <form onSubmit={handleSearchSubmit} className="form-inline">
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Zoek op lidnummer, naam of e-mail"
-            className="input"
-            style={{ flex: 1 }}
-          />
-          <select value={statusFilter} onChange={handleStatusChange} className="input">
+      <Card className="p-6">
+        <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Zoek op lidnummer, naam of e-mail"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={handleStatusChange}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
             <option value="active">Actief</option>
             <option value="inactive">Inactief</option>
             <option value="all">Alle statussen</option>
           </select>
-          <button type="submit" className="button">
+          <Button type="submit">
+            <Search size={16} />
             Zoeken
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
 
-      {isLoading && <div>Bezig met laden...</div>}
-      {error && <div className="alert alert--error">{error}</div>}
-      {successMessage && <div className="alert alert--success">{successMessage}</div>}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 px-4 py-3 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+      )}
 
       {!isLoading && members.length === 0 && !error && (
-        <div className="card">Geen leden gevonden voor deze filters.</div>
+        <Card className="p-6">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            Geen leden gevonden voor deze filters.
+          </div>
+        </Card>
       )}
 
       {!isLoading && members.length > 0 && (
-        <div className="card">
-          <div className="table-responsive">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>
-                  <button type="button" className="table-sort" onClick={() => handleSort('member_number')}>
-                    Lidnummer {sortBy === 'member_number' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" className="table-sort" onClick={() => handleSort('full_name')}>
-                    Naam {sortBy === 'full_name' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </button>
-                </th>
-                <th>
-                  <button type="button" className="table-sort" onClick={() => handleSort('city')}>
-                    Plaats {sortBy === 'city' && (sortDirection === 'asc' ? '↑' : '↓')}
-                  </button>
-                </th>
-                <th>Contributie</th>
-                <th>Status</th>
-                <th>Accountstatus</th>
-                <th>Acties</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.id}>
-                  <td>{member.member_number ?? '-'}</td>
-                  <td>{member.full_name}</td>
-                  <td>{member.city ?? '-'}</td>
-                  <td>
-                    {member.contribution_amount
-                      ? `€ ${Number(member.contribution_amount).toFixed(2)}`
-                      : '-'}
-                  </td>
-                  <td>
-                    <span className={`badge badge--${member.status === 'active' ? 'success' : 'secondary'}`}>
-                      {member.status === 'active' ? 'Actief' : 'Inactief'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="chip">{getAccountStatusLabel(member.account_status)}</div>
-                    {member.last_invitation_sent_at && (
-                      <div className="text-muted">
-                        Laatste uitnodiging: {formatDateTime(member.last_invitation_sent_at)}
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <SortButton column="member_number" label="Lidnummer" />
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <SortButton column="full_name" label="Naam" />
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <SortButton column="city" label="Plaats" />
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Contributie</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Accountstatus</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Acties</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr key={member.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">{member.member_number ?? '-'}</td>
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">{member.full_name}</td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{member.city ?? '-'}</td>
+                    <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
+                      {member.contribution_amount
+                        ? `€ ${Number(member.contribution_amount).toFixed(2)}`
+                        : '-'}
+                    </td>
+                    <td className="py-4 px-4">
+                      {member.status === 'active' ? (
+                        <Badge variant="success">Actief</Badge>
+                      ) : (
+                        <Badge variant="default">Inactief</Badge>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <Badge variant={member.account_status === 'active' ? 'success' : member.account_status === 'invited' ? 'warning' : 'default'}>
+                          {getAccountStatusLabel(member.account_status)}
+                        </Badge>
+                        {member.last_invitation_sent_at && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDateTime(member.last_invitation_sent_at)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </td>
-                  <td className="table-actions">
-                    <Link className="button button--small" to={`/organisation/members/${member.id}`}>
-                      Details
-                    </Link>
-                    <button
-                      className="button button--small button--secondary"
-                      type="button"
-                      onClick={() => handleToggleStatus(member)}
-                    >
-                      {member.status === 'active' ? 'Deactiveer' : 'Activeer'}
-                    </button>
-                    {member.account_status === 'none' && !!member.email && (
-                      <button
-                        className="button button--small"
-                        type="button"
-                        disabled={rowLoading[member.id]}
-                        onClick={() => handleInviteMember(member)}
-                      >
-                        {rowLoading[member.id] ? 'Versturen...' : 'Uitnodigen'}
-                      </button>
-                    )}
-                    {member.account_status === 'invited' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span className="badge badge--info">Uitnodiging verstuurd</span>
-                        {member.email && (
-                          <button
-                            className="button button--small button--secondary"
-                            type="button"
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        <Link to={`/organisation/members/${member.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye size={16} />
+                            Details
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleToggleStatus(member)}
+                        >
+                          {member.status === 'active' ? 'Deactiveer' : 'Activeer'}
+                        </Button>
+                        {member.account_status === 'none' && !!member.email && (
+                          <Button
+                            size="sm"
+                            disabled={rowLoading[member.id]}
+                            onClick={() => handleInviteMember(member)}
+                          >
+                            <Mail size={16} />
+                            {rowLoading[member.id] ? 'Versturen...' : 'Uitnodigen'}
+                          </Button>
+                        )}
+                        {member.account_status === 'invited' && member.email && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             disabled={rowLoading[member.id]}
                             onClick={() => handleInviteMember(member)}
                           >
                             {rowLoading[member.id] ? 'Bezig...' : 'Opnieuw versturen'}
-                          </button>
+                          </Button>
+                        )}
+                        {member.account_status === 'active' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={rowLoading[member.id]}
+                            onClick={() => handleBlockAccount(member)}
+                            className="text-red-600 hover:text-red-700 border-red-300"
+                          >
+                            <Ban size={16} />
+                            {rowLoading[member.id] ? 'Bezig...' : 'Blokkeer'}
+                          </Button>
+                        )}
+                        {member.account_status === 'blocked' && (
+                          <Button
+                            size="sm"
+                            disabled={rowLoading[member.id]}
+                            onClick={() => handleUnblockAccount(member)}
+                          >
+                            <CheckCircle2 size={16} />
+                            {rowLoading[member.id] ? 'Bezig...' : 'Deblokkeer'}
+                          </Button>
                         )}
                       </div>
-                    )}
-                    {member.account_status === 'active' && (
-                      <button
-                        className="button button--small button--danger"
-                        type="button"
-                        disabled={rowLoading[member.id]}
-                        onClick={() => handleBlockAccount(member)}
-                      >
-                        {rowLoading[member.id] ? 'Bezig...' : 'Blokkeer toegang'}
-                      </button>
-                    )}
-                    {member.account_status === 'blocked' && (
-                      <button
-                        className="button button--small"
-                        type="button"
-                        disabled={rowLoading[member.id]}
-                        onClick={() => handleUnblockAccount(member)}
-                      >
-                        {rowLoading[member.id] ? 'Bezig...' : 'Deblokkeer toegang'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {meta && meta.last_page > 1 && (
-            <div className="pagination">
-              <button
-                type="button"
-                className="button button--small"
+            <div className="flex items-center justify-center gap-2 mt-6 flex-wrap">
+              <Button
+                size="sm"
+                variant="outline"
                 disabled={page <= 1}
                 onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               >
                 Vorige
-              </button>
+              </Button>
               {paginationPages.map((pageNumber) => (
-                <button
+                <Button
                   key={pageNumber}
-                  type="button"
-                  className={`button button--small ${pageNumber === page ? 'button--primary' : 'button--secondary'}`}
+                  size="sm"
+                  variant={pageNumber === page ? 'primary' : 'outline'}
                   onClick={() => setPage(pageNumber)}
                 >
                   {pageNumber}
-                </button>
+                </Button>
               ))}
-              <button
-                type="button"
-                className="button button--small"
+              <Button
+                size="sm"
+                variant="outline"
                 disabled={page >= totalPages}
                 onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               >
                 Volgende
-              </button>
+              </Button>
             </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   )

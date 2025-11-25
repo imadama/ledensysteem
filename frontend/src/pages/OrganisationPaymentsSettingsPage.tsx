@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
 
 type ConnectionStatus = 'none' | 'pending' | 'active' | 'blocked'
 
@@ -89,62 +92,70 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
   const getStatusBadge = (status: ConnectionStatus) => {
     switch (status) {
       case 'active':
-        return <span className="badge badge--success">Actief</span>
+        return <Badge variant="success">Actief</Badge>
       case 'pending':
-        return <span className="badge badge--warning">In behandeling</span>
+        return <Badge variant="warning">In behandeling</Badge>
       case 'blocked':
-        return <span className="badge badge--danger">Geblokkeerd</span>
+        return <Badge variant="error">Geblokkeerd</Badge>
       default:
-        return <span className="badge badge--secondary">Niet gekoppeld</span>
+        return <Badge variant="default">Niet gekoppeld</Badge>
     }
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>Betalingen instellingen</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Betalingen instellingen</h1>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
-      {successMessage && <div className="alert alert--success">{successMessage}</div>}
+      {error && (
+        <div className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 p-3 rounded-lg text-sm">
+          {successMessage}
+        </div>
+      )}
 
-      <div className="card" style={{ maxWidth: '800px' }}>
-        <h2>Stripe betaalrekening koppelen</h2>
-        <p style={{ marginBottom: '1.5rem' }}>
+      <Card className="p-6 max-w-3xl">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Stripe betaalrekening koppelen</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
           Koppel je Stripe-account om betalingen van leden te ontvangen. Betalingen gaan direct naar je Stripe-account
           en worden automatisch uitbetaald naar je bankrekening.
         </p>
 
         {loading ? (
-          <p>Bezig met laden...</p>
+          <p className="text-gray-600 dark:text-gray-400">Bezig met laden...</p>
         ) : (
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '1rem', alignItems: 'center' }}>
-              <strong>Status:</strong>
+          <div className="space-y-6">
+            <div className="grid grid-cols-[max-content_1fr] gap-4 items-center">
+              <strong className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</strong>
               <div>{getStatusBadge(connection?.status ?? 'none')}</div>
             </div>
 
             {connection?.stripe_account_id && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '1rem', alignItems: 'center' }}>
-                <strong>Stripe account ID:</strong>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{connection.stripe_account_id}</div>
+              <div className="grid grid-cols-[max-content_1fr] gap-4 items-center">
+                <strong className="text-sm font-medium text-gray-700 dark:text-gray-300">Stripe account ID:</strong>
+                <div className="font-mono text-sm text-gray-900 dark:text-white">{connection.stripe_account_id}</div>
               </div>
             )}
 
             {connection?.activated_at && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '1rem', alignItems: 'center' }}>
-                <strong>Geactiveerd op:</strong>
-                <div>{new Date(connection.activated_at).toLocaleString('nl-NL')}</div>
+              <div className="grid grid-cols-[max-content_1fr] gap-4 items-center">
+                <strong className="text-sm font-medium text-gray-700 dark:text-gray-300">Geactiveerd op:</strong>
+                <div className="text-gray-900 dark:text-white">{new Date(connection.activated_at).toLocaleString('nl-NL')}</div>
               </div>
             )}
 
             {connection?.status === 'none' && (
-              <div className="alert alert--info">
-                <strong>Nog niet gekoppeld</strong>
-                <p style={{ margin: '0.5rem 0 0 0' }}>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <strong className="block text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Nog niet gekoppeld</strong>
+                <p className="text-sm text-blue-800 dark:text-blue-400 mb-2">
                   Klik op "Stripe-account koppelen" om te beginnen. Je wordt doorgestuurd naar Stripe waar je:
                 </p>
-                <ul style={{ margin: '0.5rem 0 0 1.5rem' }}>
+                <ul className="list-disc list-inside text-sm text-blue-800 dark:text-blue-400 space-y-1">
                   <li>Inlogt met je Stripe-account (of maakt er een aan)</li>
                   <li>Je bedrijfsgegevens invult</li>
                   <li>Je bankrekening opgeeft voor uitbetalingen</li>
@@ -153,9 +164,9 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
             )}
 
             {connection?.status === 'pending' && (
-              <div className="alert alert--warning">
-                <strong>Koppeling in behandeling</strong>
-                <p style={{ margin: '0.5rem 0 0 0' }}>
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <strong className="block text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-2">Koppeling in behandeling</strong>
+                <p className="text-sm text-yellow-800 dark:text-yellow-400">
                   Je Stripe-account is aangemaakt maar nog niet volledig geactiveerd. Stripe controleert je gegevens.
                   Dit kan enkele minuten tot uren duren.
                 </p>
@@ -163,9 +174,9 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
             )}
 
             {connection?.status === 'active' && (
-              <div className="alert alert--success">
-                <strong>Betaalrekening actief</strong>
-                <p style={{ margin: '0.5rem 0 0 0' }}>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <strong className="block text-sm font-semibold text-green-900 dark:text-green-300 mb-2">Betaalrekening actief</strong>
+                <p className="text-sm text-green-800 dark:text-green-400">
                   Je Stripe-account is gekoppeld en actief. Leden kunnen nu betalingen doen en het geld wordt
                   automatisch uitbetaald naar je bankrekening.
                 </p>
@@ -173,56 +184,54 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
             )}
 
             {connection?.status === 'blocked' && (
-              <div className="alert alert--error">
-                <strong>Account geblokkeerd</strong>
-                <p style={{ margin: '0.5rem 0 0 0' }}>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <strong className="block text-sm font-semibold text-red-900 dark:text-red-300 mb-2">Account geblokkeerd</strong>
+                <p className="text-sm text-red-800 dark:text-red-400">
                   Er is een probleem met je Stripe-account. Neem contact op met Stripe support of probeer opnieuw te
                   koppelen.
                 </p>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <div className="flex gap-3 flex-wrap mt-2">
               {connection?.status !== 'active' && (
-                <button
-                  type="button"
-                  className="button"
+                <Button
                   onClick={handleCreateLink}
                   disabled={isRedirecting}
                 >
                   {isRedirecting ? 'Doorverwijzen naar Stripe...' : 'Stripe-account koppelen'}
-                </button>
+                </Button>
               )}
               {connection?.status === 'active' && (
-                <button
-                  type="button"
-                  className="button button--secondary"
+                <Button
+                  variant="secondary"
                   onClick={handleCreateLink}
                   disabled={isRedirecting}
                 >
                   {isRedirecting ? 'Doorverwijzen...' : 'Accountinstellingen bijwerken'}
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                className="button button--secondary"
+              <Button
+                variant="secondary"
                 onClick={() => void refreshConnection()}
                 disabled={isRefreshing}
               >
                 {isRefreshing ? 'Vernieuwen...' : 'Status vernieuwen'}
-              </button>
+              </Button>
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className="card" style={{ maxWidth: '800px', marginTop: '1.5rem' }}>
-        <h2>Platform abonnement</h2>
-        <p>Bekijk of wijzig je platformabonnement voor het gebruik van dit systeem.</p>
-        <a className="button" href="/organisation/subscription">
-          Abonnement beheren
-        </a>
-      </div>
+      <Card className="p-6 max-w-3xl">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Platform abonnement</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">Bekijk of wijzig je platformabonnement voor het gebruik van dit systeem.</p>
+        <Link to="/organisation/subscription">
+          <Button>
+            Abonnement beheren
+          </Button>
+        </Link>
+      </Card>
     </div>
   )
 }

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FileText, Plus, Edit, Save, X } from 'lucide-react'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 
 export type Plan = {
   id: number
@@ -119,31 +123,52 @@ const PlatformPlansPage: React.FC = () => {
     [plans],
   )
 
+  const inputClassName = "w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+
   return (
-    <div>
-      <div className="page-header">
-        <h1>Abonnementen (plannen)</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Abonnementen (plannen)</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer abonnementsplannen voor organisaties</p>
+        </div>
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h2>{editingPlan ? 'Plan bewerken' : 'Nieuw plan'}</h2>
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form__group">
-            <label htmlFor="plan-name">Naam</label>
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {editingPlan ? 'Plan bewerken' : 'Nieuw plan'}
+          </h3>
+          {editingPlan && (
+            <Button variant="outline" size="sm" onClick={handleNew} disabled={saving}>
+              <X size={16} />
+              Annuleren
+            </Button>
+          )}
+        </div>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="plan-name" className={labelClassName}>Naam</label>
             <input
               id="plan-name"
               name="name"
               value={form.name}
               onChange={handleChange}
               required
+              className={inputClassName}
             />
           </div>
 
-          <div className="form-row">
-            <div className="form__group">
-              <label htmlFor="plan-price">Maandbedrag</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="plan-price" className={labelClassName}>Maandbedrag</label>
               <input
                 id="plan-price"
                 name="monthly_price"
@@ -153,111 +178,119 @@ const PlatformPlansPage: React.FC = () => {
                 value={form.monthly_price}
                 onChange={handleChange}
                 required
+                className={inputClassName}
               />
             </div>
-            <div className="form__group">
-              <label htmlFor="plan-currency">Valuta</label>
+            <div>
+              <label htmlFor="plan-currency" className={labelClassName}>Valuta</label>
               <input
                 id="plan-currency"
                 name="currency"
                 value={form.currency}
                 onChange={handleChange}
                 required
+                className={inputClassName}
               />
             </div>
           </div>
 
-          <div className="form__group">
-            <label htmlFor="plan-stripe-price">Stripe prijs-ID</label>
+          <div>
+            <label htmlFor="plan-stripe-price" className={labelClassName}>Stripe prijs-ID</label>
             <input
               id="plan-stripe-price"
               name="stripe_price_id"
               value={form.stripe_price_id}
               onChange={handleChange}
               required
+              className={inputClassName}
             />
           </div>
 
-          <div className="form__group">
-            <label htmlFor="plan-description">Omschrijving</label>
+          <div>
+            <label htmlFor="plan-description" className={labelClassName}>Omschrijving</label>
             <textarea
               id="plan-description"
               name="description"
               value={form.description ?? ''}
               onChange={handleChange}
+              className={inputClassName}
+              rows={3}
             />
           </div>
 
-          <div className="form__group">
-            <label>
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={form.is_active}
-                onChange={handleChange}
-              />{' '}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_active"
+              checked={form.is_active}
+              onChange={handleChange}
+              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <label htmlFor="plan-active" className="text-sm text-gray-700 dark:text-gray-300">
               Plan is actief
             </label>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="submit" className="button" disabled={saving}>
+          <div className="flex gap-2">
+            <Button type="submit" disabled={saving}>
+              <Save size={16} />
               {saving ? 'Bezig...' : 'Opslaan'}
-            </button>
+            </Button>
             {editingPlan && (
-              <button
+              <Button
                 type="button"
-                className="button button--secondary"
+                variant="outline"
                 onClick={handleNew}
                 disabled={saving}
               >
+                <Plus size={16} />
                 Nieuw plan
-              </button>
+              </Button>
             )}
           </div>
         </form>
-      </div>
+      </Card>
 
-      <div className="card">
-        <h2>Bestaande plannen</h2>
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bestaande plannen</h3>
         {loading ? (
-          <p>Plannen worden geladen...</p>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Plannen worden geladen...</div>
         ) : sortedPlans.length === 0 ? (
-          <p>Er zijn nog geen plannen aangemaakt.</p>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Er zijn nog geen plannen aangemaakt.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Naam</th>
-                  <th>Prijs</th>
-                  <th>Stripe prijs-ID</th>
-                  <th>Actief</th>
-                  <th>Acties</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Naam</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Prijs</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Stripe prijs-ID</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Actief</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Acties</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedPlans.map((plan) => (
-                  <tr key={plan.id}>
-                    <td>{plan.name}</td>
-                    <td>
-                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}{' '}
-                      {plan.currency}
+                  <tr key={plan.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">{plan.name}</td>
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">
+                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} {plan.currency}
                     </td>
-                    <td>{plan.stripe_price_id}</td>
-                    <td>
-                      <span className={`badge ${plan.is_active ? 'badge--success' : 'badge--secondary'}`}>
-                        {plan.is_active ? 'Actief' : 'Inactief'}
-                      </span>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{plan.stripe_price_id}</td>
+                    <td className="py-4 px-4">
+                      {plan.is_active ? (
+                        <Badge variant="success">Actief</Badge>
+                      ) : (
+                        <Badge variant="default">Inactief</Badge>
+                      )}
                     </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="button button--secondary"
-                        onClick={() => handleEdit(plan)}
-                      >
-                        Bewerken
-                      </button>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(plan)}>
+                          <Edit size={16} />
+                          Bewerken
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -265,7 +298,7 @@ const PlatformPlansPage: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

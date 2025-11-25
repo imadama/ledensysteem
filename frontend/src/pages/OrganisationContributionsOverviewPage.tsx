@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
 
 type MonthlySummary = {
   month: number
@@ -85,31 +86,31 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
 
   const renderMonthRow = (item: MonthlySummary) => {
     return (
-      <tr key={`${summary?.year}-${item.month}`}>
-        <td>{monthNames[item.month - 1]}</td>
-        <td>€ {item.total_received.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</td>
-        <td>{item.paid_members}</td>
-        <td>{item.members_with_open}</td>
+      <tr key={`${summary?.year}-${item.month}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{monthNames[item.month - 1]}</td>
+        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">€ {item.total_received.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</td>
+        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{item.paid_members}</td>
+        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{item.members_with_open}</td>
       </tr>
     )
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>Contributies</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contributies</h1>
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem', maxWidth: '720px' }}>
-        <h2>Filters</h2>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <label className="form-label" htmlFor="year-select">
+      <Card className="p-6 max-w-3xl">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Filters</h2>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="year-select">
               Jaar
             </label>
             <select
               id="year-select"
-              className="form-input"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
             >
@@ -121,13 +122,13 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
             </select>
           </div>
 
-          <div>
-            <label className="form-label" htmlFor="month-select">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="month-select">
               Maand
             </label>
             <select
               id="month-select"
-              className="form-input"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
               value={month}
               onChange={(event) => {
                 const value = event.target.value
@@ -143,54 +144,60 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
             </select>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && (
+        <div className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
-      <div className="card">
+      <Card className="p-6">
         {loading ? (
-          <p>Bezig met laden...</p>
+          <p className="text-gray-600 dark:text-gray-400">Bezig met laden...</p>
         ) : month === '' ? (
           summary && summary.months.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
-                <thead>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th>Maand</th>
-                    <th>Totaal ontvangen</th>
-                    <th>Leden met betaling</th>
-                    <th>Leden met openstaand</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Maand</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Totaal ontvangen</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Leden met betaling</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Leden met openstaand</th>
                   </tr>
                 </thead>
-                <tbody>{summary.months.map(renderMonthRow)}</tbody>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {summary.months.map(renderMonthRow)}
+                </tbody>
               </table>
             </div>
           ) : (
-            <p>Geen contributies gevonden voor {year}.</p>
+            <p className="text-gray-600 dark:text-gray-400">Geen contributies gevonden voor {year}.</p>
           )
         ) : singleMonthSummary ? (
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <strong>Maand</strong>
-              <div>{monthNames[singleMonthSummary.month - 1]} {singleMonthSummary.year}</div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Maand</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{monthNames[singleMonthSummary.month - 1]} {singleMonthSummary.year}</p>
             </div>
             <div>
-              <strong>Totaal ontvangen</strong>
-              <div>€ {singleMonthSummary.total_received.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totaal ontvangen</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">€ {singleMonthSummary.total_received.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}</p>
             </div>
             <div>
-              <strong>Leden met betaling</strong>
-              <div>{singleMonthSummary.paid_members}</div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Leden met betaling</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{singleMonthSummary.paid_members}</p>
             </div>
             <div>
-              <strong>Leden met openstaand</strong>
-              <div>{singleMonthSummary.members_with_open}</div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Leden met openstaand</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">{singleMonthSummary.members_with_open}</p>
             </div>
           </div>
         ) : (
-          <p>Geen gegevens gevonden voor deze maand.</p>
+          <p className="text-gray-600 dark:text-gray-400">Geen gegevens gevonden voor deze maand.</p>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

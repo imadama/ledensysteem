@@ -29,7 +29,11 @@ const DashboardPage: React.FC = () => {
     navigate('/login', { replace: true })
   }, [isLoading, navigate, roles, user])
 
-  return <div>Bezig met laden...</div>
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+    </div>
+  )
 }
 
 export default DashboardPage

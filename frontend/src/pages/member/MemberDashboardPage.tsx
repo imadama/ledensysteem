@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { DollarSign, CheckCircle2, Calendar, CreditCard, User, AlertCircle, Clock, Check, XCircle } from 'lucide-react'
 import { useMemberAuth } from '../../context/MemberAuthContext'
 import { apiClient } from '../../api/axios'
+import { Card } from '../../components/ui/Card'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { format } from 'date-fns'
 
 type ContributionRecord = {
   id: number
@@ -113,86 +118,171 @@ const MemberDashboardPage: React.FC = () => {
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'paid':
-        return <span className="badge badge--success">Betaald</span>
+        return <Badge variant="success">Betaald</Badge>
       case 'open':
-        return <span className="badge badge--danger">Open</span>
+        return <Badge variant="error">Open</Badge>
       case 'processing':
-        return <span className="badge" style={{ background: '#fef3c7', color: '#f59e0b' }}>In behandeling</span>
+        return <Badge variant="warning">In behandeling</Badge>
       case 'failed':
-        return <span className="badge badge--secondary">Mislukt</span>
+        return <Badge variant="default">Mislukt</Badge>
       default:
-        return <span className="badge badge--secondary">{status || '-'}</span>
+        return <Badge variant="default">{status || '-'}</Badge>
     }
   }
 
+  const getMonthlyDues = () => {
+    // Calculate average from paid contributions
+    const paidContributions = contributions.filter(c => c.status === 'paid' && c.amount)
+    if (paidContributions.length === 0) return 0
+    const total = paidContributions.reduce((sum, c) => sum + Number(c.amount || 0), 0)
+    return total / paidContributions.length
+  }
+
   const hasOpenContributions = openContributions.length > 0
+  const monthlyDues = getMonthlyDues()
+  const lastPayment = contributions.find(c => c.status === 'paid')
+  const lastPaymentDate = lastPayment?.period_iso || lastPayment?.period
 
   return (
-    <div>
-      <div className="card">
-        <h1>Welkom, {memberUser?.member.first_name} {memberUser?.member.last_name}</h1>
-        <p>
-          Via het ledenportaal kun je je persoonsgegevens bekijken en je contributie opvolgen.
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Mijn Dashboard</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Bekijk je contributie overzicht en betalingsgeschiedenis</p>
+      </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-          <Link to="/portal/profile" className="button">
-            Mijn gegevens
-          </Link>
-          <Link to="/portal/contribution" className="button button--secondary">
-            Mijn contributie
-          </Link>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Maandelijkse Contributie</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                {monthlyDues > 0 ? `€${monthlyDues.toFixed(2)}` : '-'}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <DollarSign className="text-blue-600 dark:text-blue-400" size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Betalingsstatus</p>
+              <p className={`text-lg font-semibold mt-2 ${hasOpenContributions ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                {hasOpenContributions ? 'Openstaand' : 'Bijgewerkt'}
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              {hasOpenContributions ? (
+                <AlertCircle className="text-yellow-600 dark:text-yellow-400" size={24} />
+              ) : (
+                <CheckCircle2 className="text-green-600 dark:text-green-400" size={24} />
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Laatste Betaling</p>
+              <p className="text-lg font-medium text-gray-900 dark:text-white mt-2">
+                {lastPaymentDate ? format(new Date(lastPaymentDate), 'MMM dd, yyyy') : '-'}
+              </p>
+            </div>
+            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Calendar className="text-purple-600 dark:text-purple-400" size={24} />
+            </div>
+          </div>
+        </Card>
       </div>
 
       {hasOpenContributions && (
-        <div className="card" style={{ marginTop: '1.5rem' }}>
-          <div className="alert alert--error" style={{ marginBottom: '1rem' }}>
+        <Card className="p-6">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-400 px-4 py-3 rounded-lg mb-4">
             Je hebt {openContributions.length} openstaande {openContributions.length === 1 ? 'contributie' : 'contributies'}.
           </div>
-          <Link to="/portal/contribution" className="button">
-            Bekijk en betaal
+          <Link to="/portal/contribution">
+            <Button>
+              <CreditCard size={16} />
+              Bekijk en betaal
+            </Button>
           </Link>
-        </div>
+        </Card>
       )}
 
-      <div className="card" style={{ marginTop: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h2>Contributie overzicht</h2>
-          <Link to="/portal/contribution" className="button button--secondary" style={{ fontSize: '0.875rem' }}>
-            Volledig overzicht
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Contributie Overzicht</h3>
+          <Link to="/portal/contribution">
+            <Button variant="outline" size="sm">
+              Volledig overzicht
+            </Button>
           </Link>
         </div>
 
-        {error && <div className="alert alert--error">{error}</div>}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
 
         {loading ? (
-          <p>Bezig met laden...</p>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
         ) : contributions.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Periode</th>
-                  <th>Bedrag</th>
-                  <th>Status</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Periode</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Bedrag</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {contributions.map((record) => (
-                  <tr key={record.id}>
-                    <td>{formatPeriod(record.period, record.period_iso)}</td>
-                    <td>{formatAmount(record.amount)}</td>
-                    <td>{getStatusBadge(record.status)}</td>
+                  <tr key={record.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">
+                      {formatPeriod(record.period, record.period_iso)}
+                    </td>
+                    <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
+                      {formatAmount(record.amount)}
+                    </td>
+                    <td className="py-4 px-4">
+                      {getStatusBadge(record.status)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p>Geen contributies gevonden.</p>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            Geen contributies gevonden.
+          </div>
         )}
-      </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Snelle Acties</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link to="/portal/profile">
+            <Button variant="outline" className="w-full">
+              <User size={16} />
+              Mijn Gegevens
+            </Button>
+          </Link>
+          <Link to="/portal/contribution">
+            <Button variant="outline" className="w-full">
+              <DollarSign size={16} />
+              Mijn Contributie
+            </Button>
+          </Link>
+        </div>
+      </Card>
     </div>
   )
 }

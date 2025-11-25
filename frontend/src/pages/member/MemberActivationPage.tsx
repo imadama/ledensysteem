@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { KeyRound, ArrowLeft, User } from 'lucide-react'
 import { apiClient } from '../../api/axios'
 import { useMemberAuth } from '../../context/MemberAuthContext'
+import { Card } from '../../components/ui/Card'
+import { Button } from '../../components/ui/Button'
 
 type ActivationInfo = {
   member_name: string | null
@@ -113,94 +116,132 @@ const MemberActivationPage: React.FC = () => {
   }
 
   if (loading) {
-    return <div className="card" style={{ maxWidth: 480, margin: '3rem auto' }}>Bezig met laden...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <div className="text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+        </Card>
+      </div>
+    )
   }
 
   if (!token) {
     return (
-      <div className="card" style={{ maxWidth: 480, margin: '3rem auto' }}>
-        <h1>Uitnodiging ongeldig</h1>
-        <p>Deze link lijkt ongeldig. Vraag een nieuwe uitnodiging aan bij je vereniging.</p>
-        <Link className="button" to="/portal/login">
-          Naar inloggen
-        </Link>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Uitnodiging ongeldig</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">Deze link lijkt ongeldig. Vraag een nieuwe uitnodiging aan bij je vereniging.</p>
+          <Link to="/portal/login">
+            <Button className="w-full">
+              <ArrowLeft size={16} />
+              Naar inloggen
+            </Button>
+          </Link>
+        </Card>
       </div>
     )
   }
 
   if (!canActivate) {
     return (
-      <div className="card" style={{ maxWidth: 480, margin: '3rem auto' }}>
-        <h1>Uitnodiging ongeldig</h1>
-        <p>{error ?? 'Deze uitnodiging kan niet meer worden gebruikt.'}</p>
-        <Link className="button" to="/portal/login">
-          Naar inloggen
-        </Link>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Uitnodiging ongeldig</h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error ?? 'Deze uitnodiging kan niet meer worden gebruikt.'}</p>
+          <Link to="/portal/login">
+            <Button className="w-full">
+              <ArrowLeft size={16} />
+              Naar inloggen
+            </Button>
+          </Link>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="card" style={{ maxWidth: 480, margin: '3rem auto' }}>
-      <h1>Account activeren</h1>
-      <p>
-        Je bent uitgenodigd voor het ledenportaal van {info?.organisation_name ?? 'je vereniging'}.
-        Maak hieronder een wachtwoord aan om je account te activeren.
-      </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-6">
+          <div className="mx-auto w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4">
+            <User className="text-indigo-600 dark:text-indigo-400" size={32} />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account activeren</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Je bent uitgenodigd voor het ledenportaal van {info?.organisation_name ?? 'je vereniging'}.
+            Maak hieronder een wachtwoord aan om je account te activeren.
+          </p>
+        </div>
 
-      <dl style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
-        <div>
-          <dt>Naam</dt>
-          <dd>{info?.member_name ?? 'Onbekend lid'}</dd>
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-6 space-y-2">
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Naam</span>
+            <span className="text-sm text-gray-900 dark:text-white">{info?.member_name ?? 'Onbekend lid'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">E-mailadres</span>
+            <span className="text-sm text-gray-900 dark:text-white">{info?.email ?? 'Onbekend'}</span>
+          </div>
+          {info?.expires_at && (
+            <div className="flex justify-between">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Verloopt op</span>
+              <span className="text-sm text-gray-900 dark:text-white">{new Date(info.expires_at).toLocaleString('nl-NL')}</span>
+            </div>
+          )}
         </div>
-        <div>
-          <dt>E-mailadres</dt>
-          <dd>{info?.email ?? 'Onbekend'}</dd>
-        </div>
-        {info?.expires_at && (
-        <div>
-          <dt>Verloopt op</dt>
-          <dd>{new Date(info.expires_at).toLocaleString('nl-NL')}</dd>
-        </div>
+
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
         )}
-      </dl>
-
-      {error && <div className="alert alert--error">{error}</div>}
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form__group">
-          <label htmlFor="activation-password">Wachtwoord</label>
-          <input
-            id="activation-password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            minLength={8}
-            required
-            aria-invalid={fieldErrors.password ? 'true' : 'false'}
-          />
-          {fieldErrors.password && (
-            <div className="form__error">{fieldErrors.password.join(' ')}</div>
-          )}
-        </div>
-        <div className="form__group">
-          <label htmlFor="activation-password-confirmation">Bevestig wachtwoord</label>
-          <input
-            id="activation-password-confirmation"
-            type="password"
-            value={passwordConfirmation}
-            onChange={(event) => setPasswordConfirmation(event.target.value)}
-            minLength={8}
-            required
-            aria-invalid={fieldErrors.password_confirmation ? 'true' : 'false'}
-          />
-          {fieldErrors.password_confirmation && (
-            <div className="form__error">{fieldErrors.password_confirmation.join(' ')}</div>
-          )}
-        </div>
-        <button className="button" type="submit" disabled={submitting}>
-          {submitting ? 'Bezig...' : 'Account activeren'}
-        </button>
-      </form>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="activation-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Wachtwoord
+            </label>
+            <input
+              id="activation-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={8}
+              required
+              aria-invalid={fieldErrors.password ? 'true' : 'false'}
+              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
+              }`}
+            />
+            {fieldErrors.password && (
+              <div className="text-sm text-red-600 dark:text-red-400 mt-1">{fieldErrors.password.join(' ')}</div>
+            )}
+          </div>
+          <div>
+            <label htmlFor="activation-password-confirmation" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Bevestig wachtwoord
+            </label>
+            <input
+              id="activation-password-confirmation"
+              type="password"
+              value={passwordConfirmation}
+              onChange={(event) => setPasswordConfirmation(event.target.value)}
+              minLength={8}
+              required
+              aria-invalid={fieldErrors.password_confirmation ? 'true' : 'false'}
+              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                fieldErrors.password_confirmation ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
+              }`}
+            />
+            {fieldErrors.password_confirmation && (
+              <div className="text-sm text-red-600 dark:text-red-400 mt-1">{fieldErrors.password_confirmation.join(' ')}</div>
+            )}
+          </div>
+          <Button type="submit" disabled={submitting} className="w-full" size="lg">
+            <KeyRound size={16} />
+            {submitting ? 'Bezig...' : 'Account activeren'}
+          </Button>
+        </form>
+      </Card>
     </div>
   )
 }

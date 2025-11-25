@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Building2, Eye, CheckCircle2, XCircle } from 'lucide-react'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
+import { format } from 'date-fns'
 
 type OrganisationSummary = {
   id: number
@@ -62,128 +67,201 @@ const PlatformOrganisationsPage: React.FC = () => {
     }
   }
 
+  const totalOrgs = organisations.length
+  const activeOrgs = organisations.filter(org => org.status === 'active').length
+  const orgsWithIssues = organisations.filter(org => org.has_payment_issues).length
+
+  const filteredOrgs = organisations.filter((organisation) => 
+    onlyIssues ? organisation.has_payment_issues : true
+  )
+
   return (
-    <div>
-      <h1>Organisaties</h1>
-      <p>Overzicht van alle organisaties binnen het platform.</p>
-
-      {error && <div className="alert alert--error">{error}</div>}
-
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-          <input
-            type="checkbox"
-            checked={onlyIssues}
-            onChange={(event) => setOnlyIssues(event.target.checked)}
-          />
-          Toon alleen organisaties met betalingsproblemen
-        </label>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Platform Overzicht</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Monitor alle organisaties en system metrics</p>
       </div>
 
-      {loading ? (
-        <div>Bezig met laden...</div>
-      ) : (
-        <div className="table-responsive">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Naam</th>
-              <th>Type</th>
-              <th>Contact</th>
-              <th>Status</th>
-              <th>Abonnement</th>
-              <th>Betaalstatus</th>
-              <th>Acties</th>
-            </tr>
-          </thead>
-          <tbody>
-            {organisations
-              .filter((organisation) => (onlyIssues ? organisation.has_payment_issues : true))
-              .map((organisation) => (
-              <tr key={organisation.id}>
-                <td>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <strong>{organisation.name}</strong>
-                    <small>{organisation.city ?? ''} {organisation.country ?? ''}</small>
-                  </div>
-                </td>
-                <td>{organisation.type}</td>
-                <td>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span>{organisation.contact_email}</span>
-                    {organisation.primary_contact && (
-                      <small>
-                        {organisation.primary_contact.first_name} {organisation.primary_contact.last_name}
-                      </small>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <span className={`badge ${organisation.status === 'active' ? 'badge--success' : 'badge--danger'}`}>
-                    {organisation.status}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span>{organisation.subscription?.plan_name ?? 'Geen'}</span>
-                    {organisation.subscription?.status && (
-                      <small>Status: {organisation.subscription?.status}</small>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  {organisation.billing_status ? (
-                    <span
-                      className={`badge ${
-                        organisation.billing_status === 'ok'
-                          ? 'badge--success'
-                          : organisation.billing_status === 'restricted'
-                            ? 'badge--danger'
-                            : 'badge--warning'
-                      }`}
-                    >
-                      {organisation.billing_status}
-                    </span>
-                  ) : (
-                    <span className="badge badge--secondary">n.v.t.</span>
-                  )}
-                </td>
-                <td>
-                    <div className="table-actions">
-                    <Link className="button" to={`/platform/organisations/${organisation.id}`}>
-                      Details
-                    </Link>
-                    {organisation.status !== 'active' && (
-                      <button
-                        className="button"
-                        onClick={() => updateStatus(organisation.id, 'activate')}
-                      >
-                        Activeer
-                      </button>
-                    )}
-                    {organisation.status !== 'blocked' && (
-                      <button
-                        className="button button--secondary"
-                        onClick={() => updateStatus(organisation.id, 'block')}
-                      >
-                        Blokkeer
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {organisations.length === 0 && !loading && (
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center' }}>
-                  Geen organisaties gevonden.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totaal Organisaties</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalOrgs}</p>
+            </div>
+            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+              <Building2 className="text-indigo-600 dark:text-indigo-400" size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Actieve Organisaties</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{activeOrgs}</p>
+            </div>
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <CheckCircle2 className="text-green-600 dark:text-green-400" size={24} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Betalingsproblemen</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{orgsWithIssues}</p>
+            </div>
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <XCircle className="text-red-600 dark:text-red-400" size={24} />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
         </div>
       )}
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Organisaties</h3>
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={onlyIssues}
+              onChange={(event) => setOnlyIssues(event.target.checked)}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            Alleen betalingsproblemen
+          </label>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Organisatie</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Type</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Contact</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Abonnement</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Betaalstatus</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Acties</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrgs.map((organisation) => (
+                  <tr key={organisation.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                          <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
+                        </div>
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-white">{organisation.name}</span>
+                          {(organisation.city || organisation.country) && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {organisation.city ?? ''} {organisation.country ?? ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{organisation.type}</td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{organisation.contact_email}</p>
+                        {organisation.primary_contact && (
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            {organisation.primary_contact.first_name} {organisation.primary_contact.last_name}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      {organisation.status === 'active' ? (
+                        <Badge variant="success">Actief</Badge>
+                      ) : (
+                        <Badge variant="error">Niet actief</Badge>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-900 dark:text-white">
+                          {organisation.subscription?.plan_name ?? 'Geen'}
+                        </p>
+                        {organisation.subscription?.status && (
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            {organisation.subscription.status}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      {organisation.billing_status ? (
+                        <Badge 
+                          variant={
+                            organisation.billing_status === 'ok' 
+                              ? 'success' 
+                              : organisation.billing_status === 'restricted'
+                              ? 'error'
+                              : 'warning'
+                          }
+                        >
+                          {organisation.billing_status}
+                        </Badge>
+                      ) : (
+                        <Badge variant="default">n.v.t.</Badge>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link to={`/platform/organisations/${organisation.id}`}>
+                          <Button variant="outline" size="sm">
+                            <Eye size={16} />
+                            Details
+                          </Button>
+                        </Link>
+                        {organisation.status !== 'active' && (
+                          <Button 
+                            size="sm"
+                            onClick={() => updateStatus(organisation.id, 'activate')}
+                          >
+                            Activeer
+                          </Button>
+                        )}
+                        {organisation.status !== 'blocked' && (
+                          <Button 
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => updateStatus(organisation.id, 'block')}
+                          >
+                            Blokkeer
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredOrgs.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      Geen organisaties gevonden.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
