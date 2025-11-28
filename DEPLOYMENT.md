@@ -155,6 +155,8 @@ Dit zal:
 docker compose -f docker-compose.prod.yml ps
 ```
 
+**Let op:** Je kunt warnings zien over ontbrekende environment variabelen bij `docker compose ps`. Dit is normaal - de `ps` command gebruikt de env file niet, maar de containers hebben de variabelen wel gekregen bij het starten. Je kunt deze warnings negeren.
+
 Je zou 2 containers moeten zien draaien:
 - `leden_backend`
 - `leden_frontend`
@@ -174,11 +176,26 @@ docker compose -f docker-compose.prod.yml logs -f frontend
 
 ### 3.1 Genereer APP_KEY
 
+**Belangrijk:** Herstart eerst de backend container zodat het entrypoint script een `.env` file aanmaakt:
+
 ```bash
-docker compose -f docker-compose.prod.yml exec backend php artisan key:generate
+docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
 ```
 
-Dit genereert automatisch een APP_KEY en voegt deze toe aan je `.env.production` bestand.
+Wacht een paar seconden, dan genereer je de APP_KEY:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate
+```
+
+Dit genereert automatisch een APP_KEY. Het entrypoint script maakt automatisch een `.env` file aan in de container vanuit de environment variabelen, en de key wordt daar aan toegevoegd.
+
+**Alternatief:** Als je de key handmatig wilt toevoegen aan je `.env.production` bestand:
+```bash
+# Genereer key en kopieer de output
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate --show
+# Voeg de gegenereerde key handmatig toe aan .env.production als APP_KEY=...
+```
 
 ### 3.2 Voer migraties uit
 
