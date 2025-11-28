@@ -7,10 +7,9 @@ if [ ! -d "/var/www/html/vendor" ] || [ -z "$(ls -A /var/www/html/vendor)" ]; th
     composer install --prefer-dist --no-progress --no-interaction --no-dev --optimize-autoloader
 fi
 
-# Create .env file from environment variables if it doesn't exist
-if [ ! -f "/var/www/html/.env" ]; then
-    echo "Creating .env file from environment variables..."
-    cat > /var/www/html/.env << EOF
+# Always create/update .env file from environment variables
+echo "Creating/updating .env file from environment variables..."
+cat > /var/www/html/.env << EOF
 APP_NAME=${APP_NAME:-Laravel}
 APP_ENV=${APP_ENV:-production}
 APP_KEY=${APP_KEY:-}
@@ -46,7 +45,6 @@ STRIPE_DEFAULT_CURRENCY=${STRIPE_DEFAULT_CURRENCY:-eur}
 STRIPE_PRICE_BASIC=${STRIPE_PRICE_BASIC:-}
 STRIPE_PRICE_PLUS=${STRIPE_PRICE_PLUS:-}
 EOF
-fi
 
 # Ensure storage and cache directories have correct permissions
 mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache

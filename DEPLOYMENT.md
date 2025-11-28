@@ -176,25 +176,37 @@ docker compose -f docker-compose.prod.yml logs -f frontend
 
 ### 3.1 Genereer APP_KEY
 
-**Belangrijk:** Herstart eerst de backend container zodat het entrypoint script een `.env` file aanmaakt:
+**Belangrijk:** De APP_KEY is verplicht voor Laravel. Volg deze stappen:
+
+**Stap 1:** Herstart de backend container zodat het entrypoint script een `.env` file aanmaakt:
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
 ```
 
-Wacht een paar seconden, dan genereer je de APP_KEY:
+Wacht 10-15 seconden tot de container volledig is gestart.
+
+**Stap 2:** Genereer de APP_KEY:
 
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate
 ```
 
-Dit genereert automatisch een APP_KEY. Het entrypoint script maakt automatisch een `.env` file aan in de container vanuit de environment variabelen, en de key wordt daar aan toegevoegd.
+Dit genereert automatisch een APP_KEY en voegt deze toe aan de `.env` file in de container.
+
+**Stap 3:** Herstart de backend container opnieuw zodat de nieuwe APP_KEY wordt geladen:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
+```
 
 **Alternatief:** Als je de key handmatig wilt toevoegen aan je `.env.production` bestand:
 ```bash
 # Genereer key en kopieer de output
 docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate --show
-# Voeg de gegenereerde key handmatig toe aan .env.production als APP_KEY=...
+# Kopieer de output (bijv. base64:xxxxx) en voeg toe aan .env.production als:
+# APP_KEY=base64:xxxxx
+# Herstart dan de container
 ```
 
 ### 3.2 Voer migraties uit
@@ -379,11 +391,113 @@ docker compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/htm
 
 ## Stap 6: Test de applicatie
 
+### 6.1 Test containers lokaal
+
+Voordat je het domein test, controleer eerst of de containers lokaal werken:
+
+```bash
+# Test backend lokaal
+curl http://localhost:6969
+# Of
+curl http://localhost:6969/api
+
+# Test frontend lokaal
+curl http://localhost:3000
+```
+
+Als deze werken, dan draaien de containers correct.
+
+### 6.2 Test via domein
+
 1. Open je browser en ga naar `https://aidatim.nl` (frontend)
 2. Test of de frontend laadt
 3. Test of API calls werken (bijv. inloggen) - deze gaan naar `https://app.aidatim.nl/api`
-4. Check de browser console voor errors
-5. Test ook direct de backend API: `https://app.aidatim.nl/api/health` (als je een health endpoint hebt)
+4. Check de browser console voor errors (F12 → Console tab)
+5. Test ook direct de backend API: `https://app.aidatim.nl/api` (of een specifiek endpoint)
+
+### 6.3 Troubleshooting checklist
+
+Als het domein niet werkt, check het volgende:
+
+**1. Containers draaien?**
+```bash
+docker compose -f docker-compose.prod.yml ps
+# Beide containers moeten "Up" status hebben
+```
+
+**2. Poorten lokaal bereikbaar?**
+```bash
+# Test backend
+curl -I http://localhost:6969
+# Moet HTTP 200 of 404 teruggeven (niet connection refused)
+
+# Test frontend
+curl -I http://localhost:3000
+# Moet HTTP 200 teruggeven
+```
+
+**3. Nginx Proxy Manager configuratie?**
+- Log in op Nginx Proxy Manager (meestal `http://jouw-server-ip:81`)
+- Check of beide Proxy Hosts bestaan:
+  - `aidatim.nl` → `localhost:3000`
+  - `app.aidatim.nl` → `localhost:6969`
+- Check of SSL certificaten zijn aangevraagd en actief zijn
+- Check de logs in NPM voor errors
+
+**4. DNS correct?**
+```bash
+# Test DNS vanaf je server
+nslookup aidatim.nl
+nslookup app.aidatim.nl
+# Beide moeten naar je server IP wijzen
+```
+
+**5. Firewall?**
+```bash
+# Check of poorten open zijn
+sudo ufw status
+# Of
+sudo iptables -L -n | grep -E '3000|6969|80|443'
+```
+
+**6. Nginx Proxy Manager logs?**
+- Ga naar NPM → Logs
+- Check voor errors bij het forwarden
+
+**7. Container logs?**
+```bash
+# Backend logs (laatste 100 regels)
+docker compose -f docker-compose.prod.yml logs backend --tail 100
+
+# Frontend logs
+docker compose -f docker-compose.prod.yml logs frontend --tail 50
+```
+
+**8. Laravel specifieke errors?**
+```bash
+# Check Laravel logs in de container
+docker compose -f docker-compose.prod.yml exec backend tail -f /var/www/html/storage/logs/laravel.log
+
+# Of bekijk de laatste errors
+docker compose -f docker-compose.prod.yml exec backend tail -50 /var/www/html/storage/logs/laravel.log
+```
+
+**9. Test database connectie?**
+```bash
+# Test of de database connectie werkt
+docker compose -f docker-compose.prod.yml exec backend php artisan tinker
+# In tinker, probeer:
+# DB::connection()->getPdo();
+# Exit met: exit
+```
+
+**10. Check of APP_KEY is ingesteld?**
+```bash
+# Check of APP_KEY bestaat
+docker compose -f docker-compose.prod.yml exec backend php artisan key:generate --show
+# Als dit een key toont, is het goed. Als niet, genereer dan:
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate
+```
 
 ## Stap 7: Monitoring en onderhoud
 
