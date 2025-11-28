@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Users, DollarSign, Clock, UserPlus, Upload } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
