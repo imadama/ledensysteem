@@ -21,7 +21,7 @@ Als je al bekend bent met Docker deployment, hier is de korte versie:
 6. Seed database: `docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force`
 7. Configureer Nginx Proxy Manager:
    - Frontend Proxy Host: `aidatim.nl` → `localhost:3000`
-   - Backend Proxy Host: `app.aidatim.nl` → `localhost:8000`
+   - Backend Proxy Host: `app.aidatim.nl` → `localhost:6969`
 8. Request SSL certificaten in NPM voor beide domeinen
 
 Voor gedetailleerde instructies, lees verder.
@@ -71,14 +71,14 @@ APP_DEBUG=false
 APP_KEY=
 APP_URL=https://app.aidatim.nl
 
-# Database
+# Database (externe MySQL server)
 DB_CONNECTION=mysql
-DB_HOST=192.168.68.86
+DB_HOST=192.168.68.86  # IP adres van je externe MySQL server
 DB_PORT=3306
 DB_DATABASE=ledenportaal
 DB_USERNAME=ama
 DB_PASSWORD=ama123
-DB_ROOT_PASSWORD=ama123
+# DB_ROOT_PASSWORD is niet nodig voor externe database
 
 # Session & CORS
 SESSION_DOMAIN=aidatim.nl
@@ -113,14 +113,23 @@ VITE_API_URL=https://app.aidatim.nl/api
 
 - `APP_KEY`: Laat dit leeg, wordt automatisch gegenereerd in stap 3
 - `APP_URL`: `https://app.aidatim.nl` (backend API URL)
-- `DB_PASSWORD`: Kies een sterk wachtwoord voor de database
-- `DB_ROOT_PASSWORD`: Kies een sterk root wachtwoord voor MySQL
+- `DB_HOST`: IP adres van je externe MySQL server (bijv. `192.168.68.86` of `host.docker.internal` als MySQL op dezelfde host draait)
+- `DB_PORT`: Poort van je MySQL server (standaard `3306`)
+- `DB_DATABASE`: Naam van je database
+- `DB_USERNAME`: MySQL gebruikersnaam
+- `DB_PASSWORD`: MySQL wachtwoord
 - `SESSION_DOMAIN`: `aidatim.nl` (hoofddomein voor cookies)
 - `SANCTUM_STATEFUL_DOMAINS`: `aidatim.nl` (frontend domein)
 - `CORS_ALLOWED_ORIGINS`: `https://aidatim.nl` (frontend URL)
 - `VITE_API_URL`: `https://app.aidatim.nl/api` (backend API URL voor frontend)
 - Stripe variabelen: Vul je Stripe productie keys in
 - Mail variabelen: Vul je SMTP instellingen in
+
+**Belangrijk voor externe MySQL:**
+- Als MySQL op dezelfde server draait als Docker, gebruik dan `host.docker.internal` (Linux) of `172.17.0.1` als `DB_HOST`
+- Als MySQL op een andere server draait, gebruik het IP adres van die server
+- Zorg dat MySQL remote connections toestaat (bind-address configuratie)
+- Zorg dat de firewall poort 3306 open staat
 
 ## Stap 2: Docker containers bouwen en starten
 
@@ -134,9 +143,10 @@ docker compose -f docker-compose.prod.yml --env-file .env.production up -d --bui
 ```
 
 Dit zal:
-- De MySQL database container starten
 - De backend container bouwen en starten
 - De frontend container bouwen (met productie build) en starten
+
+**Let op:** Deze setup gebruikt een externe MySQL database (niet in Docker). Zorg dat je MySQL server draait en toegankelijk is vanaf de Docker host.
 
 ### 2.2 Controleer of alles draait
 
@@ -144,11 +154,9 @@ Dit zal:
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Je zou 4 containers moeten zien draaien:
-- `leden_db`
+Je zou 2 containers moeten zien draaien:
 - `leden_backend`
 - `leden_frontend`
-- `leden_nginx`
 
 ### 2.3 Check de logs
 
@@ -197,7 +205,7 @@ docker compose -f docker-compose.prod.yml exec backend php artisan view:cache
 
 Omdat je al Nginx Proxy Manager hebt, maken we twee aparte Proxy Hosts aan:
 - **Frontend** op `aidatim.nl` → forward naar `localhost:3000`
-- **Backend API** op `app.aidatim.nl` → forward naar `localhost:8000`
+- **Backend API** op `app.aidatim.nl` → forward naar `localhost:6969`
 
 ### 4.1 Frontend Proxy Host (aidatim.nl)
 
@@ -236,7 +244,7 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 - **Forward Hostname / IP:** 
   - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1`
   - Als Nginx Proxy Manager in een Docker network draait: `leden_backend` (container naam) of het IP adres van je Docker host
-- **Forward Port:** `8000` (de poort van de backend container)
+- **Forward Port:** `6969` (de poort van de backend container)
 - **Cache Assets:** Uit (voor API's niet nodig)
 - **Block Common Exploits:** Aan
 - **Websockets Support:** Uit
@@ -279,19 +287,59 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 
 ### 4.3 DNS Records configureren
 
-Zorg dat je DNS records correct zijn ingesteld:
+Je moet twee DNS records aanmaken in je DNS provider (bijv. Cloudflare, Namecheap, TransIP, etc.):
 
-- **A record** voor `aidatim.nl` → wijst naar je server IP
-- **A record** voor `app.aidatim.nl` → wijst naar je server IP
+#### Optie 1: A Records (aanbevolen)
 
-Of gebruik een **CNAME record**:
-- **CNAME** voor `app.aidatim.nl` → wijst naar `aidatim.nl`
+Maak de volgende **A records** aan:
 
-**Let op:** Het kan even duren voordat DNS records zijn doorgevoerd. Je kunt dit testen met:
-```bash
-dig aidatim.nl
-dig app.aidatim.nl
-```
+1. **A Record voor hoofddomein:**
+   - **Name/Host:** `@` of `aidatim.nl` (afhankelijk van je DNS provider)
+   - **Type:** A
+   - **Value/Points to:** `JOUW_SERVER_IP` (bijv. `123.45.67.89`)
+   - **TTL:** 3600 (of Auto)
+
+2. **A Record voor subdomein:**
+   - **Name/Host:** `app`
+   - **Type:** A
+   - **Value/Points to:** `JOUW_SERVER_IP` (zelfde IP als hierboven)
+   - **TTL:** 3600 (of Auto)
+
+**Voorbeeld bij verschillende providers:**
+
+**TransIP/Namecheap:**
+- Host: `@`, Type: A, Value: `123.45.67.89`
+- Host: `app`, Type: A, Value: `123.45.67.89`
+
+#### Optie 2: CNAME Record (alternatief)
+
+Als je liever een CNAME gebruikt voor het subdomein:
+
+1. **A Record voor hoofddomein:**
+   - **Name/Host:** `@` of `aidatim.nl`
+   - **Type:** A
+   - **Value/Points to:** `JOUW_SERVER_IP`
+
+2. **CNAME Record voor subdomein:**
+   - **Name/Host:** `app`
+   - **Type:** CNAME
+   - **Value/Points to:** `aidatim.nl`
+
+**Let op:** 
+- Vervang `JOUW_SERVER_IP` met het daadwerkelijke IP-adres van je server
+- Het kan 5 minuten tot 48 uur duren voordat DNS records zijn doorgevoerd (meestal binnen 1-2 uur)
+- Je kunt dit testen met:
+  ```bash
+  # Test of DNS records correct zijn
+  dig aidatim.nl +short
+  dig app.aidatim.nl +short
+  
+  # Of met nslookup
+  nslookup aidatim.nl
+  nslookup app.aidatim.nl
+  ```
+
+**Belangrijk:** Zorg dat beide domeinen naar hetzelfde IP-adres wijzen voordat je SSL certificaten aanvraagt in Nginx Proxy Manager!
 
 ## Stap 5: Permissies controleren
 
@@ -356,12 +404,14 @@ docker compose -f docker-compose.prod.yml exec backend php artisan migrate --for
 
 ### 7.4 Backup database
 
+Omdat je een externe MySQL database gebruikt, maak je backups direct op de MySQL server:
+
 ```bash
-# Backup maken
-docker compose -f docker-compose.prod.yml exec db mysqldump -u app -p${DB_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
+# Backup maken (op je MySQL server)
+mysqldump -u ama -p ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Of met root
-docker compose -f docker-compose.prod.yml exec db mysqldump -u root -p${DB_ROOT_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
+mysqldump -u root -p ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ## Troubleshooting
@@ -374,14 +424,17 @@ docker compose -f docker-compose.prod.yml logs
 
 # Check of poorten in gebruik zijn
 netstat -tulpn | grep :3000
-netstat -tulpn | grep :8000
+netstat -tulpn | grep :6969
 ```
 
 ### Database connectie problemen
 
-- Controleer of de `DB_PASSWORD` in `.env.production` overeenkomt met `MYSQL_PASSWORD` in docker compose
-- Check of de database container draait: `docker compose -f docker-compose.prod.yml ps db`
-- Test de connectie: `docker compose -f docker-compose.prod.yml exec backend php artisan tinker`
+- Controleer of de `DB_HOST`, `DB_USERNAME` en `DB_PASSWORD` in `.env.production` correct zijn
+- Check of je MySQL server draait en toegankelijk is: `systemctl status mysql` (of `service mysql status`)
+- Test de connectie vanaf de Docker host: `mysql -h 192.168.68.86 -u ama -p ledenportaal`
+- Test de connectie vanuit de container: `docker compose -f docker-compose.prod.yml exec backend php artisan tinker`
+- Controleer of MySQL remote connections toestaat (bind-address in `/etc/mysql/mysql.conf.d/mysqld.cnf` moet `0.0.0.0` zijn of je server IP)
+- Check firewall: MySQL poort 3306 moet open zijn
 
 ### Frontend laadt niet
 

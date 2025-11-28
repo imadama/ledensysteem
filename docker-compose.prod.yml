@@ -1,29 +1,12 @@
 version: "3.9"
 
 services:
-  db:
-    image: mysql:8.0
-    container_name: leden_db
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-ledenportaal}
-      MYSQL_USER: ${DB_USERNAME:-app}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-    volumes:
-      - db_data:/var/lib/mysql
-    networks:
-      - leden_network
-    # Geen externe poort mapping voor beveiliging
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
     container_name: leden_backend
     restart: unless-stopped
-    depends_on:
-      - db
     volumes:
       - backend_storage:/var/www/html/storage
       - ./backend:/var/www/html
@@ -35,8 +18,8 @@ services:
       APP_KEY: ${APP_KEY}
       APP_URL: ${APP_URL}
       DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
       DB_DATABASE: ${DB_DATABASE:-ledenportaal}
       DB_USERNAME: ${DB_USERNAME:-app}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -63,7 +46,7 @@ services:
       STRIPE_PRICE_PLUS: ${STRIPE_PRICE_PLUS}
     # Poort voor Nginx Proxy Manager
     ports:
-      - "8000:8000"
+      - "6969:8000"
 
   frontend:
     build:
@@ -84,7 +67,6 @@ services:
       - "3000:80"
 
 volumes:
-  db_data:
   backend_storage:
   frontend_dist:
 
