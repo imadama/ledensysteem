@@ -1,0 +1,40 @@
+FROM php:8.3-cli
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        libzip-dev \
+        unzip \
+        git \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql zip gd \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Copy composer files
+COPY composer.json composer.lock* ./
+
+# Install dependencies (no dev dependencies)
+RUN composer install --prefer-dist --no-progress --no-interaction --no-scripts --no-dev
+
+# Copy application files
+COPY . .
+
+# Run composer scripts and optimize
+RUN composer dump-autoload --optimize
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
+
+EXPOSE 8000
+
+# Start Laravel development server (voor productie kan je later overwegen PHP-FPM + Nginx)
+CMD php artisan serve --host=0.0.0.0 --port=8000
+
