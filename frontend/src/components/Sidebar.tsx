@@ -6,7 +6,6 @@ import {
   Users, 
   Settings, 
   LogOut, 
-  Menu, 
   X,
   Home,
   DollarSign,
@@ -26,7 +25,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, roles, organisation, logout } = useAuth()
+  const { user, organisation, logout } = useAuth()
   const { memberUser, memberLogout } = useMemberAuth()
 
   const platformAdminItems = [
@@ -86,7 +85,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
     if (user && user.first_name && user.last_name) {
       return `${user.first_name} ${user.last_name}`
     }
-    return currentUser?.email || 'Gebruiker'
+    if (userRole === 'member' && memberUser) {
+      return memberUser.user.email || 'Gebruiker'
+    }
+    return user?.email || 'Gebruiker'
   }
 
   const getUserInitials = () => {

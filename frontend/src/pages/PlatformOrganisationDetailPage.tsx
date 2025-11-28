@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Building2, ArrowLeft, CheckCircle2, XCircle, Users, Mail, Calendar } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Users } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'

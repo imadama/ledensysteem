@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FileText, Plus, Edit, Save, X } from 'lucide-react'
+import { Plus, Edit, Save, X } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'

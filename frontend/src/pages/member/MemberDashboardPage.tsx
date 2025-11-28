@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { DollarSign, CheckCircle2, Calendar, CreditCard, User, AlertCircle, Clock, Check, XCircle } from 'lucide-react'
-import { useMemberAuth } from '../../context/MemberAuthContext'
+import { DollarSign, CheckCircle2, Calendar, CreditCard, User, AlertCircle } from 'lucide-react'
 import { apiClient } from '../../api/axios'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -27,7 +26,6 @@ type OpenContribution = {
 }
 
 const MemberDashboardPage: React.FC = () => {
-  const { memberUser } = useMemberAuth()
   const [contributions, setContributions] = useState<ContributionRecord[]>([])
   const [openContributions, setOpenContributions] = useState<OpenContribution[]>([])
   const [loading, setLoading] = useState(true)

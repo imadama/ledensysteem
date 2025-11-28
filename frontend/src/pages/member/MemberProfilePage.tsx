@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { User, Save } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { useMemberAuth } from '../../context/MemberAuthContext'
 import { apiClient } from '../../api/axios'
 import { Card } from '../../components/ui/Card'

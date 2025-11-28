@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { Users, UserPlus, X, Ban, CheckCircle2, Trash2 } from 'lucide-react'
+import { UserPlus, X, Ban, CheckCircle2, Trash2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'

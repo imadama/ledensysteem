@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Users, DollarSign, Clock, TrendingUp, UserPlus, Upload, Download } from 'lucide-react'
+import { Users, DollarSign, Clock, UserPlus, Upload } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
-import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 
 type MonthData = {
@@ -46,7 +45,6 @@ const monthNamesFull = [
 const currentYear = new Date().getFullYear()
 
 const OrganisationDashboardPage: React.FC = () => {
-  const { organisation } = useAuth()
   const [year, setYear] = useState<number>(currentYear)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

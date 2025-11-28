@@ -15,10 +15,10 @@ Als je al bekend bent met Docker deployment, hier is de korte versie:
 
 1. Clone repository: `git clone <repo> && cd ledensysteem`
 2. Maak `.env.production` aan met alle benodigde variabelen (zie stap 1.2 voor aidatim.nl configuratie)
-3. Start containers: `docker-compose -f docker-compose.prod.yml --env-file .env.production up -d --build`
-4. Genereer APP_KEY: `docker-compose -f docker-compose.prod.yml exec backend php artisan key:generate`
-5. Run migraties: `docker-compose -f docker-compose.prod.yml exec backend php artisan migrate --force`
-6. Seed database: `docker-compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force`
+3. Start containers: `docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build`
+4. Genereer APP_KEY: `docker compose -f docker-compose.prod.yml exec backend php artisan key:generate`
+5. Run migraties: `docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force`
+6. Seed database: `docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force`
 7. Configureer Nginx Proxy Manager:
    - Frontend Proxy Host: `aidatim.nl` → `localhost:3000`
    - Backend Proxy Host: `app.aidatim.nl` → `localhost:8000`
@@ -38,6 +38,24 @@ cd ledensysteem
 
 ### 1.2 Maak environment bestand aan
 
+**Belangrijk:** Maak het `.env.production` bestand aan in de **root** van het project (dezelfde map waar `docker compose.prod.yml` staat), dus:
+
+```
+ledensysteem/
+├── docker compose.prod.yml
+├── .env.production          ← Hier!
+├── backend/
+└── frontend/
+```
+
+Maak het bestand aan met:
+
+```bash
+# Zorg dat je in de root van het project bent (waar docker compose.prod.yml staat)
+cd /opt/ledensysteem  # of waar je het project hebt gecloned
+nano .env.production  # of gebruik je favoriete editor
+```
+
 Maak een nieuw `.env.production` bestand aan met de volgende inhoud:
 
 ```bash
@@ -46,7 +64,6 @@ nano .env.production  # of gebruik je favoriete editor
 
 **Vul het volgende in (pas aan waar nodig):**
 
-```env
 # Application
 APP_NAME=Ledenportaal
 APP_ENV=production
@@ -56,12 +73,12 @@ APP_URL=https://app.aidatim.nl
 
 # Database
 DB_CONNECTION=mysql
-DB_HOST=db
+DB_HOST=192.168.68.86
 DB_PORT=3306
 DB_DATABASE=ledenportaal
-DB_USERNAME=app
-DB_PASSWORD=sterk_wachtwoord_hier
-DB_ROOT_PASSWORD=sterk_root_wachtwoord_hier
+DB_USERNAME=ama
+DB_PASSWORD=ama123
+DB_ROOT_PASSWORD=ama123
 
 # Session & CORS
 SESSION_DOMAIN=aidatim.nl
@@ -72,16 +89,16 @@ CORS_ALLOWED_ORIGINS=https://aidatim.nl
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=587
-MAIL_USERNAME=your_mail_username
-MAIL_PASSWORD=your_mail_password
+MAIL_USERNAME=info@aidatim.nl
+MAIL_PASSWORD=Imad2003!
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=noreply@aidatim.nl
 MAIL_FROM_NAME="${APP_NAME}"
 
 # Stripe Configuration
-STRIPE_SECRET=sk_live_your_stripe_secret_key
-STRIPE_PUBLIC_KEY=pk_live_your_stripe_public_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_SECRET=sk_test_51SS1PAA46Wivqv54uKmI8oL0q8Jwl1kOH1rLrzE0jVRYh612INjMGRbdeWL50UGLxPNm3cpdoXLcsDMm65B0tBI900P7rlJtW5
+STRIPE_PUBLIC_KEY=pk_test_51SS1PAA46Wivqv54IlxS2UYHIsW57tFF8pwua21tNvHtuZSKXk1xiAtvB9T1i1fTENeOvwVhztnM5CXgnjk4t2Cz00HoIGr7Zu
+STRIPE_WEBHOOK_SECRET=whsec_dab7edac21edcfd0145bfd0e82a8b8e49081e21a7f4c88b709c5b149493f282e
 STRIPE_CONNECT_CLIENT_ID=ca_your_connect_client_id
 STRIPE_CONNECT_ACCOUNT_TYPE=express
 STRIPE_DEFAULT_CURRENCY=eur
@@ -90,7 +107,7 @@ STRIPE_PRICE_PLUS=price_your_plus_price_id
 
 # Frontend
 VITE_API_URL=https://app.aidatim.nl/api
-```
+
 
 **Belangrijke variabelen om aan te passen:**
 
@@ -109,21 +126,22 @@ VITE_API_URL=https://app.aidatim.nl/api
 
 ### 2.1 Build en start de containers
 
+**Let op:** Deze guide gebruikt `docker compose` (met spatie) voor Docker Compose v2. Als je nog v1 gebruikt, vervang dan `docker compose` door `docker-compose` (met streepje).
+
 ```bash
-# Gebruik de productie docker-compose file
-docker-compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Gebruik de productie docker compose file
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 
 Dit zal:
 - De MySQL database container starten
 - De backend container bouwen en starten
 - De frontend container bouwen (met productie build) en starten
-- De Nginx reverse proxy container starten
 
 ### 2.2 Controleer of alles draait
 
 ```bash
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 ```
 
 Je zou 4 containers moeten zien draaien:
@@ -136,11 +154,11 @@ Je zou 4 containers moeten zien draaien:
 
 ```bash
 # Alle logs
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
 
 # Specifieke service
-docker-compose -f docker-compose.prod.yml logs -f backend
-docker-compose -f docker-compose.prod.yml logs -f frontend
+docker compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f frontend
 ```
 
 ## Stap 3: Application key genereren en database setup
@@ -148,7 +166,7 @@ docker-compose -f docker-compose.prod.yml logs -f frontend
 ### 3.1 Genereer APP_KEY
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend php artisan key:generate
+docker compose -f docker-compose.prod.yml exec backend php artisan key:generate
 ```
 
 Dit genereert automatisch een APP_KEY en voegt deze toe aan je `.env.production` bestand.
@@ -156,13 +174,13 @@ Dit genereert automatisch een APP_KEY en voegt deze toe aan je `.env.production`
 ### 3.2 Voer migraties uit
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force
 ```
 
 ### 3.3 Seed de database (rollen en admin)
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force
+docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force
 ```
 
 **Let op:** De seeder maakt een admin account aan. Check de seeder code voor de standaard credentials of pas deze aan.
@@ -170,9 +188,9 @@ docker-compose -f docker-compose.prod.yml exec backend php artisan db:seed --cla
 ### 3.4 Cache optimaliseren (optioneel maar aanbevolen)
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend php artisan config:cache
-docker-compose -f docker-compose.prod.yml exec backend php artisan route:cache
-docker-compose -f docker-compose.prod.yml exec backend php artisan view:cache
+docker compose -f docker-compose.prod.yml exec backend php artisan config:cache
+docker compose -f docker-compose.prod.yml exec backend php artisan route:cache
+docker compose -f docker-compose.prod.yml exec backend php artisan view:cache
 ```
 
 ## Stap 4: Nginx Proxy Manager configureren
@@ -244,7 +262,7 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 
 **Let op:** Als Nginx Proxy Manager in een apart Docker network draait, moet je mogelijk de containers in hetzelfde network plaatsen. Je kunt dit doen door:
 
-1. **Optie A:** Het network van NPM gebruiken in docker-compose.prod.yml:
+1. **Optie A:** Het network van NPM gebruiken in docker compose.prod.yml:
    ```yaml
    networks:
      leden_network:
@@ -282,15 +300,15 @@ dig app.aidatim.nl
 Zorg dat de storage directory de juiste permissies heeft:
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend chown -R www-data:www-data /var/www/html/storage
-docker-compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/html/storage
+docker compose -f docker-compose.prod.yml exec backend chown -R www-data:www-data /var/www/html/storage
+docker compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/html/storage
 ```
 
 ### 5.2 Bootstrap cache permissies
 
 ```bash
-docker-compose -f docker-compose.prod.yml exec backend chown -R www-data:www-data /var/www/html/bootstrap/cache
-docker-compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/html/bootstrap/cache
+docker compose -f docker-compose.prod.yml exec backend chown -R www-data:www-data /var/www/html/bootstrap/cache
+docker compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/html/bootstrap/cache
 ```
 
 ## Stap 6: Test de applicatie
@@ -307,20 +325,20 @@ docker-compose -f docker-compose.prod.yml exec backend chmod -R 755 /var/www/htm
 
 ```bash
 # Alle logs
-docker-compose -f docker-compose.prod.yml logs -f
+docker compose -f docker-compose.prod.yml logs -f
 
 # Specifieke service
-docker-compose -f docker-compose.prod.yml logs -f backend
+docker compose -f docker-compose.prod.yml logs -f backend
 ```
 
 ### 7.2 Containers herstarten
 
 ```bash
 # Alle containers
-docker-compose -f docker-compose.prod.yml restart
+docker compose -f docker-compose.prod.yml restart
 
 # Specifieke container
-docker-compose -f docker-compose.prod.yml restart backend
+docker compose -f docker-compose.prod.yml restart backend
 ```
 
 ### 7.3 Updates uitvoeren
@@ -330,20 +348,20 @@ docker-compose -f docker-compose.prod.yml restart backend
 git pull origin main  # of je branch naam
 
 # Rebuild en restart
-docker-compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d --build
 
 # Voer migraties uit indien nodig
-docker-compose -f docker-compose.prod.yml exec backend php artisan migrate --force
+docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force
 ```
 
 ### 7.4 Backup database
 
 ```bash
 # Backup maken
-docker-compose -f docker-compose.prod.yml exec db mysqldump -u app -p${DB_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose -f docker-compose.prod.yml exec db mysqldump -u app -p${DB_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # Of met root
-docker-compose -f docker-compose.prod.yml exec db mysqldump -u root -p${DB_ROOT_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose -f docker-compose.prod.yml exec db mysqldump -u root -p${DB_ROOT_PASSWORD} ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ## Troubleshooting
@@ -352,7 +370,7 @@ docker-compose -f docker-compose.prod.yml exec db mysqldump -u root -p${DB_ROOT_
 
 ```bash
 # Check logs
-docker-compose -f docker-compose.prod.yml logs
+docker compose -f docker-compose.prod.yml logs
 
 # Check of poorten in gebruik zijn
 netstat -tulpn | grep :3000
@@ -361,21 +379,21 @@ netstat -tulpn | grep :8000
 
 ### Database connectie problemen
 
-- Controleer of de `DB_PASSWORD` in `.env.production` overeenkomt met `MYSQL_PASSWORD` in docker-compose
-- Check of de database container draait: `docker-compose -f docker-compose.prod.yml ps db`
-- Test de connectie: `docker-compose -f docker-compose.prod.yml exec backend php artisan tinker`
+- Controleer of de `DB_PASSWORD` in `.env.production` overeenkomt met `MYSQL_PASSWORD` in docker compose
+- Check of de database container draait: `docker compose -f docker-compose.prod.yml ps db`
+- Test de connectie: `docker compose -f docker-compose.prod.yml exec backend php artisan tinker`
 
 ### Frontend laadt niet
 
-- Check of de frontend build succesvol was: `docker-compose -f docker-compose.prod.yml logs frontend`
+- Check of de frontend build succesvol was: `docker compose -f docker-compose.prod.yml logs frontend`
 - Controleer of `VITE_API_URL` correct is ingesteld in `.env.production`
-- Rebuild de frontend: `docker-compose -f docker-compose.prod.yml up -d --build frontend`
+- Rebuild de frontend: `docker compose -f docker-compose.prod.yml up -d --build frontend`
 
 ### CORS errors
 
 - Controleer of `CORS_ALLOWED_ORIGINS` in `.env.production` je volledige URL bevat (met https://)
 - Controleer of `SANCTUM_STATEFUL_DOMAINS` je domein bevat (zonder protocol)
-- Herstart de backend: `docker-compose -f docker-compose.prod.yml restart backend`
+- Herstart de backend: `docker compose -f docker-compose.prod.yml restart backend`
 
 ### SSL certificaat problemen
 
@@ -406,7 +424,7 @@ ufw enable
 ## Ondersteuning
 
 Voor vragen of problemen, check:
-- Docker logs: `docker-compose -f docker-compose.prod.yml logs`
-- Laravel logs: `docker-compose -f docker-compose.prod.yml exec backend tail -f storage/logs/laravel.log`
-- Nginx logs: `docker-compose -f docker-compose.prod.yml logs nginx`
+- Docker logs: `docker compose -f docker-compose.prod.yml logs`
+- Laravel logs: `docker compose -f docker-compose.prod.yml exec backend tail -f storage/logs/laravel.log`
+- Nginx logs: `docker compose -f docker-compose.prod.yml logs nginx`
 
