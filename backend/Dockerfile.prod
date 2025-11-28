@@ -35,6 +35,10 @@ RUN chown -R www-data:www-data /var/www/html \
 
 EXPOSE 8000
 
-# Start Laravel development server (voor productie kan je later overwegen PHP-FPM + Nginx)
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Copy entrypoint script
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
 

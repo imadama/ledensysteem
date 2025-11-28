@@ -8,8 +8,8 @@ services:
     container_name: leden_backend
     restart: unless-stopped
     volumes:
-      - backend_storage:/var/www/html/storage
       - ./backend:/var/www/html
+      - backend_storage:/var/www/html/storage
     networks:
       - leden_network
     environment:

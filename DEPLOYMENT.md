@@ -71,14 +71,14 @@ APP_DEBUG=false
 APP_KEY=
 APP_URL=https://app.aidatim.nl
 
-# Database (externe MySQL server)
+# Database (MariaDB container)
 DB_CONNECTION=mysql
-DB_HOST=192.168.68.86  # IP adres van je externe MySQL server
+DB_HOST=192.168.68.86  # IP adres van je MariaDB server, of host.docker.internal als opzelfde host
 DB_PORT=3306
 DB_DATABASE=ledenportaal
 DB_USERNAME=ama
 DB_PASSWORD=ama123
-# DB_ROOT_PASSWORD is niet nodig voor externe database
+# DB_ROOT_PASSWORD is niet nodig (root password: amaroot)
 
 # Session & CORS
 SESSION_DOMAIN=aidatim.nl
@@ -125,10 +125,11 @@ VITE_API_URL=https://app.aidatim.nl/api
 - Stripe variabelen: Vul je Stripe productie keys in
 - Mail variabelen: Vul je SMTP instellingen in
 
-**Belangrijk voor externe MySQL:**
-- Als MySQL op dezelfde server draait als Docker, gebruik dan `host.docker.internal` (Linux) of `172.17.0.1` als `DB_HOST`
-- Als MySQL op een andere server draait, gebruik het IP adres van die server
-- Zorg dat MySQL remote connections toestaat (bind-address configuratie)
+**Belangrijk voor externe MariaDB:**
+- Als MariaDB op dezelfde server draait als Docker, gebruik dan `host.docker.internal` (macOS/Windows) of `172.17.0.1` (Linux Docker bridge gateway) als `DB_HOST`
+- Als MariaDB in een andere Docker container draait, gebruik de container naam (bijv. als containers in hetzelfde network zitten) of het IP adres
+- Als MariaDB op een andere server draait, gebruik het IP adres van die server
+- Zorg dat MariaDB remote connections toestaat (bind-address configuratie)
 - Zorg dat de firewall poort 3306 open staat
 
 ## Stap 2: Docker containers bouwen en starten
@@ -146,7 +147,7 @@ Dit zal:
 - De backend container bouwen en starten
 - De frontend container bouwen (met productie build) en starten
 
-**Let op:** Deze setup gebruikt een externe MySQL database (niet in Docker). Zorg dat je MySQL server draait en toegankelijk is vanaf de Docker host.
+**Let op:** Deze setup gebruikt een externe MariaDB/MySQL database. Zorg dat je database server draait en toegankelijk is vanaf de Docker host.
 
 ### 2.2 Controleer of alles draait
 
@@ -429,12 +430,14 @@ netstat -tulpn | grep :6969
 
 ### Database connectie problemen
 
-- Controleer of de `DB_HOST`, `DB_USERNAME` en `DB_PASSWORD` in `.env.production` correct zijn
-- Check of je MySQL server draait en toegankelijk is: `systemctl status mysql` (of `service mysql status`)
+- Controleer of de `DB_HOST`, `DB_USERNAME`, `DB_PASSWORD` en `DB_DATABASE` in `.env.production` correct zijn
+- Check of je MariaDB container draait: `docker ps | grep mariadb` of `docker ps | grep mysql`
 - Test de connectie vanaf de Docker host: `mysql -h 192.168.68.86 -u ama -p ledenportaal`
+- Als MariaDB op dezelfde server draait, gebruik dan `host.docker.internal` of `172.17.0.1` als `DB_HOST`
+- Als MariaDB in een andere Docker container draait, gebruik de container naam of IP
 - Test de connectie vanuit de container: `docker compose -f docker-compose.prod.yml exec backend php artisan tinker`
-- Controleer of MySQL remote connections toestaat (bind-address in `/etc/mysql/mysql.conf.d/mysqld.cnf` moet `0.0.0.0` zijn of je server IP)
-- Check firewall: MySQL poort 3306 moet open zijn
+- Controleer of MariaDB remote connections toestaat (bind-address configuratie)
+- Check firewall: MySQL/MariaDB poort 3306 moet open zijn
 
 ### Frontend laadt niet
 
