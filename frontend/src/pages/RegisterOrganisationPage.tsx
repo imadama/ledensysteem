@@ -62,8 +62,15 @@ const RegisterOrganisationPage: React.FC = () => {
 
     setIsSubmitting(true)
     try {
-      await apiClient.get('/sanctum/csrf-cookie')
-      await apiClient.post('/api/auth/register-organisation', {
+      // Haal CSRF cookie op (optioneel, faal stil als het niet werkt)
+      try {
+        await apiClient.get('/sanctum/csrf-cookie')
+      } catch (csrfError) {
+        // CSRF cookie ophalen is optioneel voor API calls
+        console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)
+      }
+
+      const response = await apiClient.post('/api/auth/register-organisation', {
         organisation,
         admin,
         accept_terms: acceptTerms,
@@ -79,9 +86,19 @@ const RegisterOrganisationPage: React.FC = () => {
         password_confirmation: '',
       })
       setAcceptTerms(false)
-    } catch (err) {
-      console.error(err)
-      setError('Registratie mislukt. Controleer de velden en probeer opnieuw.')
+    } catch (err: any) {
+      console.error('Registratie error:', err)
+      
+      // Toon specifieke error messages als beschikbaar
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors
+        const firstError = Object.values(errors).flat()[0]
+        setError(firstError || 'Registratie mislukt. Controleer de velden en probeer opnieuw.')
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else {
+        setError('Registratie mislukt. Controleer de velden en probeer opnieuw.')
+      }
     } finally {
       setIsSubmitting(false)
     }

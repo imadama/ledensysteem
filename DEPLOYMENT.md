@@ -68,7 +68,7 @@ nano .env.production  # of gebruik je favoriete editor
 APP_NAME=Ledenportaal
 APP_ENV=production
 APP_DEBUG=false
-APP_KEY=
+APP_KEY=F1dE4qU6bp+GQ9L3lhTYYbKFt1sbTUzvPxJlfqnVXCk=
 APP_URL=https://app.aidatim.nl
 
 # Database (MariaDB container)
@@ -248,8 +248,13 @@ Omdat je al Nginx Proxy Manager hebt, maken we twee aparte Proxy Hosts aan:
 - **Scheme:** `http`
 - **Forward Hostname / IP:** 
   - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1`
-  - Als Nginx Proxy Manager in een Docker network draait: `leden_frontend` (container naam) of het IP adres van je Docker host
+  - Als Nginx Proxy Manager in een Docker network draait: `leden_frontend` (container naam) of `172.17.0.1` (Docker bridge gateway)
 - **Forward Port:** `3000` (de poort van de frontend container)
+  
+**BELANGRIJK:** Als je een privé IP gebruikt (zoals 192.168.68.86), moet je:
+- Een publiek IP adres hebben voor je server, OF
+- Port forwarding configureren op je router (poort 80 → server IP, poort 443 → server IP)
+- DNS records moeten naar je publieke IP wijzen, niet naar het privé IP
 - **Cache Assets:** Aan (optioneel)
 - **Block Common Exploits:** Aan
 - **Websockets Support:** Uit
@@ -272,9 +277,16 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 - **Domain Names:** `app.aidatim.nl`
 - **Scheme:** `http`
 - **Forward Hostname / IP:** 
-  - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1`
-  - Als Nginx Proxy Manager in een Docker network draait: `leden_backend` (container naam) of het IP adres van je Docker host
-- **Forward Port:** `6969` (de poort van de backend container)
+  - **BELANGRIJK:** Vul hier ALLEEN het IP adres of hostname in, ZONDER poort!
+  - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1` (NIET `localhost:6969`)
+  - Als Nginx Proxy Manager in een Docker network draait: `leden_backend` (container naam) of `172.17.0.1` (Docker bridge gateway)
+- **Forward Port:** `6969` (de poort van de backend container - dit is een APART veld!)
+  
+**Let op:** In Nginx Proxy Manager zijn er TWEE aparte velden:
+- **Forward Hostname / IP:** alleen het IP of hostname (bijv. `localhost` of `127.0.0.1`)
+- **Forward Port:** alleen het poortnummer (bijv. `6969`)
+  
+Vul NOOIT `192.168.68.86:6969` in één veld in - dat werkt niet!
 - **Cache Assets:** Uit (voor API's niet nodig)
 - **Block Common Exploits:** Aan
 - **Websockets Support:** Uit
@@ -413,9 +425,25 @@ Als deze werken, dan draaien de containers correct.
 2. Test of de frontend laadt
 3. Test of API calls werken (bijv. inloggen) - deze gaan naar `https://app.aidatim.nl/api`
 4. Check de browser console voor errors (F12 → Console tab)
-5. Test ook direct de backend API: `https://app.aidatim.nl/api` (of een specifiek endpoint)
+5. Test ook direct de backend API met een specifiek endpoint:
+   ```bash
+   # Test publieke API route (geen auth nodig)
+   curl https://app.aidatim.nl/api/plans
+   
+   # Test auth endpoint
+   curl -X POST https://app.aidatim.nl/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"test@example.com","password":"test"}'
+   ```
+
+**Let op:** `/api/` (zonder specifieke route) geeft altijd 404 - dat is normaal. Test altijd specifieke endpoints zoals `/api/plans` of `/api/auth/login`.
 
 ### 6.3 Troubleshooting checklist
+
+**BELANGRIJK:** Als je `ERR_ADDRESS_UNREACHABLE` krijgt, betekent dit meestal dat:
+1. DNS wijst naar een IP dat niet publiek bereikbaar is (192.168.68.86 is een privé IP!)
+2. Je server heeft geen publiek IP adres
+3. Je moet port forwarding configureren of een publiek IP gebruiken
 
 Als het domein niet werkt, check het volgende:
 
@@ -434,6 +462,13 @@ curl -I http://localhost:6969
 # Test frontend
 curl -I http://localhost:3000
 # Moet HTTP 200 teruggeven
+
+# Als connection refused, check of containers draaien:
+docker compose -f docker-compose.prod.yml ps
+
+# Check of poorten correct zijn gemapped:
+docker compose -f docker-compose.prod.yml ps | grep -E '3000|6969'
+# Je zou moeten zien: 0.0.0.0:3000->80/tcp en 0.0.0.0:6969->8000/tcp
 ```
 
 **3. Nginx Proxy Manager configuratie?**
@@ -463,6 +498,28 @@ sudo iptables -L -n | grep -E '3000|6969|80|443'
 **6. Nginx Proxy Manager logs?**
 - Ga naar NPM → Logs
 - Check voor errors bij het forwarden
+- Kijk naar "502 Bad Gateway" of "Connection refused" errors
+
+**6.1 Nginx Proxy Manager configuratie check:**
+- Log in op NPM (meestal `http://jouw-server-ip:81`)
+- Ga naar Hosts → Proxy Hosts
+- Check of beide Proxy Hosts bestaan en actief zijn:
+  - `aidatim.nl` → Forward Hostname: `localhost` of `127.0.0.1`, Forward Port: `3000`
+  - `app.aidatim.nl` → Forward Hostname: `localhost` of `127.0.0.1`, Forward Port: `6969`
+- Check of SSL certificaten zijn aangevraagd en actief zijn
+- Als NPM in Docker draait, gebruik dan mogelijk `host.docker.internal` of `172.17.0.1` in plaats van `localhost`
+
+**6.2 Test NPM forward direct:**
+```bash
+# Test of NPM de containers kan bereiken
+# Als NPM op de host draait:
+curl -H "Host: aidatim.nl" http://localhost:3000
+curl -H "Host: app.aidatim.nl" http://localhost:6969
+
+# Als NPM in Docker draait, test vanaf de NPM container:
+docker exec -it <npm_container_name> curl http://172.17.0.1:3000
+docker exec -it <npm_container_name> curl http://172.17.0.1:6969
+```
 
 **7. Container logs?**
 ```bash
@@ -545,6 +602,130 @@ mysqldump -u ama -p ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 # Of met root
 mysqldump -u root -p ledenportaal > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
+
+## Troubleshooting - Stap voor stap debuggen
+
+Als niets werkt, volg deze stappen in volgorde:
+
+### Stap 1: Basis check - Containers draaien?
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+**Verwacht resultaat:**
+- `leden_backend` → Status: `Up`
+- `leden_frontend` → Status: `Up`
+
+**Als containers niet draaien:**
+```bash
+# Start containers
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+# Check logs
+docker compose -f docker-compose.prod.yml logs backend
+docker compose -f docker-compose.prod.yml logs frontend
+```
+
+### Stap 2: Test containers direct (zonder NPM)
+
+```bash
+# Test backend direct
+curl http://localhost:6969/api/plans
+# Moet JSON teruggeven: {"data": [...]}
+
+# Test frontend direct
+curl http://localhost:3000
+# Moet HTML teruggeven (de React app)
+```
+
+**Als dit niet werkt:**
+- Containers draaien niet correct
+- Poorten zijn niet correct gemapped
+- Check logs: `docker compose -f docker-compose.prod.yml logs`
+
+### Stap 3: Test vanaf de server zelf
+
+```bash
+# Test backend vanaf server
+curl http://192.168.68.86:6969/api/plans
+
+# Test frontend vanaf server
+curl http://192.168.68.86:3000
+```
+
+**Als dit werkt maar het domein niet:**
+- Probleem zit in Nginx Proxy Manager of DNS
+- Ga verder naar stap 4
+
+### Stap 4: Check Nginx Proxy Manager configuratie
+
+1. **Log in op NPM:** `http://192.168.68.86:81` (of je server IP)
+
+2. **Check Proxy Hosts:**
+   - Ga naar **Hosts** → **Proxy Hosts**
+   - Zijn beide hosts aanwezig?
+   - Zijn ze "Online" (groen vinkje)?
+
+3. **Check configuratie van `aidatim.nl`:**
+   - **Domain Names:** `aidatim.nl`
+   - **Forward Hostname / IP:** `localhost` (NIET `localhost:3000`, alleen `localhost`)
+   - **Forward Port:** `3000` (apart veld)
+   - **Scheme:** `http`
+
+4. **Check configuratie van `app.aidatim.nl`:**
+   - **Domain Names:** `app.aidatim.nl`
+   - **Forward Hostname / IP:** `localhost` (NIET `localhost:6969`, alleen `localhost`)
+   - **Forward Port:** `6969` (apart veld)
+   - **Scheme:** `http`
+
+5. **Check NPM logs:**
+   - Ga naar **Logs** in NPM
+   - Kijk voor errors zoals:
+     - "502 Bad Gateway"
+     - "Connection refused"
+     - "Upstream server unavailable"
+
+### Stap 5: Test DNS
+
+```bash
+# Test DNS vanaf je server
+nslookup aidatim.nl
+nslookup app.aidatim.nl
+
+# Beide moeten naar je PUBLIEKE IP wijzen (niet 192.168.68.86)
+```
+
+**Belangrijk:** 
+- `192.168.68.86` is een privé IP (lokaal netwerk)
+- DNS moet naar je publieke IP wijzen
+- Check je publieke IP: `curl ifconfig.me` (op je server)
+
+### Stap 6: Test via IP in browser
+
+Probeer in je browser:
+- `http://jouw-publieke-ip` (zonder domein)
+- Als dit werkt → DNS probleem
+- Als dit niet werkt → Firewall/port forwarding probleem
+
+### Stap 7: Veelvoorkomende problemen
+
+**Probleem: "ERR_ADDRESS_UNREACHABLE"**
+- DNS wijst naar privé IP → Update DNS naar publiek IP
+- Of: Server heeft geen publiek IP → Configureer port forwarding
+
+**Probleem: "502 Bad Gateway" in NPM**
+- Forward Hostname/IP is verkeerd → Gebruik `localhost` (niet `192.168.68.86:3000`)
+- Containers draaien niet → Check `docker compose ps`
+- Poort is verkeerd → Check Forward Port veld
+
+**Probleem: "Connection refused"**
+- Containers draaien niet → Start containers
+- Poorten zijn niet gemapped → Check `docker-compose.prod.yml`
+
+**Probleem: Frontend laadt maar API werkt niet**
+- CORS probleem → Check `CORS_ALLOWED_ORIGINS` in `.env.production`
+- API URL verkeerd → Check `VITE_API_URL` in `.env.production`
 
 ## Troubleshooting
 
