@@ -16,7 +16,7 @@ export const API_BASE_URL = processedUrl
 console.log('🔧 API Config:', {
   'VITE_API_URL (raw)': rawApiUrl,
   'API_BASE_URL (processed)': API_BASE_URL,
-  'Zal worden gebruikt voor: baseURL + /api/... paths'
+  'note': 'Zal worden gebruikt voor: baseURL + /api/... paths'
 })
 
 // Helper om de base URL zonder /api te krijgen voor sanctum endpoints
