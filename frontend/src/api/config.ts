@@ -1,14 +1,10 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-
-// Debug: log de API_BASE_URL in development (helpt bij troubleshooting)
-if (import.meta.env.DEV) {
-  console.log('🔧 API_BASE_URL:', API_BASE_URL)
-}
+// Haal VITE_API_URL op en verwijder automatisch /api als het er is
+// Dit voorkomt dubbele /api/api/ in URLs
+const rawApiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+export const API_BASE_URL = rawApiUrl.replace(/\/api\/?$/, '')
 
 // Helper om de base URL zonder /api te krijgen voor sanctum endpoints
 export const getBaseUrl = (): string => {
-  const apiUrl = API_BASE_URL
-  // Verwijder /api van het einde als het er is
-  return apiUrl.replace(/\/api\/?$/, '')
+  return API_BASE_URL
 }
 
