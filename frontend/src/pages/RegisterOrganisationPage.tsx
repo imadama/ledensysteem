@@ -70,7 +70,7 @@ const RegisterOrganisationPage: React.FC = () => {
         console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)
       }
 
-      const response = await apiClient.post('/api/auth/register-organisation', {
+      await apiClient.post('/api/auth/register-organisation', {
         organisation,
         admin,
         accept_terms: acceptTerms,
@@ -94,8 +94,8 @@ const RegisterOrganisationPage: React.FC = () => {
       // Toon specifieke error messages als beschikbaar
       if (err.response?.data?.errors) {
         const errors = err.response.data.errors
-        const firstError = Object.values(errors).flat()[0]
-        setError(firstError || 'Registratie mislukt. Controleer de velden en probeer opnieuw.')
+        const firstError = Object.values(errors).flat()[0] as string | undefined
+        setError(firstError ?? 'Registratie mislukt. Controleer de velden en probeer opnieuw.')
       } else if (err.response?.data?.message) {
         setError(err.response.data.message)
       } else if (err.message) {
