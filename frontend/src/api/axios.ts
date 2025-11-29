@@ -9,6 +9,12 @@ export const apiClient = axios.create({
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
 
+// Debug: log altijd (ook in productie)
+console.log('🔧 Axios Client:', {
+  'baseURL': apiClient.defaults.baseURL,
+  'API_BASE_URL': API_BASE_URL
+})
+
 // Helper functie om sanctum endpoints aan te roepen zonder /api prefix
 export const getSanctumCsrfCookie = async (): Promise<void> => {
   const baseUrl = getBaseUrl()
@@ -17,27 +23,57 @@ export const getSanctumCsrfCookie = async (): Promise<void> => {
   })
 }
 
-// Interceptor om dubbele /api/api/ te voorkomen door de finale URL te corrigeren
-apiClient.interceptors.request.use((config) => {
-  if (config.url && config.baseURL) {
-    // Bouw de volledige URL
-    const fullUrl = `${config.baseURL}${config.url}`
-    
-    // Als er dubbele /api/api/ in zit, corrigeer het
-    if (fullUrl.includes('/api/api/')) {
-      console.warn('⚠️ Dubbele /api/api/ gedetecteerd, corrigeren:', fullUrl)
-      // Verwijder de dubbele /api/
-      const correctedUrl = fullUrl.replace(/\/api\/api\//g, '/api/')
-      console.warn('✅ Gecorrigeerd naar:', correctedUrl)
+// Interceptor om dubbele /api/api/ te voorkomen - MOET als eerste worden aangeroepen
+// Deze interceptor corrigeert de URL VOORDAT axios de request maakt
+apiClient.interceptors.request.use(
+  (config) => {
+    if (config.url) {
+      // Gebruik de baseURL van de config of de default
+      const baseURL = config.baseURL || apiClient.defaults.baseURL || ''
+      const url = config.url
       
-      // Splits terug naar baseURL en url
-      const urlObj = new URL(correctedUrl)
-      config.baseURL = `${urlObj.protocol}//${urlObj.host}`
-      config.url = urlObj.pathname + urlObj.search
+      // Bouw de volledige URL
+      const fullUrl = baseURL + url
+      
+      // Log altijd voor debugging
+      console.log('🌐 API Request:', {
+        baseURL: baseURL,
+        url: url,
+        fullUrl: fullUrl,
+        hasDoubleApi: fullUrl.includes('/api/api/')
+      })
+      
+      // Als er dubbele /api/api/ in zit, corrigeer het DIRECT
+      if (fullUrl.includes('/api/api/')) {
+        console.error('❌ DUBBELE /api/api/ GEDETECTEERD!')
+        console.error('   Origineel:', fullUrl)
+        
+        // Verwijder de dubbele /api/ - vervang alle voorkomens
+        const correctedUrl = fullUrl.replace(/\/api\/api\//g, '/api/')
+        console.warn('   ✅ Gecorrigeerd naar:', correctedUrl)
+        
+        // Parse de gecorrigeerde URL en update de config
+        try {
+          const urlObj = new URL(correctedUrl)
+          // Update baseURL naar alleen het protocol + host
+          config.baseURL = `${urlObj.protocol}//${urlObj.host}`
+          // Update url naar alleen het path + query
+          config.url = urlObj.pathname + urlObj.search
+          
+          console.log('   📝 Config bijgewerkt:', {
+            newBaseURL: config.baseURL,
+            newUrl: config.url
+          })
+        } catch (e) {
+          console.error('❌ Fout bij parsen URL:', e, correctedUrl)
+        }
+      }
     }
-  }
-  return config
-})
+    return config
+  },
+  (error) => Promise.reject(error),
+  { runWhen: (config) => !!config.url } // Alleen uitvoeren als er een URL is
+)
 
 apiClient.interceptors.request.use((config) => {
   if (typeof document !== 'undefined') {
