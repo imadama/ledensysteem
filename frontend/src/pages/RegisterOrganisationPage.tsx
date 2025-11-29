@@ -88,6 +88,8 @@ const RegisterOrganisationPage: React.FC = () => {
       setAcceptTerms(false)
     } catch (err: any) {
       console.error('Registratie error:', err)
+      console.error('Error response:', err.response?.data)
+      console.error('Error status:', err.response?.status)
       
       // Toon specifieke error messages als beschikbaar
       if (err.response?.data?.errors) {
@@ -96,6 +98,8 @@ const RegisterOrganisationPage: React.FC = () => {
         setError(firstError || 'Registratie mislukt. Controleer de velden en probeer opnieuw.')
       } else if (err.response?.data?.message) {
         setError(err.response.data.message)
+      } else if (err.message) {
+        setError(`Registratie mislukt: ${err.message}`)
       } else {
         setError('Registratie mislukt. Controleer de velden en probeer opnieuw.')
       }

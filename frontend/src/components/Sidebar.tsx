@@ -80,13 +80,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
 
   const getUserDisplayName = () => {
     if (userRole === 'member' && memberUser) {
-      return `${memberUser.member.first_name} ${memberUser.member.last_name}`
+      // Try full name first, fall back to email if not available
+      if (memberUser.member.first_name && memberUser.member.last_name) {
+        return `${memberUser.member.first_name} ${memberUser.member.last_name}`
+      }
+      return memberUser.user.email || 'Gebruiker'
     }
     if (user && user.first_name && user.last_name) {
       return `${user.first_name} ${user.last_name}`
-    }
-    if (userRole === 'member' && memberUser) {
-      return memberUser.user.email || 'Gebruiker'
     }
     return user?.email || 'Gebruiker'
   }

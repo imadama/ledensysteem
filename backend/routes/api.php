@@ -15,6 +15,11 @@ use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\PlanController;
 use Illuminate\Support\Facades\Route;
 
+// Sanctum CSRF cookie endpoint voor SPA authenticatie (via API)
+Route::get('/sanctum/csrf-cookie', function () {
+    return response()->noContent();
+})->middleware('web');
+
 Route::prefix('member-activation')->group(function (): void {
     Route::get('{token}', [MemberActivationController::class, 'show']);
     Route::post('{token}', [MemberActivationController::class, 'store']);
