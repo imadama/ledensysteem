@@ -36,6 +36,7 @@ apiClient.interceptors.response.use(
       url &&
       !url.startsWith('/api/member-activation') &&
       !url.startsWith('/api/auth/login') &&
+      !url.startsWith('/api/auth/register-organisation') &&
       !url.startsWith('/api/auth/register')
     ) {
       authManager.clearAuth()

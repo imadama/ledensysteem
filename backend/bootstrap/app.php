@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->appendToGroup('web', AuthenticateSession::class);
         $middleware->prependToGroup('api', EnsureFrontendRequestsAreStateful::class);
+        $middleware->trustProxies(at: '*', headers: 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'billing.status' => \App\Http\Middleware\CheckOrganisationBillingStatus::class,

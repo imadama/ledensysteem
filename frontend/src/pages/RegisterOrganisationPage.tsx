@@ -52,6 +52,8 @@ const RegisterOrganisationPage: React.FC = () => {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
+    event.stopPropagation() // Voorkom event bubbling
+    
     setError(null)
     setMessage(null)
 
@@ -87,6 +89,7 @@ const RegisterOrganisationPage: React.FC = () => {
       })
       setAcceptTerms(false)
     } catch (err: any) {
+      // Voorkom dat errors de pagina reload veroorzaken
       console.error('Registratie error:', err)
       console.error('Error response:', err.response?.data)
       console.error('Error status:', err.response?.status)
@@ -106,6 +109,8 @@ const RegisterOrganisationPage: React.FC = () => {
     } finally {
       setIsSubmitting(false)
     }
+    
+    return false // Extra beveiliging tegen form submit
   }
 
   const inputClassName = "w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -131,7 +136,7 @@ const RegisterOrganisationPage: React.FC = () => {
             </div>
           )}
 
-          <form className="space-y-8" onSubmit={handleSubmit}>
+          <form className="space-y-8" onSubmit={handleSubmit} noValidate>
             <section className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
