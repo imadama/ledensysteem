@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Building2, UserPlus } from 'lucide-react'
-import { apiClient } from '../api/axios'
+import { apiClient, getSanctumCsrfCookie } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 
@@ -66,7 +66,7 @@ const RegisterOrganisationPage: React.FC = () => {
     try {
       // Haal CSRF cookie op (optioneel, faal stil als het niet werkt)
       try {
-        await apiClient.get('/sanctum/csrf-cookie')
+        await getSanctumCsrfCookie()
       } catch (csrfError) {
         // CSRF cookie ophalen is optioneel voor API calls
         console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)

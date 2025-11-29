@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { API_BASE_URL } from './config'
+import { API_BASE_URL, getBaseUrl } from './config'
 import { authManager } from '../context/authManager'
 
 export const apiClient = axios.create({
@@ -8,6 +8,14 @@ export const apiClient = axios.create({
   xsrfCookieName: 'XSRF-TOKEN',
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
+
+// Helper functie om sanctum endpoints aan te roepen zonder /api prefix
+export const getSanctumCsrfCookie = async (): Promise<void> => {
+  const baseUrl = getBaseUrl()
+  await axios.get(`${baseUrl}/sanctum/csrf-cookie`, {
+    withCredentials: true,
+  })
+}
 
 apiClient.interceptors.request.use((config) => {
   if (typeof document !== 'undefined') {

@@ -82,6 +82,8 @@ DB_PASSWORD=ama123
 
 # Session & CORS
 SESSION_DOMAIN=aidatim.nl
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=lax
 SANCTUM_STATEFUL_DOMAINS=aidatim.nl
 CORS_ALLOWED_ORIGINS=https://aidatim.nl
 
@@ -106,7 +108,7 @@ STRIPE_PRICE_BASIC=price_your_basic_price_id
 STRIPE_PRICE_PLUS=price_your_plus_price_id
 
 # Frontend
-VITE_API_URL=https://app.aidatim.nl/api
+VITE_API_URL=https://app.aidatim.nl
 
 
 **Belangrijke variabelen om aan te passen:**
@@ -119,9 +121,11 @@ VITE_API_URL=https://app.aidatim.nl/api
 - `DB_USERNAME`: MySQL gebruikersnaam
 - `DB_PASSWORD`: MySQL wachtwoord
 - `SESSION_DOMAIN`: `aidatim.nl` (hoofddomein voor cookies)
+- `SESSION_SECURE_COOKIE`: `true` (vereist voor HTTPS - cookies alleen via HTTPS)
+- `SESSION_SAME_SITE`: `lax` (cookie SameSite attribuut voor cross-site requests)
 - `SANCTUM_STATEFUL_DOMAINS`: `aidatim.nl` (frontend domein)
 - `CORS_ALLOWED_ORIGINS`: `https://aidatim.nl` (frontend URL)
-- `VITE_API_URL`: `https://app.aidatim.nl/api` (backend API URL voor frontend)
+- `VITE_API_URL`: `https://app.aidatim.nl` (backend API URL voor frontend, ZONDER /api omdat alle API calls al /api/ prefix gebruiken)
 - Stripe variabelen: Vul je Stripe productie keys in
 - Mail variabelen: Vul je SMTP instellingen in
 

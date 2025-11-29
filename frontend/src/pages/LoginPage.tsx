@@ -2,7 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { apiClient } from '../api/axios'
+import { getSanctumCsrfCookie } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 
@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     setLoading(true)
 
     try {
-      await apiClient.get('/sanctum/csrf-cookie')
+      await getSanctumCsrfCookie()
       await login({ email, password })
 
       const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { apiClient } from '../api/axios'
+import { apiClient, getSanctumCsrfCookie } from '../api/axios'
 
 type MemberProfile = {
   user: {
@@ -83,7 +83,7 @@ export const MemberAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     async (credentials: { email: string; password: string }) => {
       setIsLoading(true)
       try {
-        await apiClient.get('/sanctum/csrf-cookie')
+        await getSanctumCsrfCookie()
         await apiClient.post('/api/auth/login', credentials)
         const profile = await loadCurrentMember()
 
