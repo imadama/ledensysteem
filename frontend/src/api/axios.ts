@@ -9,6 +9,22 @@ export const apiClient = axios.create({
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
 
+// Debug: log de baseURL in development (helpt bij troubleshooting)
+if (import.meta.env.DEV) {
+  console.log('🔧 Axios baseURL:', apiClient.defaults.baseURL)
+}
+
+// Interceptor om te debuggen welke URL wordt aangeroepen
+apiClient.interceptors.request.use((config) => {
+  if (import.meta.env.DEV) {
+    const fullUrl = config.baseURL && config.url 
+      ? `${config.baseURL}${config.url}` 
+      : config.url
+    console.log('🌐 API Request:', fullUrl)
+  }
+  return config
+}, undefined, { runWhen: () => import.meta.env.DEV })
+
 // Helper functie om sanctum endpoints aan te roepen zonder /api prefix
 export const getSanctumCsrfCookie = async (): Promise<void> => {
   const baseUrl = getBaseUrl()

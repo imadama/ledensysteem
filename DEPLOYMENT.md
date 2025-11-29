@@ -584,16 +584,36 @@ docker compose -f docker-compose.prod.yml restart backend
 
 ### 7.3 Updates uitvoeren
 
+**Stap-voor-stap na een git pull:**
+
 ```bash
-# Pull laatste code
-git pull origin main  # of je branch naam
+# 1. Pull laatste code
+git pull origin main  # of je branch naam (bijv. dev)
 
-# Rebuild en restart
-docker compose -f docker-compose.prod.yml up -d --build
+# 2. Controleer of .env.production de juiste instellingen heeft:
+#    - SESSION_SECURE_COOKIE=true
+#    - SESSION_SAME_SITE=lax
+#    - VITE_API_URL=https://app.aidatim.nl (ZONDER /api!)
 
-# Voer migraties uit indien nodig
+# 3. Rebuild en restart containers
+#    Frontend MOET gerebuild worden omdat VITE_API_URL een build-time variabele is
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# 4. Clear Laravel config cache (zodat nieuwe .env variabelen worden geladen)
+docker compose -f docker-compose.prod.yml exec backend php artisan config:clear
+docker compose -f docker-compose.prod.yml exec backend php artisan cache:clear
+
+# 5. Voer migraties uit indien nodig
 docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force
+
+# 6. (Optioneel) Rebuild config cache voor productie
+docker compose -f docker-compose.prod.yml exec backend php artisan config:cache
 ```
+
+**Belangrijk:**
+- Frontend rebuild is **verplicht** als `VITE_API_URL` is veranderd (build-time variabele)
+- Backend rebuild is nodig als er code wijzigingen zijn (zoals nieuwe middleware)
+- Config cache clearen zorgt dat nieuwe `.env` variabelen worden geladen
 
 ### 7.4 Backup database
 
@@ -766,6 +786,62 @@ netstat -tulpn | grep :6969
 - Controleer of `CORS_ALLOWED_ORIGINS` in `.env.production` je volledige URL bevat (met https://)
 - Controleer of `SANCTUM_STATEFUL_DOMAINS` je domein bevat (zonder protocol)
 - Herstart de backend: `docker compose -f docker-compose.prod.yml restart backend`
+
+### Dubbele /api/api/ in URLs
+
+Als je `https://app.aidatim.nl/api/api/member/profile` ziet in plaats van `https://app.aidatim.nl/api/member/profile`:
+
+**Oorzaak:** `VITE_API_URL` bevat nog `/api` terwijl de frontend code al `/api/` in de paths gebruikt.
+
+**Debug stappen:**
+
+1. **Verifieer `.env.production` op de server:**
+   ```bash
+   # Check wat er staat
+   grep VITE_API_URL .env.production
+   
+   # Moet zijn (ZONDER /api):
+   VITE_API_URL=https://app.aidatim.nl
+   
+   # NIET:
+   # VITE_API_URL=https://app.aidatim.nl/api
+   ```
+
+2. **Verifieer dat de build argument wordt doorgegeven:**
+   ```bash
+   # Check tijdens de build of de waarde correct is
+   docker compose -f docker-compose.prod.yml --env-file .env.production build --no-cache frontend 2>&1 | grep VITE_API_URL
+   ```
+
+3. **Verifieer in de gebouwde container:**
+   ```bash
+   # Check wat er in de container staat (als ENV variabele)
+   docker compose -f docker-compose.prod.yml exec frontend env | grep VITE
+   
+   # Check de gebouwde JavaScript (zoek naar de API URL)
+   docker compose -f docker-compose.prod.yml exec frontend grep -r "app.aidatim.nl" /usr/share/nginx/html/assets/*.js | head -1
+   ```
+
+4. **Force rebuild zonder cache:**
+   ```bash
+   # Stop de frontend
+   docker compose -f docker-compose.prod.yml stop frontend
+   
+   # Verwijder de oude image
+   docker compose -f docker-compose.prod.yml rm -f frontend
+   
+   # Rebuild ZONDER cache (dit is belangrijk!)
+   docker compose -f docker-compose.prod.yml --env-file .env.production build --no-cache frontend
+   
+   # Start opnieuw
+   docker compose -f docker-compose.prod.yml --env-file .env.production up -d frontend
+   ```
+
+5. **Clear browser cache:**
+   - Hard refresh: `Ctrl+Shift+R` (Windows/Linux) of `Cmd+Shift+R` (Mac)
+   - Of gebruik Incognito/Private mode
+
+**Belangrijk:** De `--no-cache` flag is cruciaal omdat Docker anders de oude build cache gebruikt!
 
 ### SSL certificaat problemen
 
