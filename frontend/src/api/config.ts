@@ -13,11 +13,12 @@ if (processedUrl.endsWith('/api')) {
 export const API_BASE_URL = processedUrl
 
 // Debug: log altijd (ook in productie) zodat we kunnen zien wat er gebeurt
-console.log('🔧 API Config:', {
-  'VITE_API_URL (raw)': rawApiUrl,
-  'API_BASE_URL (processed)': API_BASE_URL,
-  'note': 'Zal worden gebruikt voor: baseURL + /api/... paths'
-})
+// Gebruik window.alert voor zichtbaarheid tijdens debugging
+if (typeof window !== 'undefined') {
+  console.log('[API CONFIG] VITE_API_URL (raw):', rawApiUrl)
+  console.log('[API CONFIG] API_BASE_URL (processed):', API_BASE_URL)
+  console.log('[API CONFIG] Dit wordt gebruikt als baseURL voor axios')
+}
 
 // Helper om de base URL zonder /api te krijgen voor sanctum endpoints
 export const getBaseUrl = (): string => {
