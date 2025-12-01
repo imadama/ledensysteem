@@ -7,6 +7,7 @@ Route::get('/', function () {
 });
 
 // Sanctum CSRF cookie endpoint voor SPA authenticatie
+// Gebruik alleen basis web middleware zonder AuthenticateSession
 Route::get('/sanctum/csrf-cookie', function () {
     return response()->noContent();
-})->middleware('web');
+})->middleware(['web', 'throttle:60,1']);

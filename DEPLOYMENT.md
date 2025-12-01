@@ -180,37 +180,44 @@ docker compose -f docker-compose.prod.yml logs -f frontend
 
 ### 3.1 Genereer APP_KEY
 
-**Belangrijk:** De APP_KEY is verplicht voor Laravel. Volg deze stappen:
+**BELANGRIJK:** De APP_KEY is verplicht voor Laravel en moet de juiste lengte hebben (32 bytes voor AES-256-CBC).
 
-**Stap 1:** Herstart de backend container zodat het entrypoint script een `.env` file aanmaakt:
+**Als je een "Unsupported cipher or incorrect key length" error krijgt:**
 
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
-```
+Dit betekent dat je APP_KEY ongeldig is. Volg deze stappen:
 
-Wacht 10-15 seconden tot de container volledig is gestart.
-
-**Stap 2:** Genereer de APP_KEY:
+**Stap 1:** Genereer een nieuwe APP_KEY:
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate
-```
-
-Dit genereert automatisch een APP_KEY en voegt deze toe aan de `.env` file in de container.
-
-**Stap 3:** Herstart de backend container opnieuw zodat de nieuwe APP_KEY wordt geladen:
-
-```bash
-docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
-```
-
-**Alternatief:** Als je de key handmatig wilt toevoegen aan je `.env.production` bestand:
-```bash
-# Genereer key en kopieer de output
+# Genereer key en toon de output
 docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate --show
-# Kopieer de output (bijv. base64:xxxxx) en voeg toe aan .env.production als:
-# APP_KEY=base64:xxxxx
-# Herstart dan de container
+```
+
+**Stap 2:** Kopieer de gegenereerde key (bijv. `base64:xxxxx...`) en voeg deze toe aan je `.env.production` bestand:
+
+```bash
+# Open .env.production
+nano .env.production
+
+# Vervang de APP_KEY regel met de nieuwe key:
+APP_KEY=base64:xxxxx...  # (de volledige key die je hebt gekopieerd)
+```
+
+**Stap 3:** Herstart de backend container:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production restart backend
+```
+
+**Alternatief (automatisch):**
+```bash
+# Dit genereert en slaat de key automatisch op in de container .env
+docker compose -f docker-compose.prod.yml --env-file .env.production exec backend php artisan key:generate
+
+# Maar je moet de key nog steeds handmatig toevoegen aan .env.production
+# Check de key:
+docker compose -f docker-compose.prod.yml exec backend php artisan key:generate --show
+# Kopieer en voeg toe aan .env.production
 ```
 
 ### 3.2 Voer migraties uit
