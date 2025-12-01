@@ -22,6 +22,10 @@ class PaymentTransaction extends Model
         'stripe_checkout_session_id',
         'metadata',
         'occurred_at',
+        'failure_reason',
+        'retry_count',
+        'last_retry_at',
+        'failure_metadata',
     ];
 
     /**
@@ -33,6 +37,8 @@ class PaymentTransaction extends Model
             'amount' => 'decimal:2',
             'metadata' => 'array',
             'occurred_at' => 'datetime',
+            'last_retry_at' => 'datetime',
+            'failure_metadata' => 'array',
         ];
     }
 

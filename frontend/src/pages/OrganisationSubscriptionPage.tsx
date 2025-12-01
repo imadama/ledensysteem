@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { X, ArrowUp, ArrowDown, History } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { useAuth } from '../context/AuthContext'
 import { Card } from '../components/ui/Card'
@@ -50,6 +51,8 @@ const OrganisationSubscriptionPage: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [isCheckout, setIsCheckout] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [isChangingPlan, setIsChangingPlan] = useState<number | null>(null)
   const { refreshMe } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -88,6 +91,11 @@ const OrganisationSubscriptionPage: React.FC = () => {
     const params = new URLSearchParams(location.search)
     const sessionId = params.get('session_id')
     const cancelled = params.get('cancelled')
+    const paymentRequired = params.get('payment_required')
+
+    if (paymentRequired === 'true') {
+      setStatusMessage('Betaling vereist: Kies een abonnement om toegang te krijgen tot het platform.')
+    }
 
     if (!sessionId && !cancelled) {
       return
@@ -144,11 +152,65 @@ const OrganisationSubscriptionPage: React.FC = () => {
     }
   }
 
+  const handleCancel = async () => {
+    if (!confirm('Weet je zeker dat je je abonnement wilt annuleren? Het blijft actief tot het einde van de huidige periode.')) {
+      return
+    }
+
+    setIsCancelling(true)
+    setCheckoutError(null)
+    try {
+      await apiClient.post('/api/organisation/subscription/cancel')
+      setStatusMessage('Abonnement is geannuleerd. Het blijft actief tot het einde van de huidige periode.')
+      await loadOrganisationInfo()
+      await refreshMe()
+    } catch (err: any) {
+      console.error('Abonnement annuleren mislukt', err)
+      setCheckoutError(err.response?.data?.message ?? 'Kon abonnement niet annuleren.')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
+  const handleChangePlan = async (planId: number, action: 'upgrade' | 'downgrade') => {
+    const actionText = action === 'upgrade' ? 'upgraden' : 'downgraden'
+    if (!confirm(`Weet je zeker dat je wilt ${actionText} naar dit plan?`)) {
+      return
+    }
+
+    setIsChangingPlan(planId)
+    setCheckoutError(null)
+    try {
+      await apiClient.post(`/api/organisation/subscription/${action}`, { plan_id: planId })
+      setStatusMessage(`Plan succesvol ${action === 'upgrade' ? 'geüpgraded' : 'gedowngraded'}.`)
+      await loadOrganisationInfo()
+      await refreshMe()
+    } catch (err: any) {
+      console.error(`Plan ${action} mislukt`, err)
+      setCheckoutError(err.response?.data?.message ?? `Kon plan niet ${actionText}.`)
+    } finally {
+      setIsChangingPlan(null)
+    }
+  }
+
+  const currentPlanId = subscription?.plan?.id
+  const sortedPlans = useMemo(() => {
+    return [...plans].sort((a, b) => a.monthly_price - b.monthly_price)
+  }, [plans])
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Abonnement</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer je abonnement en kies een pakket</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Abonnement</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer je abonnement en kies een pakket</p>
+        </div>
+        <Link to="/organisation/subscription/history">
+          <Button variant="outline" size="sm">
+            <History size={16} />
+            Historie
+          </Button>
+        </Link>
       </div>
 
       {statusMessage && (
@@ -216,6 +278,20 @@ const OrganisationSubscriptionPage: React.FC = () => {
                 <div className="text-sm">Je betaling is ontvangen. Het abonnement wordt momenteel geactiveerd. Dit kan enkele minuten duren.</div>
               </div>
             )}
+
+            {subscription.status === 'active' && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isCancelling}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700"
+                >
+                  <X size={16} />
+                  {isCancelling ? 'Annuleren...' : 'Abonnement annuleren'}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <p className="text-gray-600 dark:text-gray-400">Er is nog geen abonnement actief.</p>
@@ -234,31 +310,81 @@ const OrganisationSubscriptionPage: React.FC = () => {
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">Er zijn momenteel geen plannen geconfigureerd.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <Card key={plan.id} className="p-6 border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h4>
-                    <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
-                      <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> p/m</span>
-                    </p>
+            {sortedPlans.map((plan) => {
+              const isCurrentPlan = currentPlanId === plan.id
+              const currentPlan = sortedPlans.find(p => p.id === currentPlanId)
+              const isUpgrade = currentPlan && plan.monthly_price > currentPlan.monthly_price
+              const isDowngrade = currentPlan && plan.monthly_price < currentPlan.monthly_price
+              const isChanging = isChangingPlan === plan.id
+
+              return (
+                <Card 
+                  key={plan.id} 
+                  className={`p-6 border-2 transition-colors ${
+                    isCurrentPlan 
+                      ? 'border-indigo-500 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
+                      : 'border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h4>
+                        {isCurrentPlan && (
+                          <Badge variant="success">Huidig plan</Badge>
+                        )}
+                      </div>
+                      <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                        € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+                        <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> p/m</span>
+                      </p>
+                    </div>
+                    
+                    {plan.description && (
+                      <p className="text-gray-600 dark:text-gray-400 text-sm">{plan.description}</p>
+                    )}
+                    
+                    {isCurrentPlan ? (
+                      <Button disabled className="w-full" variant="outline">
+                        Huidig plan
+                      </Button>
+                    ) : subscription && subscription.status === 'active' ? (
+                      <div className="space-y-2">
+                        {isUpgrade && (
+                          <Button
+                            onClick={() => handleChangePlan(plan.id, 'upgrade')}
+                            disabled={isChanging || isCancelling}
+                            className="w-full"
+                          >
+                            <ArrowUp size={16} />
+                            {isChanging ? 'Bezig...' : 'Upgraden'}
+                          </Button>
+                        )}
+                        {isDowngrade && (
+                          <Button
+                            onClick={() => handleChangePlan(plan.id, 'downgrade')}
+                            disabled={isChanging || isCancelling}
+                            variant="outline"
+                            className="w-full"
+                          >
+                            <ArrowDown size={16} />
+                            {isChanging ? 'Bezig...' : 'Downgraden'}
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => handleStartSubscription(plan.id)}
+                        disabled={isCheckout || isCancelling}
+                        className="w-full"
+                      >
+                        {isCheckout ? 'Bezig...' : 'Kies dit pakket'}
+                      </Button>
+                    )}
                   </div>
-                  
-                  {plan.description && (
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">{plan.description}</p>
-                  )}
-                  
-                  <Button
-                    onClick={() => handleStartSubscription(plan.id)}
-                    disabled={isCheckout}
-                    className="w-full"
-                  >
-                    {isCheckout ? 'Bezig...' : 'Kies dit pakket'}
-                  </Button>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              )
+            })}
           </div>
         )}
       </Card>

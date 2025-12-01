@@ -50,6 +50,7 @@ class AuthController extends Controller
                 'country' => $organisationData['country'] ?? null,
                 'contact_email' => $organisationData['contact_email'],
                 'status' => 'new',
+                'billing_status' => 'pending_payment',
             ]);
 
             $adminData = $validated['admin'];

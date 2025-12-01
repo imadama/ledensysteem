@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Building2, UserPlus } from 'lucide-react'
 import { apiClient, getSanctumCsrfCookie } from '../api/axios'
 import { Card } from '../components/ui/Card'
@@ -21,6 +22,7 @@ type AdminForm = {
 }
 
 const RegisterOrganisationPage: React.FC = () => {
+  const navigate = useNavigate()
   const [organisation, setOrganisation] = useState<OrganisationForm>({
     name: '',
     type: '',
@@ -72,22 +74,24 @@ const RegisterOrganisationPage: React.FC = () => {
         console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)
       }
 
-      await apiClient.post('/api/auth/register-organisation', {
+      const response = await apiClient.post('/api/auth/register-organisation', {
         organisation,
         admin,
         accept_terms: acceptTerms,
       })
 
-      setMessage('Registratie ontvangen! Controleer je e-mail voor activatie.')
-      setOrganisation({ name: '', type: '', city: '', country: '', contact_email: '' })
-      setAdmin({
-        first_name: '',
-        last_name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-      })
-      setAcceptTerms(false)
+      // Login automatisch na registratie
+      try {
+        await apiClient.post('/api/auth/login', {
+          email: admin.email,
+          password: admin.password,
+        })
+      } catch (loginError) {
+        console.error('Auto-login failed:', loginError)
+      }
+
+      // Redirect naar subscription pagina met melding
+      navigate('/organisation/subscription?payment_required=true', { replace: true })
     } catch (err: any) {
       // Voorkom dat errors de pagina reload veroorzaken
       console.error('Registratie error:', err)

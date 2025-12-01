@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OrganisationSubscription;
 use App\Models\Plan;
 use App\Services\OrganisationSaasSubscriptionService;
+use App\Services\SubscriptionAuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -14,8 +15,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SubscriptionController extends Controller
 {
-    public function __construct(private readonly OrganisationSaasSubscriptionService $subscriptionService)
-    {
+    public function __construct(
+        private readonly OrganisationSaasSubscriptionService $subscriptionService,
+        private readonly SubscriptionAuditService $auditService
+    ) {
     }
 
     public function show(Request $request): JsonResponse
@@ -145,8 +148,164 @@ class SubscriptionController extends Controller
             ], Response::HTTP_BAD_GATEWAY);
         }
 
+        // Log user action
+        $this->auditService->logUserAction(
+            $organisation,
+            $admin,
+            'subscription_started',
+            "User started subscription checkout for plan: {$plan->name}",
+            ['plan_id' => $plan->id, 'plan_name' => $plan->name]
+        );
+
         return response()->json([
             'checkout_url' => $session->url,
         ]);
+    }
+
+    public function cancel(Request $request): JsonResponse
+    {
+        $admin = $request->user()->loadMissing('organisation');
+        $organisation = $admin->organisation;
+
+        if (! $organisation) {
+            return response()->json([
+                'message' => __('Geen organisatie gekoppeld aan deze gebruiker.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $subscription = $organisation->currentSubscription;
+
+        if (! $subscription || ! $subscription->stripe_subscription_id) {
+            return response()->json([
+                'message' => __('Geen actief abonnement gevonden.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $oldPlan = $subscription->plan ? [
+            'id' => $subscription->plan->id,
+            'name' => $subscription->plan->name,
+            'monthly_price' => (float) $subscription->plan->monthly_price,
+        ] : null;
+
+        try {
+            $this->subscriptionService->cancelSubscription($subscription);
+
+            // Log plan change
+            $this->auditService->logPlanChange(
+                $organisation,
+                $admin,
+                'cancel',
+                $oldPlan,
+                null,
+                "Subscription cancelled by user {$admin->email}",
+                ['stripe_subscription_id' => $subscription->stripe_subscription_id]
+            );
+
+            return response()->json([
+                'message' => __('Abonnement is geannuleerd. Het blijft actief tot het einde van de huidige periode.'),
+            ]);
+        } catch (ApiErrorException $exception) {
+            Log::error('Stripe subscription cancellation failed', [
+                'organisation_id' => $organisation->id,
+                'subscription_id' => $subscription->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => __('Het annuleren van het abonnement is mislukt. Probeer het later opnieuw.'),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+    }
+
+    public function upgrade(Request $request): JsonResponse
+    {
+        return $this->changePlan($request, 'upgrade');
+    }
+
+    public function downgrade(Request $request): JsonResponse
+    {
+        return $this->changePlan($request, 'downgrade');
+    }
+
+    private function changePlan(Request $request, string $action): JsonResponse
+    {
+        $admin = $request->user()->loadMissing('organisation');
+        $organisation = $admin->organisation;
+
+        if (! $organisation) {
+            return response()->json([
+                'message' => __('Geen organisatie gekoppeld aan deze gebruiker.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $validated = $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:plans,id'],
+        ]);
+
+        $subscription = $organisation->currentSubscription;
+
+        if (! $subscription || ! $subscription->stripe_subscription_id) {
+            return response()->json([
+                'message' => __('Geen actief abonnement gevonden.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $newPlan = Plan::query()
+            ->whereKey($validated['plan_id'])
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        if (! $newPlan->stripe_price_id) {
+            return response()->json([
+                'message' => __('Het geselecteerde abonnement heeft geen Stripe prijs-ID.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $oldPlan = $subscription->plan ? [
+            'id' => $subscription->plan->id,
+            'name' => $subscription->plan->name,
+            'monthly_price' => (float) $subscription->plan->monthly_price,
+        ] : null;
+
+        $newPlanData = [
+            'id' => $newPlan->id,
+            'name' => $newPlan->name,
+            'monthly_price' => (float) $newPlan->monthly_price,
+        ];
+
+        try {
+            $this->subscriptionService->changePlan($subscription, $newPlan);
+
+            // Log plan change
+            $oldPlanName = $oldPlan['name'] ?? 'Geen plan';
+            $this->auditService->logPlanChange(
+                $organisation,
+                $admin,
+                $action,
+                $oldPlan,
+                $newPlanData,
+                "Plan {$action}d from {$oldPlanName} to {$newPlan->name} by user {$admin->email}",
+                [
+                    'stripe_subscription_id' => $subscription->stripe_subscription_id,
+                    'old_plan_id' => $oldPlan['id'] ?? null,
+                    'new_plan_id' => $newPlan->id,
+                ]
+            );
+
+            return response()->json([
+                'message' => __("Plan succesvol {$action}d naar {$newPlan->name}."),
+            ]);
+        } catch (ApiErrorException $exception) {
+            Log::error("Stripe subscription plan {$action} failed", [
+                'organisation_id' => $organisation->id,
+                'subscription_id' => $subscription->id,
+                'new_plan_id' => $newPlan->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => __("Het {$action}en van het abonnement is mislukt. Probeer het later opnieuw."),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
     }
 }

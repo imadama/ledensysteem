@@ -52,6 +52,11 @@ class Organisation extends Model
         return $this->hasOne(OrganisationSubscription::class)->latestOfMany();
     }
 
+    public function subscriptionAuditLogs(): HasMany
+    {
+        return $this->hasMany(SubscriptionAuditLog::class);
+    }
+
     public function isBillingRestricted(): bool
     {
         return $this->billing_status === 'restricted';

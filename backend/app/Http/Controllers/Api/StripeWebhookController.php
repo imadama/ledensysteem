@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Models\PaymentTransaction;
 use App\Models\StripeEvent;
 use App\Services\OrganisationStripeService;
+use App\Services\SubscriptionAuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,6 +26,7 @@ class StripeWebhookController extends Controller
 {
     public function __construct(
         private readonly OrganisationStripeService $stripeService,
+        private readonly SubscriptionAuditService $auditService,
     ) {
     }
 
@@ -310,6 +312,9 @@ class StripeWebhookController extends Controller
             $subscription->stripe_subscription_id = $stripeSubscriptionId;
         }
 
+        $oldStatus = $subscription->status;
+        $oldPlanId = $subscription->plan_id;
+        
         $stripeStatus = data_get($object, 'status');
         $subscription->status = $this->mapStripeSubscriptionStatus($stripeStatus);
 
@@ -319,10 +324,12 @@ class StripeWebhookController extends Controller
         $subscription->canceled_at = $this->timestampToDateTime(data_get($object, 'canceled_at'));
 
         $priceId = data_get($object, 'items.data.0.price.id');
+        $planChanged = false;
         if ($priceId) {
             $plan = Plan::query()->where('stripe_price_id', $priceId)->first();
             if ($plan && $subscription->plan_id !== $plan->id) {
                 $subscription->plan_id = $plan->id;
+                $planChanged = true;
             }
         }
 
@@ -331,6 +338,43 @@ class StripeWebhookController extends Controller
         $subscription->metadata = $metadata;
 
         $subscription->save();
+
+        // Log status change if changed
+        if ($oldStatus !== $subscription->status) {
+            $this->auditService->logSubscriptionStatusChange(
+                $subscription->organisation,
+                null,
+                $oldStatus,
+                $subscription->status,
+                "Subscription status changed via Stripe webhook",
+                ['stripe_event' => $type, 'stripe_status' => $stripeStatus]
+            );
+        }
+
+        // Log plan change if changed via webhook
+        if ($planChanged && $oldPlanId) {
+            $oldPlan = Plan::find($oldPlanId);
+            $newPlan = $subscription->plan;
+            if ($oldPlan && $newPlan) {
+                $this->auditService->logPlanChange(
+                    $subscription->organisation,
+                    null,
+                    'upgrade', // Default, could be improved by comparing prices
+                    [
+                        'id' => $oldPlan->id,
+                        'name' => $oldPlan->name,
+                        'monthly_price' => (float) $oldPlan->monthly_price,
+                    ],
+                    [
+                        'id' => $newPlan->id,
+                        'name' => $newPlan->name,
+                        'monthly_price' => (float) $newPlan->monthly_price,
+                    ],
+                    "Plan changed via Stripe webhook",
+                    ['stripe_event' => $type, 'stripe_price_id' => $priceId]
+                );
+            }
+        }
 
         [$billingStatus, $billingNote] = $this->determineBillingStatusFromSubscription($subscription->status, $stripeStatus);
         $this->updateOrganisationBillingStatus($subscription, $billingStatus, $billingNote);
@@ -390,6 +434,7 @@ class StripeWebhookController extends Controller
         }
 
         if ($type === 'invoice.payment_failed') {
+            $oldStatus = $subscription->status;
             $subscription->status = 'past_due';
             $metadata = $subscription->metadata ?? [];
             $metadata['last_invoice_failure'] = [
@@ -399,6 +444,56 @@ class StripeWebhookController extends Controller
             $subscription->metadata = $metadata;
             $subscription->save();
 
+            // Log status change
+            $this->auditService->logSubscriptionStatusChange(
+                $subscription->organisation,
+                null,
+                $oldStatus,
+                $subscription->status,
+                "Invoice payment failed: " . (data_get($object, 'number') ?? data_get($object, 'id')),
+                ['invoice_id' => data_get($object, 'id'), 'stripe_event' => $type]
+            );
+
+            // Log payment failure event
+            $paymentIntentId = data_get($object, 'payment_intent');
+            $amountDue = (int) data_get($object, 'amount_due', 0);
+            $currency = strtolower((string) data_get($object, 'currency', 'eur'));
+            
+            $this->auditService->logPaymentEvent(
+                $subscription->organisation,
+                null,
+                'failed',
+                [
+                    'amount' => round($amountDue / 100, 2),
+                    'currency' => strtoupper($currency),
+                    'invoice_id' => data_get($object, 'id'),
+                    'invoice_number' => data_get($object, 'number'),
+                    'payment_intent_id' => $paymentIntentId,
+                ],
+                "Invoice payment failed for invoice " . (data_get($object, 'number') ?? data_get($object, 'id')),
+                ['stripe_event' => $type, 'invoice_id' => data_get($object, 'id')]
+            );
+
+            // Update payment transaction if exists
+            if ($paymentIntentId) {
+                $transaction = PaymentTransaction::query()
+                    ->where('stripe_payment_intent_id', $paymentIntentId)
+                    ->first();
+                
+                if ($transaction) {
+                    $transaction->retry_count = ($transaction->retry_count ?? 0) + 1;
+                    $transaction->last_retry_at = now();
+                    $transaction->failure_reason = data_get($object, 'last_payment_error.message') ?? 'Payment failed';
+                    $transaction->failure_metadata = [
+                        'invoice_id' => data_get($object, 'id'),
+                        'invoice_number' => data_get($object, 'number'),
+                        'stripe_error' => data_get($object, 'last_payment_error'),
+                    ];
+                    $transaction->status = 'failed';
+                    $transaction->save();
+                }
+            }
+
             $note = __('Latest invoice :invoice failed.', ['invoice' => data_get($object, 'number') ?? data_get($object, 'id')]);
             $this->updateOrganisationBillingStatus($subscription, 'warning', $note);
 
@@ -406,9 +501,22 @@ class StripeWebhookController extends Controller
         }
 
         // invoice.payment_succeeded
+        $oldStatus = $subscription->status;
         $subscription->status = 'active';
         $subscription->current_period_end = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.end')) ?? $subscription->current_period_end;
         $subscription->save();
+
+        // Log status change if changed
+        if ($oldStatus !== 'active') {
+            $this->auditService->logSubscriptionStatusChange(
+                $subscription->organisation,
+                null,
+                $oldStatus,
+                $subscription->status,
+                "Invoice payment succeeded",
+                ['invoice_id' => data_get($object, 'id'), 'stripe_event' => $type]
+            );
+        }
 
         $this->updateOrganisationBillingStatus($subscription, 'ok', null);
 
@@ -433,7 +541,7 @@ class StripeWebhookController extends Controller
         ];
 
         if (! $transaction) {
-            PaymentTransaction::create([
+            $transaction = PaymentTransaction::create([
                 'organisation_id' => $subscription->organisation_id,
                 'type' => 'saas',
                 'amount' => round($amountPaid / 100, 2),
@@ -443,19 +551,33 @@ class StripeWebhookController extends Controller
                 'metadata' => $metadata,
                 'occurred_at' => $occurredAt,
             ]);
-
-            return;
+        } else {
+            $transaction->update([
+                'organisation_id' => $subscription->organisation_id,
+                'type' => 'saas',
+                'amount' => round($amountPaid / 100, 2),
+                'currency' => strtoupper($currency),
+                'status' => 'succeeded',
+                'metadata' => array_merge($transaction->metadata ?? [], $metadata),
+                'occurred_at' => $occurredAt,
+            ]);
         }
 
-        $transaction->update([
-            'organisation_id' => $subscription->organisation_id,
-            'type' => 'saas',
-            'amount' => round($amountPaid / 100, 2),
-            'currency' => strtoupper($currency),
-            'status' => 'succeeded',
-            'metadata' => array_merge($transaction->metadata ?? [], $metadata),
-            'occurred_at' => $occurredAt,
-        ]);
+        // Log successful payment event
+        $this->auditService->logPaymentEvent(
+            $subscription->organisation,
+            null,
+            'succeeded',
+            [
+                'amount' => round($amountPaid / 100, 2),
+                'currency' => strtoupper($currency),
+                'invoice_id' => $invoiceId,
+                'invoice_number' => data_get($object, 'number'),
+                'payment_intent_id' => $paymentIntentId,
+            ],
+            "Invoice payment succeeded for invoice " . (data_get($object, 'number') ?? $invoiceId),
+            ['stripe_event' => $type, 'invoice_id' => $invoiceId, 'transaction_id' => $transaction->id]
+        );
     }
 
     private function handleMemberSubscriptionInvoice(string $type, $object, MemberSubscription $subscription): void
@@ -628,6 +750,16 @@ class StripeWebhookController extends Controller
             $updates['stripe_checkout_session_id'] = $sessionId;
         }
 
+        // Update failure tracking
+        $updates['retry_count'] = ($transaction->retry_count ?? 0) + 1;
+        $updates['last_retry_at'] = now();
+        $updates['failure_reason'] = $reason;
+        $updates['failure_metadata'] = array_merge($transaction->failure_metadata ?? [], [
+            'last_failure_at' => now()->toIso8601String(),
+            'payment_intent_id' => $paymentIntentId,
+            'session_id' => $sessionId,
+        ]);
+
         $metadata = $transaction->metadata ?? [];
         if ($reason) {
             $metadata['last_failure_reason'] = $reason;
@@ -635,6 +767,24 @@ class StripeWebhookController extends Controller
         }
 
         $transaction->fill($updates)->save();
+
+        // Log payment failure event
+        if ($transaction->organisation_id) {
+            $this->auditService->logPaymentEvent(
+                $transaction->organisation,
+                null,
+                'failed',
+                [
+                    'amount' => (float) $transaction->amount,
+                    'currency' => $transaction->currency,
+                    'payment_intent_id' => $paymentIntentId,
+                    'session_id' => $sessionId,
+                    'retry_count' => $updates['retry_count'],
+                ],
+                "Payment failed: {$reason}",
+                ['transaction_id' => $transaction->id, 'retry_count' => $updates['retry_count']]
+            );
+        }
 
         $transaction->loadMissing('memberContributionRecords');
 
@@ -703,6 +853,7 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        $oldBillingStatus = $organisation->billing_status;
         $updates = [];
 
         if ($organisation->billing_status !== $billingStatus) {
@@ -715,6 +866,26 @@ class StripeWebhookController extends Controller
 
         if (! empty($updates)) {
             $organisation->fill($updates)->save();
+
+            // Log billing status change, especially important when going from pending_payment to ok
+            if ($oldBillingStatus !== $billingStatus) {
+                $description = match (true) {
+                    $oldBillingStatus === 'pending_payment' && $billingStatus === 'ok' => 'Eerste betaling succesvol - toegang tot platform geactiveerd',
+                    $billingStatus === 'restricted' => 'Toegang geblokkeerd vanwege betalingsproblemen',
+                    $billingStatus === 'warning' => 'Waarschuwing: betalingsproblemen gedetecteerd',
+                    $billingStatus === 'ok' => 'Betalingsstatus hersteld naar OK',
+                    default => "Betalingsstatus gewijzigd van {$oldBillingStatus} naar {$billingStatus}",
+                };
+
+                $this->auditService->logSubscriptionStatusChange(
+                    $organisation,
+                    null,
+                    $oldBillingStatus,
+                    $billingStatus,
+                    $description,
+                    ['note' => $note, 'subscription_id' => $subscription->id]
+                );
+            }
         }
     }
 }

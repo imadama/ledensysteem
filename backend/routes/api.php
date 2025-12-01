@@ -61,6 +61,9 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
         Route::get('contributions/matrix', [ContributionReportController::class, 'membersPaymentMatrix']);
         Route::get('subscription', [SubscriptionController::class, 'show']);
         Route::post('subscription/start', [SubscriptionController::class, 'start']);
+        Route::post('subscription/cancel', [SubscriptionController::class, 'cancel']);
+        Route::post('subscription/upgrade', [SubscriptionController::class, 'upgrade']);
+        Route::post('subscription/downgrade', [SubscriptionController::class, 'downgrade']);
 
         Route::prefix('payments')->group(function (): void {
             Route::get('connection', [PaymentConnectionController::class, 'show']);
@@ -86,6 +89,7 @@ Route::middleware(['auth:sanctum', 'role:platform_admin'])
     ->group(function (): void {
         Route::get('organisations', [PlatformOrganisationController::class, 'index']);
         Route::get('organisations/{id}', [PlatformOrganisationController::class, 'show']);
+        Route::get('organisations/{id}/audit-logs', [PlatformOrganisationController::class, 'auditLogs']);
         Route::patch('organisations/{id}/activate', [PlatformOrganisationController::class, 'activate']);
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);
         Route::get('plans', [PlatformPlanController::class, 'index']);

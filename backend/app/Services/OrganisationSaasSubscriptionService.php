@@ -77,6 +77,43 @@ class OrganisationSaasSubscriptionService
         return $session;
     }
 
+    /**
+     * @throws ApiErrorException
+     */
+    public function cancelSubscription(OrganisationSubscription $subscription): void
+    {
+        if (! $subscription->stripe_subscription_id) {
+            throw new \RuntimeException('Subscription has no Stripe subscription ID');
+        }
+
+        $this->stripe->subscriptions->cancel($subscription->stripe_subscription_id);
+    }
+
+    /**
+     * @throws ApiErrorException
+     */
+    public function changePlan(OrganisationSubscription $subscription, Plan $newPlan): void
+    {
+        if (! $subscription->stripe_subscription_id) {
+            throw new \RuntimeException('Subscription has no Stripe subscription ID');
+        }
+
+        if (! $newPlan->stripe_price_id) {
+            throw new \RuntimeException('Plan has no Stripe price ID');
+        }
+
+        $stripeSubscription = $this->stripe->subscriptions->retrieve($subscription->stripe_subscription_id);
+        $subscriptionItemId = $stripeSubscription->items->data[0]->id;
+
+        $this->stripe->subscriptions->update($subscription->stripe_subscription_id, [
+            'items' => [[
+                'id' => $subscriptionItemId,
+                'price' => $newPlan->stripe_price_id,
+            ]],
+            'proration_behavior' => 'always_invoice',
+        ]);
+    }
+
     private function appendSessionPlaceholder(string $url): string
     {
         if (Str::contains($url, '{CHECKOUT_SESSION_ID}')) {

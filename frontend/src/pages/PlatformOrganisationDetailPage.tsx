@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, XCircle, Users } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Users, History } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -43,12 +43,40 @@ type OrganisationDetail = {
   }>
 }
 
+type AuditLog = {
+  id: number
+  action_type: string
+  description: string | null
+  old_value: any
+  new_value: any
+  metadata: any
+  user: {
+    id: number
+    name: string
+    email: string
+  } | null
+  created_at: string
+}
+
+type AuditLogsResponse = {
+  data: AuditLog[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+  }
+}
+
 const PlatformOrganisationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [detail, setDetail] = useState<OrganisationDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'details' | 'audit'>('details')
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [auditLogsLoading, setAuditLogsLoading] = useState(false)
 
   const loadDetail = async () => {
     if (!id) {
@@ -67,9 +95,28 @@ const PlatformOrganisationDetailPage: React.FC = () => {
     }
   }
 
+  const loadAuditLogs = async () => {
+    if (!id) return
+    setAuditLogsLoading(true)
+    try {
+      const { data } = await apiClient.get<AuditLogsResponse>(`/api/platform/organisations/${id}/audit-logs`)
+      setAuditLogs(data.data)
+    } catch (err) {
+      console.error('Audit logs laden mislukt', err)
+    } finally {
+      setAuditLogsLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadDetail()
   }, [id])
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      loadAuditLogs()
+    }
+  }, [activeTab, id])
 
   const updateStatus = async (status: 'activate' | 'block') => {
     if (!id) return
@@ -137,6 +184,34 @@ const PlatformOrganisationDetailPage: React.FC = () => {
         </div>
       </div>
 
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'audit'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <History size={16} className="inline mr-1" />
+            Audit Trail
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'details' && (
+        <>
       <Card className="p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Organisatiegegevens</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -246,6 +321,60 @@ const PlatformOrganisationDetailPage: React.FC = () => {
           </table>
         </div>
       </Card>
+      </>
+      )}
+
+      {activeTab === 'audit' && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Audit Trail</h3>
+          {auditLogsLoading ? (
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">Audit logs worden geladen...</div>
+          ) : auditLogs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">Geen audit logs gevonden.</div>
+          ) : (
+            <div className="space-y-4">
+              {auditLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="default">{log.action_type}</Badge>
+                        {log.user && (
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            door {log.user.name} ({log.user.email})
+                          </span>
+                        )}
+                      </div>
+                      {log.description && (
+                        <p className="text-gray-900 dark:text-white font-medium">{log.description}</p>
+                      )}
+                      {log.old_value && log.new_value && (
+                        <div className="mt-2 text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Van: </span>
+                          <span className="text-gray-900 dark:text-white">
+                            {typeof log.old_value === 'object' ? JSON.stringify(log.old_value) : String(log.old_value)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400 mx-2">→</span>
+                          <span className="text-gray-600 dark:text-gray-400">Naar: </span>
+                          <span className="text-gray-900 dark:text-white">
+                            {typeof log.new_value === 'object' ? JSON.stringify(log.new_value) : String(log.new_value)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-500">
+                      {format(new Date(log.created_at), 'dd MMM yyyy HH:mm')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <Link to="/platform/organisations" className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
         <ArrowLeft size={16} />

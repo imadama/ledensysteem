@@ -26,7 +26,7 @@ class CheckOrganisationBillingStatus
             return $next($request);
         }
 
-        if (! $organisation->isBillingRestricted()) {
+        if (! $this->shouldBlockAccess($organisation)) {
             return $next($request);
         }
 
@@ -34,11 +34,22 @@ class CheckOrganisationBillingStatus
             return $next($request);
         }
 
+        $message = match ($organisation->billing_status) {
+            'pending_payment' => __('Payment required. Please select and pay for a subscription plan to access the platform.'),
+            'restricted' => __('Your subscription has payment issues. Please update your payment method.'),
+            default => __('Your subscription has payment issues. Please update your payment method.'),
+        };
+
         return new JsonResponse([
-            'message' => __('Your subscription has payment issues. Please update your payment method.'),
+            'message' => $message,
             'billing_status' => $organisation->billing_status,
             'billing_note' => $organisation->billing_note,
         ], Response::HTTP_PAYMENT_REQUIRED);
+    }
+
+    private function shouldBlockAccess($organisation): bool
+    {
+        return in_array($organisation->billing_status, ['pending_payment', 'restricted'], true);
     }
 
     private function shouldAllowRestrictedRequest(Request $request): bool
