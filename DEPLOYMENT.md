@@ -787,6 +787,35 @@ netstat -tulpn | grep :6969
 - Controleer of `SANCTUM_STATEFUL_DOMAINS` je domein bevat (zonder protocol)
 - Herstart de backend: `docker compose -f docker-compose.prod.yml restart backend`
 
+### Server opschonen voor volledige rebuild
+
+Als je problemen hebt met oude builds of cache, gebruik deze commando's om alles op te schonen:
+
+```bash
+# 1. Stop alle containers
+docker compose -f docker-compose.prod.yml stop
+
+# 2. Verwijder alle containers
+docker compose -f docker-compose.prod.yml rm -f
+
+# 3. Verwijder alle images van dit project
+docker images | grep ledensysteem | awk '{print $3}' | xargs -r docker rmi -f 2>/dev/null || true
+
+# 4. (Optioneel) Verwijder alle unused images
+docker image prune -f
+
+# 5. (Optioneel) Verwijder build cache
+docker builder prune -f
+
+# 6. Rebuild alles vanaf scratch
+docker compose -f docker-compose.prod.yml --env-file .env.production build --no-cache
+
+# 7. Start alles opnieuw
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+```
+
+**Let op:** Dit verwijdert alle containers en images van dit project. Je moet daarna alles opnieuw builden.
+
 ### Dubbele /api/api/ in URLs
 
 Als je `https://app.aidatim.nl/api/api/member/profile` ziet in plaats van `https://app.aidatim.nl/api/member/profile`:

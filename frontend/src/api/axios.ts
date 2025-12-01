@@ -17,8 +17,25 @@ if (typeof window !== 'undefined') {
 
 // Helper functie om sanctum endpoints aan te roepen zonder /api prefix
 export const getSanctumCsrfCookie = async (): Promise<void> => {
-  const baseUrl = getBaseUrl()
-  await axios.get(`${baseUrl}/sanctum/csrf-cookie`, {
+  let baseUrl = getBaseUrl()
+  
+  // Zorg dat baseUrl GEEN /api bevat
+  if (baseUrl.endsWith('/api')) {
+    baseUrl = baseUrl.slice(0, -4)
+  } else if (baseUrl.endsWith('/api/')) {
+    baseUrl = baseUrl.slice(0, -5)
+  }
+  
+  const fullUrl = `${baseUrl}/sanctum/csrf-cookie`
+  
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('[SANCTUM] getBaseUrl():', getBaseUrl())
+    console.log('[SANCTUM] baseUrl (processed):', baseUrl)
+    console.log('[SANCTUM] Full URL:', fullUrl)
+  }
+  
+  await axios.get(fullUrl, {
     withCredentials: true,
   })
 }
@@ -35,20 +52,35 @@ apiClient.interceptors.request.use(
       // Bouw de volledige URL
       const fullUrl = baseURL + url
       
-      // Log altijd voor debugging (zonder emoji voor betere zichtbaarheid)
-      console.log('[API REQUEST] baseURL:', baseURL)
-      console.log('[API REQUEST] url:', url)
-      console.log('[API REQUEST] fullUrl:', fullUrl)
-      console.log('[API REQUEST] hasDoubleApi:', fullUrl.includes('/api/api/'))
+      // Log altijd voor debugging
+      if (typeof window !== 'undefined') {
+        console.log('[API REQUEST]', {
+          method: config.method?.toUpperCase(),
+          baseURL: baseURL,
+          url: url,
+          fullUrl: fullUrl,
+          hasDoubleApi: fullUrl.includes('/api/api/'),
+          timestamp: new Date().toISOString(),
+        })
+      }
       
       // Als er dubbele /api/api/ in zit, corrigeer het DIRECT
       if (fullUrl.includes('/api/api/')) {
-        console.error('[ERROR] DUBBELE /api/api/ GEDETECTEERD!')
-        console.error('[ERROR] Origineel:', fullUrl)
+        if (typeof window !== 'undefined') {
+          console.error('========================================')
+          console.error('❌ DUBBELE /api/api/ GEDETECTEERD IN REQUEST!')
+          console.error('========================================')
+          console.error('Originele baseURL:', baseURL)
+          console.error('Originele url:', url)
+          console.error('Originele fullUrl:', fullUrl)
+        }
         
         // Verwijder de dubbele /api/ - vervang alle voorkomens
         const correctedUrl = fullUrl.replace(/\/api\/api\//g, '/api/')
-        console.warn('[FIX] Gecorrigeerd naar:', correctedUrl)
+        
+        if (typeof window !== 'undefined') {
+          console.warn('✅ Gecorrigeerd naar:', correctedUrl)
+        }
         
         // Parse de gecorrigeerde URL en update de config
         try {
@@ -58,26 +90,86 @@ apiClient.interceptors.request.use(
           // Update url naar alleen het path + query
           config.url = urlObj.pathname + urlObj.search
           
-          console.log('[FIX] Config bijgewerkt - newBaseURL:', config.baseURL)
-          console.log('[FIX] Config bijgewerkt - newUrl:', config.url)
+          if (typeof window !== 'undefined') {
+            console.warn('📝 Config bijgewerkt:')
+            console.warn('   newBaseURL:', config.baseURL)
+            console.warn('   newUrl:', config.url)
+            console.error('========================================')
+          }
         } catch (e) {
-          console.error('[ERROR] Fout bij parsen URL:', e, correctedUrl)
+          if (typeof window !== 'undefined') {
+            console.error('❌ Fout bij parsen URL:', e)
+            console.error('   Corrected URL:', correctedUrl)
+            console.error('========================================')
+          }
         }
       }
     }
     return config
   },
-  (error) => Promise.reject(error),
+  (error) => {
+    if (typeof window !== 'undefined') {
+      console.error('[API REQUEST ERROR] Request interceptor error:', error)
+    }
+    return Promise.reject(error)
+  },
   { runWhen: (config) => !!config.url } // Alleen uitvoeren als er een URL is
 )
 
 
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log succesvolle responses voor debugging
+    if (typeof window !== 'undefined') {
+      console.log('[API SUCCESS]', {
+        url: response.config.url,
+        baseURL: response.config.baseURL,
+        fullUrl: `${response.config.baseURL}${response.config.url}`,
+        status: response.status,
+        method: response.config.method?.toUpperCase(),
+      })
+    }
+    return response
+  },
   (error) => {
     const status = error.response?.status
     const url: string | undefined = error.config?.url
+    const baseURL = error.config?.baseURL || apiClient.defaults.baseURL
+    const fullUrl = baseURL && url ? `${baseURL}${url}` : url
+
+    // Uitgebreide error logging
+    if (typeof window !== 'undefined') {
+      console.error('========================================')
+      console.error('❌ API ERROR')
+      console.error('========================================')
+      console.error('URL:', url)
+      console.error('BaseURL:', baseURL)
+      console.error('Full URL:', fullUrl)
+      console.error('Status:', status)
+      console.error('Status Text:', error.response?.statusText)
+      console.error('Method:', error.config?.method?.toUpperCase())
+      console.error('Error Message:', error.message)
+      console.error('Error Code:', error.code)
+      
+      // Check voor dubbele /api/api/
+      if (fullUrl && fullUrl.includes('/api/api/')) {
+        console.error('⚠️ PROBLEEM: Dubbele /api/api/ gedetecteerd in error URL!')
+        console.error('   Dit betekent dat de interceptor niet heeft gewerkt')
+      }
+      
+      // Response data als beschikbaar
+      if (error.response?.data) {
+        console.error('Response Data:', error.response.data)
+      }
+      
+      // Request config
+      console.error('Request Config:', {
+        headers: error.config?.headers,
+        withCredentials: error.config?.withCredentials,
+      })
+      console.error('========================================')
+    }
 
     if (
       status === 401 &&
