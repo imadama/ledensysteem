@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiClient } from '../api/axios'
 import { useAuth } from '../context/AuthContext'
+import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
 
 type Plan = {
   id: number
@@ -142,73 +145,123 @@ const OrganisationSubscriptionPage: React.FC = () => {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>Abonnement</h1>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Abonnement</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">Beheer je abonnement en kies een pakket</p>
       </div>
 
-      {statusMessage && <div className="alert alert--info">{statusMessage}</div>}
-      {checkoutError && <div className="alert alert--error">{checkoutError}</div>}
+      {statusMessage && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg">
+          {statusMessage}
+        </div>
+      )}
+      
+      {checkoutError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {checkoutError}
+        </div>
+      )}
+      
       {billingStatus && billingStatus !== 'ok' && (
-        <div className={`alert ${billingStatus === 'restricted' ? 'alert--error' : 'alert--warning'}`}>
-          <strong>Betalingsstatus: {billingStatus}</strong>
-          <div>{billingNote ?? 'Controleer uw betaalgegevens in Stripe.'}</div>
+        <div className={`px-4 py-3 rounded-lg ${
+          billingStatus === 'restricted' 
+            ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400'
+            : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-400'
+        }`}>
+          <strong className="font-semibold">Betalingsstatus: {billingStatus}</strong>
+          <div className="mt-1">{billingNote ?? 'Controleer uw betaalgegevens in Stripe.'}</div>
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '2rem', maxWidth: '720px' }}>
-        <h2>Huidig abonnement</h2>
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Huidig abonnement</h3>
         {subscription ? (
-          <>
-            <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', rowGap: '0.75rem', columnGap: '1rem' }}>
-              <><dt>Pakket</dt><dd>{subscription.plan?.name ?? 'Onbekend'}</dd></>
-              <><dt>Status</dt><dd>{statusLabel}</dd></>
+          <div className="space-y-4">
+            <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-3">
+              <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Pakket</dt>
+              <dd className="text-gray-900 dark:text-white font-medium">{subscription.plan?.name ?? 'Onbekend'}</dd>
+              
+              <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</dt>
+              <dd>
+                <Badge 
+                  variant={
+                    subscription.status === 'active' ? 'success' :
+                    subscription.status === 'past_due' || subscription.status === 'warning' ? 'warning' :
+                    subscription.status === 'canceled' || subscription.status === 'restricted' ? 'error' :
+                    'default'
+                  }
+                >
+                  {statusLabel}
+                </Badge>
+              </dd>
+              
               {subscription.current_period_end && (
-                <><dt>Huidige periode tot</dt><dd>{new Date(subscription.current_period_end).toLocaleString('nl-NL')}</dd></>
+                <>
+                  <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Huidige periode tot</dt>
+                  <dd className="text-gray-900 dark:text-white">
+                    {new Date(subscription.current_period_end).toLocaleString('nl-NL', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </dd>
+                </>
               )}
             </dl>
+            
             {subscription.status === 'incomplete' && (
-              <div className="alert alert--info" style={{ marginTop: '1rem' }}>
-                <strong>Abonnement wordt verwerkt</strong>
-                <div>Je betaling is ontvangen. Het abonnement wordt momenteel geactiveerd. Dit kan enkele minuten duren.</div>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg mt-4">
+                <strong className="font-semibold block mb-1">Abonnement wordt verwerkt</strong>
+                <div className="text-sm">Je betaling is ontvangen. Het abonnement wordt momenteel geactiveerd. Dit kan enkele minuten duren.</div>
               </div>
             )}
-          </>
+          </div>
         ) : (
-          <p>Er is nog geen abonnement actief.</p>
+          <p className="text-gray-600 dark:text-gray-400">Er is nog geen abonnement actief.</p>
         )}
-      </div>
+      </Card>
 
-      <div className="card" style={{ maxWidth: '900px' }}>
-        <h2>Beschikbare plannen</h2>
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Beschikbare plannen</h3>
         {plansLoading ? (
-          <p>Plannen worden geladen...</p>
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Plannen worden geladen...</div>
         ) : plansError ? (
-          <div className="alert alert--error">{plansError}</div>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+            {plansError}
+          </div>
         ) : plans.length === 0 ? (
-          <p>Er zijn momenteel geen plannen geconfigureerd.</p>
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">Er zijn momenteel geen plannen geconfigureerd.</div>
         ) : (
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plans.map((plan) => (
-              <div key={plan.id} className="card card--subtle" style={{ border: '1px solid var(--color-border)' }}>
-                <h3>{plan.name}</h3>
-                <p style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
-                  € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} per maand
-                </p>
-                {plan.description && <p>{plan.description}</p>}
-                <button
-                  type="button"
-                  className="button"
-                  disabled={isCheckout}
-                  onClick={() => handleStartSubscription(plan.id)}
-                >
-                  {isCheckout ? 'Bezig...' : 'Kies dit pakket'}
-                </button>
-              </div>
+              <Card key={plan.id} className="p-6 border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors">
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h4>
+                    <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+                      <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> p/m</span>
+                    </p>
+                  </div>
+                  
+                  {plan.description && (
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">{plan.description}</p>
+                  )}
+                  
+                  <Button
+                    onClick={() => handleStartSubscription(plan.id)}
+                    disabled={isCheckout}
+                    className="w-full"
+                  >
+                    {isCheckout ? 'Bezig...' : 'Kies dit pakket'}
+                  </Button>
+                </div>
+              </Card>
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

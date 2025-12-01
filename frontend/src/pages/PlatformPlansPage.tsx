@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Edit, Save, X } from 'lucide-react'
+import { Plus, Edit, Save, X, Trash2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -31,6 +31,7 @@ const PlatformPlansPage: React.FC = () => {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [form, setForm] = useState<Omit<Plan, 'id'>>(emptyPlan)
   const [saving, setSaving] = useState(false)
+  const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null)
 
   const loadPlans = useCallback(async () => {
     setLoading(true)
@@ -118,6 +119,45 @@ const PlatformPlansPage: React.FC = () => {
     }
   }
 
+  const handleDelete = async (planId: number) => {
+    if (!confirm('Weet je zeker dat je dit plan wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
+      return
+    }
+
+    setDeletingPlanId(planId)
+    setError(null)
+
+    try {
+      const response = await apiClient.delete(`/api/platform/plans/${planId}`)
+      console.log('Plan verwijderd:', response)
+      setPlans((prev) => prev.filter((plan) => plan.id !== planId))
+      if (editingPlan?.id === planId) {
+        setEditingPlan(null)
+        setForm(emptyPlan)
+      }
+    } catch (err: any) {
+      console.error('Plan verwijderen mislukt', err)
+      console.error('Error details:', {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+        config: err.config,
+      })
+      const msg =
+        err.response?.data?.message ??
+        (err.response?.status === 422 
+          ? 'Dit plan kan niet worden verwijderd omdat er nog actieve abonnementen zijn.'
+          : err.response?.status === 404
+          ? 'Plan niet gevonden.'
+          : err.response?.status === 403
+          ? 'Je hebt geen toestemming om dit plan te verwijderen.'
+          : 'Kon plan niet verwijderen.')
+      setError(msg)
+    } finally {
+      setDeletingPlanId(null)
+    }
+  }
+
   const sortedPlans = useMemo(
     () => plans.slice().sort((a, b) => a.monthly_price - b.monthly_price || a.name.localeCompare(b.name)),
     [plans],
@@ -168,18 +208,22 @@ const PlatformPlansPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="plan-price" className={labelClassName}>Maandbedrag</label>
-              <input
-                id="plan-price"
-                name="monthly_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.monthly_price}
-                onChange={handleChange}
-                required
-                className={inputClassName}
-              />
+              <label htmlFor="plan-price" className={labelClassName}>Maandbedrag (p/m)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">€</span>
+                <input
+                  id="plan-price"
+                  name="monthly_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.monthly_price}
+                  onChange={handleChange}
+                  required
+                  className={`${inputClassName} pl-8`}
+                  placeholder="150.00"
+                />
+              </div>
             </div>
             <div>
               <label htmlFor="plan-currency" className={labelClassName}>Valuta</label>
@@ -190,6 +234,7 @@ const PlatformPlansPage: React.FC = () => {
                 onChange={handleChange}
                 required
                 className={inputClassName}
+                placeholder="EUR"
               />
             </div>
           </div>
@@ -215,7 +260,11 @@ const PlatformPlansPage: React.FC = () => {
               onChange={handleChange}
               className={inputClassName}
               rows={3}
+              placeholder="Bijv: Voor kleine organisaties <150 leden."
             />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Beschrijf voor welke organisaties dit plan geschikt is (bijv. aantal leden, type organisatie).
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -263,6 +312,7 @@ const PlatformPlansPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Naam</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Beschrijving</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Prijs</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Stripe prijs-ID</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Actief</th>
@@ -272,11 +322,16 @@ const PlatformPlansPage: React.FC = () => {
               <tbody>
                 {sortedPlans.map((plan) => (
                   <tr key={plan.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">{plan.name}</td>
-                    <td className="py-4 px-4 text-gray-900 dark:text-white">
-                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} {plan.currency}
+                    <td className="py-4 px-4">
+                      <div className="font-medium text-gray-900 dark:text-white">{plan.name}</div>
                     </td>
-                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{plan.stripe_price_id}</td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
+                      {plan.description || '-'}
+                    </td>
+                    <td className="py-4 px-4 text-gray-900 dark:text-white">
+                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} {plan.currency} p/m
+                    </td>
+                    <td className="py-4 px-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{plan.stripe_price_id || '-'}</td>
                     <td className="py-4 px-4">
                       {plan.is_active ? (
                         <Badge variant="success">Actief</Badge>
@@ -285,10 +340,26 @@ const PlatformPlansPage: React.FC = () => {
                       )}
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center justify-end">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(plan)}>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleEdit(plan)}
+                          disabled={deletingPlanId === plan.id}
+                        >
                           <Edit size={16} />
                           Bewerken
+                        </Button>
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDelete(plan.id)}
+                          disabled={deletingPlanId === plan.id}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700"
+                        >
+                          <Trash2 size={16} />
+                          {deletingPlanId === plan.id ? 'Verwijderen...' : 'Verwijderen'}
                         </Button>
                       </div>
                     </td>

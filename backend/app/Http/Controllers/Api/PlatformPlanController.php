@@ -52,6 +52,34 @@ class PlatformPlanController extends Controller
         return response()->json($this->transformPlan($plan->fresh()));
     }
 
+    public function destroy(int $id): JsonResponse
+    {
+        $plan = Plan::findOrFail($id);
+
+        // Check of er subscriptions zijn (niet alleen actieve, maar alle)
+        $totalSubscriptions = $plan->organisationSubscriptions()->count();
+        $activeSubscriptions = $plan->organisationSubscriptions()
+            ->where('status', 'active')
+            ->count();
+
+        if ($totalSubscriptions > 0) {
+            $message = 'Dit plan kan niet worden verwijderd omdat er ';
+            if ($activeSubscriptions > 0) {
+                $message .= "{$activeSubscriptions} actieve abonnement(en) zijn gekoppeld aan dit plan.";
+            } else {
+                $message .= "{$totalSubscriptions} abonnement(en) zijn gekoppeld aan dit plan (ook al zijn ze niet actief).";
+            }
+            
+            return response()->json([
+                'message' => $message,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $plan->delete();
+
+        return response()->json(status: Response::HTTP_NO_CONTENT);
+    }
+
     protected function validateData(Request $request, ?Plan $plan = null): array
     {
         return $request->validate([

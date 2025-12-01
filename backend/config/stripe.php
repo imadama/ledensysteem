@@ -10,5 +10,6 @@ return [
     'plans' => [
         'basic_price_id' => env('STRIPE_PRICE_BASIC'),
         'plus_price_id' => env('STRIPE_PRICE_PLUS'),
+        'enterprise_price_id' => env('STRIPE_PRICE_ENTERPRISE'),
     ],
 ];

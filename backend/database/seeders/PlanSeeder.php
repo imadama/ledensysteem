@@ -13,30 +13,34 @@ class PlanSeeder extends Seeder
 
         $plans = [
             [
-                'name' => 'Basis',
+                'name' => 'Basic',
                 'stripe_price_id' => $plansConfig['basic_price_id'] ?? null,
-                'monthly_price' => 29.00,
+                'monthly_price' => 150.00,
                 'currency' => strtoupper(config('stripe.default_currency', 'EUR')),
-                'description' => 'Voor kleine verenigingen die hun ledenbeheer willen automatiseren.',
+                'description' => 'Voor kleine organisaties <150 leden.',
             ],
             [
-                'name' => 'Plus',
+                'name' => 'Professional',
                 'stripe_price_id' => $plansConfig['plus_price_id'] ?? null,
-                'monthly_price' => 59.00,
+                'monthly_price' => 250.00,
                 'currency' => strtoupper(config('stripe.default_currency', 'EUR')),
-                'description' => 'Inclusief geavanceerde rapportages en integraties.',
+                'description' => 'Voor middenbedrijven en stichtingen 150–750 leden.',
+            ],
+            [
+                'name' => 'Enterprise',
+                'stripe_price_id' => $plansConfig['enterprise_price_id'] ?? null,
+                'monthly_price' => 499.00,
+                'currency' => strtoupper(config('stripe.default_currency', 'EUR')),
+                'description' => 'Voor organisaties >750 leden of complexe processen.',
             ],
         ];
 
         foreach ($plans as $planData) {
-            if (! $planData['stripe_price_id']) {
-                continue;
-            }
-
+            // Maak plan aan ook als stripe_price_id niet is ingesteld (voor development)
             Plan::updateOrCreate(
-                ['stripe_price_id' => $planData['stripe_price_id']],
+                ['name' => $planData['name']],
                 [
-                    'name' => $planData['name'],
+                    'stripe_price_id' => $planData['stripe_price_id'] ?? '',
                     'monthly_price' => $planData['monthly_price'],
                     'currency' => $planData['currency'],
                     'description' => $planData['description'],

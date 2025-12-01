@@ -91,6 +91,7 @@ Route::middleware(['auth:sanctum', 'role:platform_admin'])
         Route::get('plans', [PlatformPlanController::class, 'index']);
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);
+        Route::delete('plans/{id}', [PlatformPlanController::class, 'destroy']);
     });
 
 Route::post('stripe/webhook', StripeWebhookController::class);

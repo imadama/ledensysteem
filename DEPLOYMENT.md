@@ -68,7 +68,9 @@ nano .env.production  # of gebruik je favoriete editor
 APP_NAME=Ledenportaal
 APP_ENV=production
 APP_DEBUG=false
-APP_KEY=F1dE4qU6bp+GQ9L3lhTYYbKFt1sbTUzvPxJlfqnVXCk=
+APP_KEY=
+# BELANGRIJK: Laat APP_KEY leeg en genereer deze met: php artisan key:generate
+# De key moet beginnen met "base64:" en 32 bytes zijn (256 bits) voor AES-256-CBC
 APP_URL=https://app.aidatim.nl
 
 # Database (MariaDB container)
@@ -289,8 +291,16 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 - **Scheme:** `http`
 - **Forward Hostname / IP:** 
   - **BELANGRIJK:** Vul hier ALLEEN het IP adres of hostname in, ZONDER poort!
-  - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1` (NIET `localhost:6969`)
-  - Als Nginx Proxy Manager in een Docker network draait: `leden_backend` (container naam) of `172.17.0.1` (Docker bridge gateway)
+  - **Test eerst wat werkt:**
+    ```bash
+    # Test vanaf de server welke optie werkt:
+    curl http://127.0.0.1:6969/api/plans
+    curl http://172.17.0.1:6969/api/plans
+    curl http://localhost:6969/api/plans
+    ```
+  - Als Nginx Proxy Manager op de host draait: `127.0.0.1` (meest betrouwbaar)
+  - Als Nginx Proxy Manager in een Docker network draait: `172.17.0.1` (Docker bridge gateway) of `host.docker.internal`
+  - **NIET gebruiken:** `localhost` (kan problemen geven in Docker)
 - **Forward Port:** `6969` (de poort van de backend container - dit is een APART veld!)
   
 **Let op:** In Nginx Proxy Manager zijn er TWEE aparte velden:
@@ -302,15 +312,44 @@ Vul NOOIT `192.168.68.86:6969` in één veld in - dat werkt niet!
 - **Block Common Exploits:** Aan
 - **Websockets Support:** Uit
 
-**Advanced tab (optioneel):**
-Als je extra headers nodig hebt:
+**Advanced tab (BELANGRIJK voor sanctum):**
+Voeg deze custom nginx configuratie toe om `/sanctum` routes door te sturen:
 
 ```nginx
+# Forward /sanctum routes naar backend
+# BELANGRIJK: Gebruik hetzelfde IP als Forward Hostname/IP hierboven
+location /sanctum {
+    proxy_pass http://127.0.0.1:6969;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+}
+```
+
+**Let op:** Als NPM in Docker draait en `127.0.0.1` niet werkt, probeer dan:
+- `host.docker.internal:6969` (werkt op macOS/Windows Docker)
+- Of voeg NPM toe aan het `leden_network` en gebruik `leden_backend:8000`
+```
+
+**BELANGRIJK:** 
+- Als Forward Hostname/IP `172.17.0.1` is, gebruik dan `172.17.0.1:6969` in de proxy_pass
+- Als Forward Hostname/IP `127.0.0.1` is, gebruik dan `127.0.0.1:6969` in de proxy_pass
+- Zorg dat het IP overeenkomt met wat je in Forward Hostname/IP hebt ingesteld
+
+# Bestaande proxy headers (als je die al hebt)
 proxy_set_header Host $host;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
 ```
+
+**BELANGRIJK:** 
+- Vervang `localhost:6969` met het juiste hostname/IP als NPM in Docker draait
+- Als NPM in Docker draait, gebruik dan `172.17.0.1:6969` of het IP van je host
+- Zorg dat de `/sanctum` location block VOOR de algemene proxy configuratie staat
 
 **SSL tab:**
 - **SSL Certificate:** Kies "Request a new SSL Certificate" (of gebruik hetzelfde wildcard certificaat als `aidatim.nl`)
