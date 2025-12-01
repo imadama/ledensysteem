@@ -58,8 +58,9 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    volumes:
-      - frontend_dist:/usr/share/nginx/html
+    # Geen volume mount nodig - files zitten al in de image
+    # volumes:
+    #   - frontend_dist:/usr/share/nginx/html
     networks:
       - leden_network
     # Poort voor Nginx Proxy Manager
@@ -68,7 +69,7 @@ services:
 
 volumes:
   backend_storage:
-  frontend_dist:
+  # frontend_dist: Niet meer nodig - files zitten in de image
 
 networks:
   leden_network:

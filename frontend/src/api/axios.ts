@@ -35,9 +35,33 @@ export const getSanctumCsrfCookie = async (): Promise<void> => {
     console.log('[SANCTUM] Full URL:', fullUrl)
   }
   
-  await axios.get(fullUrl, {
-    withCredentials: true,
-  })
+  try {
+    await axios.get(fullUrl, {
+      withCredentials: true,
+    })
+    if (typeof window !== 'undefined') {
+      console.log('[SANCTUM] ✅ CSRF cookie succesvol opgehaald')
+    }
+  } catch (error: any) {
+    if (typeof window !== 'undefined') {
+      console.error('[SANCTUM] ❌ Fout bij ophalen CSRF cookie:')
+      console.error('   URL:', fullUrl)
+      console.error('   Error:', error.message)
+      console.error('   Code:', error.code)
+      console.error('   Status:', error.response?.status)
+      console.error('   CORS Issue?', error.code === 'ERR_NETWORK' || error.message.includes('CORS'))
+      
+      // Check of het een CORS probleem is
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        console.error('   ⚠️ Dit lijkt een CORS of netwerk probleem te zijn')
+        console.error('   Check:')
+        console.error('   1. Is CORS_ALLOWED_ORIGINS correct ingesteld?')
+        console.error('   2. Is de backend bereikbaar op:', fullUrl)
+        console.error('   3. Zijn beide domeinen (aidatim.nl en app.aidatim.nl) correct geconfigureerd?')
+      }
+    }
+    throw error
+  }
 }
 
 // Interceptor om dubbele /api/api/ te voorkomen - MOET als eerste worden aangeroepen
