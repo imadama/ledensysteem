@@ -54,33 +54,42 @@ class CheckOrganisationBillingStatus
 
     private function shouldAllowRestrictedRequest(Request $request): bool
     {
-        if (in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)) {
+        // OPTIONS requests altijd toestaan voor CORS
+        if ($request->method() === 'OPTIONS') {
             return true;
         }
 
         $route = $request->route();
         $uri = $route?->uri();
+        $path = $request->path(); // Volledige path inclusief api/ prefix
 
-        $allowedUris = [
+        // Toestaan: subscription en payment gerelateerde endpoints
+        // Check zowel URI (zonder prefix) als volledige path (met api/)
+        $allowedPatterns = [
+            'organisation/subscription',
             'organisation/subscription/start',
-        ];
-
-        $allowedPrefixes = [
+            'organisation/subscription/history',
+            'organisation/subscription/cancel',
+            'organisation/subscription/upgrade',
+            'organisation/subscription/downgrade',
             'organisation/payments/connection',
+            'auth/me',
+            'plans',
         ];
 
-        if ($uri && in_array($uri, $allowedUris, true)) {
-            return true;
-        }
-
-        if ($uri) {
-            foreach ($allowedPrefixes as $prefix) {
-                if (str_starts_with($uri, $prefix)) {
-                    return true;
-                }
+        // Check of URI of path match met een van de toegestane patronen
+        foreach ($allowedPatterns as $pattern) {
+            // Check URI (zonder api/ prefix)
+            if ($uri && (str_starts_with($uri, $pattern) || $uri === $pattern)) {
+                return true;
+            }
+            // Check volledige path (met api/ prefix)
+            if ($path && (str_starts_with($path, "api/{$pattern}") || $path === "api/{$pattern}")) {
+                return true;
             }
         }
 
+        // Alle andere requests (inclusief GET) worden geblokkeerd als billing_status = pending_payment of restricted
         return false;
     }
 }

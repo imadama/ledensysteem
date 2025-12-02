@@ -52,6 +52,7 @@ class SubscriptionController extends Controller
                 'current_period_start' => $subscription->current_period_start?->toIso8601String(),
                 'current_period_end' => $subscription->current_period_end?->toIso8601String(),
                 'stripe_subscription_id' => $subscription->stripe_subscription_id,
+                'latest_checkout_session_id' => $subscription->latest_checkout_session_id,
             ],
         ]);
     }

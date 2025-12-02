@@ -22,6 +22,7 @@ type SubscriptionSummary = {
   } | null
   status?: string | null
   current_period_end?: string | null
+  latest_checkout_session_id?: string | null
 }
 
 type OrganisationInfo = {
@@ -121,6 +122,7 @@ const OrganisationSubscriptionPage: React.FC = () => {
   }, [subscription?.status])
 
   const handleStartSubscription = async (planId: number) => {
+    console.log('[Subscription] Start subscription voor plan:', planId)
     setCheckoutError(null)
     setIsCheckout(true)
     try {
@@ -128,15 +130,29 @@ const OrganisationSubscriptionPage: React.FC = () => {
       const successUrl = `${origin}/organisation/subscription?session_id={CHECKOUT_SESSION_ID}`
       const cancelUrl = `${origin}/organisation/subscription?session_id={CHECKOUT_SESSION_ID}&cancelled=1`
 
+      console.log('[Subscription] API call naar /api/organisation/subscription/start', {
+        plan_id: planId,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+      })
+
       const { data } = await apiClient.post<{ checkout_url: string }>('/api/organisation/subscription/start', {
         plan_id: planId,
         success_url: successUrl,
         cancel_url: cancelUrl,
       })
 
+      console.log('[Subscription] Checkout URL ontvangen:', data.checkout_url)
       window.location.href = data.checkout_url
     } catch (err: any) {
-      console.error('Abonnement starten mislukt', err)
+      console.error('[Subscription] Abonnement starten mislukt', err)
+      console.error('[Subscription] Error details:', {
+        message: err.message,
+        response: err.response,
+        status: err.response?.status,
+        data: err.response?.data,
+      })
+      
       const errorData = err.response?.data
       let errorMessage = errorData?.message ?? 'Kon de abonnementscheckout niet starten.'
       
@@ -145,6 +161,11 @@ const OrganisationSubscriptionPage: React.FC = () => {
         errorMessage = `Stripe error: ${errorData.errors.stripe[0]}`
       } else if (errorData?.errors?.stripe) {
         errorMessage = `Stripe error: ${errorData.errors.stripe}`
+      }
+      
+      // Als het een 402 Payment Required is, toon de billing note
+      if (err.response?.status === 402 && errorData?.billing_note) {
+        errorMessage = errorData.billing_note
       }
       
       setCheckoutError(errorMessage)
@@ -272,10 +293,17 @@ const OrganisationSubscriptionPage: React.FC = () => {
               )}
             </dl>
             
-            {subscription.status === 'incomplete' && (
+            {subscription.status === 'incomplete' && subscription.latest_checkout_session_id && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg mt-4">
                 <strong className="font-semibold block mb-1">Abonnement wordt verwerkt</strong>
                 <div className="text-sm">Je betaling is ontvangen. Het abonnement wordt momenteel geactiveerd. Dit kan enkele minuten duren.</div>
+              </div>
+            )}
+            
+            {subscription.status === 'incomplete' && !subscription.latest_checkout_session_id && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-400 px-4 py-3 rounded-lg mt-4">
+                <strong className="font-semibold block mb-1">Betaling vereist</strong>
+                <div className="text-sm">Je abonnement is nog niet geactiveerd. Selecteer hieronder een plan om te betalen.</div>
               </div>
             )}
 
@@ -344,43 +372,63 @@ const OrganisationSubscriptionPage: React.FC = () => {
                       <p className="text-gray-600 dark:text-gray-400 text-sm">{plan.description}</p>
                     )}
                     
-                    {isCurrentPlan ? (
-                      <Button disabled className="w-full" variant="outline">
-                        Huidig plan
-                      </Button>
-                    ) : subscription && subscription.status === 'active' ? (
-                      <div className="space-y-2">
-                        {isUpgrade && (
-                          <Button
-                            onClick={() => handleChangePlan(plan.id, 'upgrade')}
-                            disabled={isChanging || isCancelling}
-                            className="w-full"
-                          >
-                            <ArrowUp size={16} />
-                            {isChanging ? 'Bezig...' : 'Upgraden'}
+                    {(() => {
+                      // Als dit het huidige plan is en het is actief, toon disabled button
+                      if (isCurrentPlan && subscription?.status === 'active') {
+                        return (
+                          <Button disabled className="w-full" variant="outline">
+                            Huidig plan
                           </Button>
-                        )}
-                        {isDowngrade && (
-                          <Button
-                            onClick={() => handleChangePlan(plan.id, 'downgrade')}
-                            disabled={isChanging || isCancelling}
-                            variant="outline"
-                            className="w-full"
-                          >
-                            <ArrowDown size={16} />
-                            {isChanging ? 'Bezig...' : 'Downgraden'}
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <Button
-                        onClick={() => handleStartSubscription(plan.id)}
-                        disabled={isCheckout || isCancelling}
-                        className="w-full"
-                      >
-                        {isCheckout ? 'Bezig...' : 'Kies dit pakket'}
-                      </Button>
-                    )}
+                        )
+                      }
+                      
+                      // Als er een actieve subscription is (maar niet voor dit plan), toon upgrade/downgrade
+                      if (subscription && subscription.status === 'active') {
+                        return (
+                          <div className="space-y-2">
+                            {isUpgrade && (
+                              <Button
+                                onClick={() => handleChangePlan(plan.id, 'upgrade')}
+                                disabled={isChanging || isCancelling}
+                                className="w-full"
+                              >
+                                <ArrowUp size={16} />
+                                {isChanging ? 'Bezig...' : 'Upgraden'}
+                              </Button>
+                            )}
+                            {isDowngrade && (
+                              <Button
+                                onClick={() => handleChangePlan(plan.id, 'downgrade')}
+                                disabled={isChanging || isCancelling}
+                                variant="outline"
+                                className="w-full"
+                              >
+                                <ArrowDown size={16} />
+                                {isChanging ? 'Bezig...' : 'Downgraden'}
+                              </Button>
+                            )}
+                          </div>
+                        )
+                      }
+                      
+                      // Voor incomplete subscriptions of geen subscription: toon "Opnieuw betalen" of "Kies dit pakket"
+                      const buttonText = subscription?.status === 'incomplete' 
+                        ? 'Opnieuw betalen' 
+                        : 'Kies dit pakket'
+                      
+                      return (
+                        <Button
+                          onClick={() => {
+                            console.log('[Subscription] Button clicked voor plan:', plan.id, 'subscription status:', subscription?.status)
+                            handleStartSubscription(plan.id)
+                          }}
+                          disabled={isCheckout || isCancelling}
+                          className="w-full"
+                        >
+                          {isCheckout ? 'Bezig...' : buttonText}
+                        </Button>
+                      )
+                    })()}
                   </div>
                 </Card>
               )
