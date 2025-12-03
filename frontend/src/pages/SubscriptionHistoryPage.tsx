@@ -39,20 +39,15 @@ const SubscriptionHistoryPage: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      // Get organisation ID from user info
-      const { data: userData } = await apiClient.get<{ organisation: { id: number } }>('/api/auth/me')
-      const organisationId = userData.organisation?.id
-
-      if (!organisationId) {
-        setError('Geen organisatie gevonden.')
-        return
-      }
-
-      const { data } = await apiClient.get<AuditLogsResponse>(`/api/platform/organisations/${organisationId}/audit-logs`)
+      const { data } = await apiClient.get<AuditLogsResponse>('/api/organisation/subscription/audit-logs')
       setAuditLogs(data.data)
     } catch (err: any) {
       console.error('Audit logs laden mislukt', err)
-      setError(err.response?.data?.message ?? 'Kon audit logs niet laden.')
+      if (err.response?.status === 403 || err.response?.status === 401) {
+        setError('Je hebt geen toegang tot deze informatie.')
+      } else {
+        setError(err.response?.data?.message ?? 'Kon audit logs niet laden.')
+      }
     } finally {
       setLoading(false)
     }

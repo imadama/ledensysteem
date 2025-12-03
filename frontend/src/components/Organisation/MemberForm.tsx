@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Button } from '../ui/Button'
 
 export type MemberFormValues = {
   member_number: string
@@ -62,26 +63,43 @@ const MemberForm: React.FC<MemberFormProps> = ({
     await onSubmit(values)
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="form">
-      {generalError && <div className="alert alert--error">{generalError}</div>}
+  const inputClassName = (hasError: boolean) =>
+    `w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+      hasError
+        ? 'border-red-300 dark:border-red-600 focus:ring-red-500'
+        : 'border-gray-300 dark:border-gray-600'
+    }`
 
-      <div className="form-grid">
-        <div className="form-group">
-          <label htmlFor="member_number">Lidnummer</label>
+  const labelClassName = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {generalError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {generalError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label htmlFor="member_number" className={labelClassName}>
+            Lidnummer
+          </label>
           <input
             id="member_number"
             type="text"
             value={values.member_number}
             onChange={handleChange('member_number')}
-            className={errors.member_number ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.member_number)}
           />
-          {errors.member_number && <span className="form-error">{errors.member_number}</span>}
+          {errors.member_number && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.member_number}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="first_name">
-            Voornaam <span className="required">*</span>
+        <div>
+          <label htmlFor="first_name" className={labelClassName}>
+            Voornaam <span className="text-red-500">*</span>
           </label>
           <input
             id="first_name"
@@ -89,14 +107,16 @@ const MemberForm: React.FC<MemberFormProps> = ({
             type="text"
             value={values.first_name}
             onChange={handleChange('first_name')}
-            className={errors.first_name ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.first_name)}
           />
-          {errors.first_name && <span className="form-error">{errors.first_name}</span>}
+          {errors.first_name && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.first_name}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="last_name">
-            Achternaam <span className="required">*</span>
+        <div>
+          <label htmlFor="last_name" className={labelClassName}>
+            Achternaam <span className="text-red-500">*</span>
           </label>
           <input
             id="last_name"
@@ -104,132 +124,170 @@ const MemberForm: React.FC<MemberFormProps> = ({
             type="text"
             value={values.last_name}
             onChange={handleChange('last_name')}
-            className={errors.last_name ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.last_name)}
           />
-          {errors.last_name && <span className="form-error">{errors.last_name}</span>}
+          {errors.last_name && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.last_name}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="gender">
-            Geslacht <span className="required">*</span>
+        <div>
+          <label htmlFor="gender" className={labelClassName}>
+            Geslacht <span className="text-red-500">*</span>
           </label>
           <select
             id="gender"
             required
             value={values.gender}
             onChange={handleChange('gender')}
-            className={errors.gender ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.gender)}
           >
             <option value="m">Man</option>
             <option value="f">Vrouw</option>
           </select>
-          {errors.gender && <span className="form-error">{errors.gender}</span>}
+          {errors.gender && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.gender}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="birth_date">Geboortedatum</label>
+        <div>
+          <label htmlFor="birth_date" className={labelClassName}>
+            Geboortedatum
+          </label>
           <input
             id="birth_date"
             type="date"
             value={values.birth_date}
             onChange={handleChange('birth_date')}
-            className={errors.birth_date ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.birth_date)}
           />
-          {errors.birth_date && <span className="form-error">{errors.birth_date}</span>}
+          {errors.birth_date && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.birth_date}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="email">E-mail</label>
+        <div>
+          <label htmlFor="email" className={labelClassName}>
+            E-mail
+          </label>
           <input
             id="email"
             type="email"
             value={values.email}
             onChange={handleChange('email')}
-            className={errors.email ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.email)}
           />
-          {errors.email && <span className="form-error">{errors.email}</span>}
+          {errors.email && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.email}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="phone">Telefoonnummer</label>
+        <div>
+          <label htmlFor="phone" className={labelClassName}>
+            Telefoonnummer
+          </label>
           <input
             id="phone"
             type="text"
             value={values.phone}
             onChange={handleChange('phone')}
-            className={errors.phone ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.phone)}
           />
-          {errors.phone && <span className="form-error">{errors.phone}</span>}
+          {errors.phone && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.phone}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="street_address">Adres</label>
+        <div className="md:col-span-2">
+          <label htmlFor="street_address" className={labelClassName}>
+            Adres
+          </label>
           <input
             id="street_address"
             type="text"
             value={values.street_address}
             onChange={handleChange('street_address')}
-            className={errors.street_address ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.street_address)}
           />
-          {errors.street_address && <span className="form-error">{errors.street_address}</span>}
+          {errors.street_address && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.street_address}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="postal_code">Postcode</label>
+        <div>
+          <label htmlFor="postal_code" className={labelClassName}>
+            Postcode
+          </label>
           <input
             id="postal_code"
             type="text"
             value={values.postal_code}
             onChange={handleChange('postal_code')}
-            className={errors.postal_code ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.postal_code)}
           />
-          {errors.postal_code && <span className="form-error">{errors.postal_code}</span>}
+          {errors.postal_code && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.postal_code}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="city">Plaats</label>
+        <div>
+          <label htmlFor="city" className={labelClassName}>
+            Plaats
+          </label>
           <input
             id="city"
             type="text"
             value={values.city}
             onChange={handleChange('city')}
-            className={errors.city ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.city)}
           />
-          {errors.city && <span className="form-error">{errors.city}</span>}
+          {errors.city && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.city}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="iban">IBAN</label>
+        <div>
+          <label htmlFor="iban" className={labelClassName}>
+            IBAN
+          </label>
           <input
             id="iban"
             type="text"
             value={values.iban}
             onChange={handleChange('iban')}
-            className={errors.iban ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.iban)}
           />
-          {errors.iban && <span className="form-error">{errors.iban}</span>}
+          {errors.iban && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.iban}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="contribution_amount">Contributiebedrag</label>
+        <div>
+          <label htmlFor="contribution_amount" className={labelClassName}>
+            Contributiebedrag
+          </label>
           <input
             id="contribution_amount"
             type="number"
             step="0.01"
             value={values.contribution_amount}
             onChange={handleChange('contribution_amount')}
-            className={errors.contribution_amount ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.contribution_amount)}
           />
-          {errors.contribution_amount && <span className="form-error">{errors.contribution_amount}</span>}
+          {errors.contribution_amount && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.contribution_amount}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="contribution_frequency">Contributiefrequentie</label>
+        <div>
+          <label htmlFor="contribution_frequency" className={labelClassName}>
+            Contributiefrequentie
+          </label>
           <select
             id="contribution_frequency"
             value={values.contribution_frequency}
             onChange={handleChange('contribution_frequency')}
-            className={errors.contribution_frequency ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.contribution_frequency)}
           >
             {defaultFrequencyOption.map((option) => (
               <option key={option.value} value={option.value}>
@@ -237,37 +295,49 @@ const MemberForm: React.FC<MemberFormProps> = ({
               </option>
             ))}
           </select>
-          {errors.contribution_frequency && <span className="form-error">{errors.contribution_frequency}</span>}
+          {errors.contribution_frequency && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.contribution_frequency}</span>
+          )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor="contribution_start_date">Startdatum contributie</label>
+        <div>
+          <label htmlFor="contribution_start_date" className={labelClassName}>
+            Startdatum contributie
+          </label>
           <input
             id="contribution_start_date"
             type="date"
             value={values.contribution_start_date}
             onChange={handleChange('contribution_start_date')}
-            className={errors.contribution_start_date ? 'input input--error' : 'input'}
+            className={inputClassName(!!errors.contribution_start_date)}
           />
-          {errors.contribution_start_date && <span className="form-error">{errors.contribution_start_date}</span>}
+          {errors.contribution_start_date && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.contribution_start_date}</span>
+          )}
         </div>
 
-        <div className="form-group form-group--full">
-          <label htmlFor="contribution_note">Opmerking contributie</label>
+        <div className="md:col-span-2">
+          <label htmlFor="contribution_note" className={labelClassName}>
+            Opmerking contributie
+          </label>
           <textarea
             id="contribution_note"
             rows={4}
             value={values.contribution_note}
             onChange={handleChange('contribution_note')}
-            className={errors.contribution_note ? 'textarea textarea--error' : 'textarea'}
+            className={inputClassName(!!errors.contribution_note)}
           />
-          {errors.contribution_note && <span className="form-error">{errors.contribution_note}</span>}
+          {errors.contribution_note && (
+            <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.contribution_note}</span>
+          )}
         </div>
       </div>
 
-      <button type="submit" className="button" disabled={isSubmitting}>
-        {isSubmitting ? 'Bezig...' : submitLabel}
-      </button>
+      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Bezig...' : submitLabel}
+        </Button>
+      </div>
     </form>
   )
 }

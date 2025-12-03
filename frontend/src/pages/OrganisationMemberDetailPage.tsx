@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
+import { ArrowLeft, User, Mail, Calendar, Ban, CheckCircle2, UserCheck } from 'lucide-react'
 import MemberForm, { type MemberFormErrors, type MemberFormValues } from '../components/Organisation/MemberForm'
 import { apiClient } from '../api/axios'
+import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
+import { Button } from '../components/ui/Button'
 
 type AccountStatus = 'none' | 'invited' | 'active' | 'blocked'
 
@@ -423,16 +427,21 @@ const OrganisationMemberDetailPage: React.FC = () => {
   }
 
   if (isLoading) {
-    return <div>Bezig met laden...</div>
+    return (
+      <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+    )
   }
 
   if (loadError) {
     return (
-      <div>
-        <div className="alert alert--error">{loadError}</div>
-        <button className="button" type="button" onClick={() => navigate('/organisation/members')} style={{ marginTop: '1rem' }}>
+      <div className="space-y-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {loadError}
+        </div>
+        <Button onClick={() => navigate('/organisation/members')}>
+          <ArrowLeft size={16} />
           Terug naar overzicht
-        </button>
+        </Button>
       </div>
     )
   }
@@ -442,161 +451,285 @@ const OrganisationMemberDetailPage: React.FC = () => {
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <h1>
-          {initialValues.first_name} {initialValues.last_name}
-        </h1>
-        <div className="page-header__actions">
-          <span className={`badge badge--${status === 'active' ? 'success' : 'secondary'}`}>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Link to="/organisation/members">
+            <Button variant="outline" size="sm">
+              <ArrowLeft size={16} />
+              Terug
+            </Button>
+          </Link>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {initialValues.first_name} {initialValues.last_name}
+            </h2>
+            {initialValues.member_number && (
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Lidnummer: {initialValues.member_number}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={status === 'active' ? 'success' : 'default'}>
             {status === 'active' ? 'Actief' : 'Inactief'}
-          </span>
-          <button
-            type="button"
-            className="button button--secondary"
+          </Badge>
+          <Button
+            variant="secondary"
+            size="sm"
             disabled={statusUpdating}
             onClick={handleToggleStatus}
           >
             {statusUpdating ? 'Bezig...' : status === 'active' ? 'Deactiveer lid' : 'Activeer lid'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          className={`button ${activeTab === 'details' ? '' : 'button--secondary'}`}
-          onClick={() => setActiveTab('details')}
-        >
-          Gegevens
-        </button>
-        <button
-          type="button"
-          className={`button ${activeTab === 'payments' ? '' : 'button--secondary'}`}
-          onClick={() => setActiveTab('payments')}
-        >
-          Betalingen
-        </button>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'details'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <User size={16} className="inline mr-1" />
+            Gegevens
+          </button>
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'payments'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <Calendar size={16} className="inline mr-1" />
+            Betalingen
+          </button>
+        </nav>
       </div>
+
+      {/* Error/Success Messages */}
+      {generalError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {generalError}
+        </div>
+      )}
 
       {activeTab === 'details' ? (
-        <>
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <h2>Account</h2>
-        {accountError && <div className="alert alert--error">{accountError}</div>}
-        {accountSuccess && <div className="alert alert--success">{accountSuccess}</div>}
-        <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1rem' }}>
-          <div>
-            <strong>Status</strong>
-            <div>{getAccountStatusLabel(accountStatus)}</div>
-          </div>
-          <div>
-            <strong>Account e-mail</strong>
-            <div>{accountEmail ?? initialValues.email ?? 'Niet bekend'}</div>
-          </div>
-          <div>
-            <strong>Laatste uitnodiging</strong>
-            <div>{formatDateTime(lastInvitationSentAt) ?? 'Nog niet verstuurd'}</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div className="space-y-6">
+          {/* Account Section */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <User size={20} className="text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Account</h3>
+            </div>
+            
+            {accountError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                {accountError}
+              </div>
+            )}
+            {accountSuccess && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 px-4 py-3 rounded-lg mb-4">
+                {accountSuccess}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Status</p>
+                <div>
+                  <Badge
+                    variant={
+                      accountStatus === 'active'
+                        ? 'success'
+                        : accountStatus === 'invited'
+                        ? 'warning'
+                        : accountStatus === 'blocked'
+                        ? 'error'
+                        : 'default'
+                    }
+                  >
+                    {getAccountStatusLabel(accountStatus)}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Account e-mail</p>
+                <p className="text-gray-900 dark:text-white">{accountEmail ?? initialValues.email ?? 'Niet bekend'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Laatste uitnodiging</p>
+                <p className="text-gray-900 dark:text-white">
+                  {formatDateTime(lastInvitationSentAt) ?? 'Nog niet verstuurd'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
               {accountStatus === 'none' &&
                 (initialValues.email ? (
-              <button
-                type="button"
-                className="button"
-                disabled={isAccountActionLoading}
-                onClick={handleInviteMember}
-              >
-                {accountAction === 'invite' ? 'Versturen...' : 'Uitnodiging versturen'}
-              </button>
-            ) : (
-              <span className="text-muted">Geen e-mailadres bekend om uit te nodigen.</span>
+                  <Button
+                    disabled={isAccountActionLoading}
+                    onClick={handleInviteMember}
+                    size="sm"
+                  >
+                    <Mail size={16} />
+                    {accountAction === 'invite' ? 'Versturen...' : 'Uitnodiging versturen'}
+                  </Button>
+                ) : (
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Geen e-mailadres bekend om uit te nodigen.
+                  </span>
                 ))}
-          {accountStatus === 'invited' && (
-            <>
-              <span className="badge badge--info">Uitnodiging verstuurd</span>
-              {initialValues.email && (
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  disabled={isAccountActionLoading}
-                  onClick={handleInviteMember}
-                >
-                  {accountAction === 'invite' ? 'Versturen...' : 'Opnieuw versturen'}
-                </button>
+              {accountStatus === 'invited' && (
+                <>
+                  <Badge variant="warning">Uitnodiging verstuurd</Badge>
+                  {initialValues.email && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isAccountActionLoading}
+                      onClick={handleInviteMember}
+                    >
+                      {accountAction === 'invite' ? 'Versturen...' : 'Opnieuw versturen'}
+                    </Button>
+                  )}
+                </>
               )}
-            </>
-          )}
-          {accountStatus === 'active' && (
-            <button
-              type="button"
-              className="button button--danger"
-              disabled={isAccountActionLoading}
-              onClick={handleBlockAccount}
-            >
-              {accountAction === 'block' ? 'Bezig...' : 'Blokkeer toegang'}
-            </button>
-          )}
-          {accountStatus === 'blocked' && (
-            <button
-              type="button"
-              className="button"
-              disabled={isAccountActionLoading}
-              onClick={handleUnblockAccount}
-            >
-              {accountAction === 'unblock' ? 'Bezig...' : 'Deblokkeer toegang'}
-            </button>
-          )}
-        </div>
-      </div>
+              {accountStatus === 'active' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isAccountActionLoading}
+                  onClick={handleBlockAccount}
+                  className="text-red-600 hover:text-red-700 border-red-300 dark:text-red-400 dark:border-red-600"
+                >
+                  <Ban size={16} />
+                  {accountAction === 'block' ? 'Bezig...' : 'Blokkeer toegang'}
+                </Button>
+              )}
+              {accountStatus === 'blocked' && (
+                <Button
+                  size="sm"
+                  disabled={isAccountActionLoading}
+                  onClick={handleUnblockAccount}
+                >
+                  <UserCheck size={16} />
+                  {accountAction === 'unblock' ? 'Bezig...' : 'Deblokkeer toegang'}
+                </Button>
+              )}
+            </div>
+          </Card>
 
-      <div className="card">
-        <MemberForm
-          initialValues={initialValues}
-          onSubmit={handleSubmit}
-          errors={errors}
-          generalError={generalError}
-          isSubmitting={isSubmitting}
-          submitLabel="Wijzigingen opslaan"
-        />
-      </div>
-        </>
+          {/* Member Form */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <User size={20} className="text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lidgegevens</h3>
+            </div>
+            <MemberForm
+              initialValues={initialValues}
+              onSubmit={handleSubmit}
+              errors={errors}
+              generalError={generalError}
+              isSubmitting={isSubmitting}
+              submitLabel="Wijzigingen opslaan"
+            />
+          </Card>
+        </div>
       ) : (
-        <div className="card">
-          <h2>Betalingen</h2>
-          {contributionsError && <div className="alert alert--error">{contributionsError}</div>}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Betalingen</h3>
+          </div>
+
+          {contributionsError && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+              {contributionsError}
+            </div>
+          )}
+
           {contributionsLoading ? (
-            <p>Betalingen worden geladen...</p>
+            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+              Betalingen worden geladen...
+            </div>
           ) : contributions.length > 0 ? (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table">
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead>
-                  <tr>
-                    <th>Periode</th>
-                    <th>Bedrag</th>
-                    <th>Status contributie</th>
-                    <th>Status betaling</th>
-                    <th>Betaald op</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Periode</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Bedrag</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status contributie</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status betaling</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Betaald op</th>
                   </tr>
                 </thead>
                 <tbody>
                   {contributions.map((record) => (
-                    <tr key={record.id}>
-                      <td>{formatPeriod(record.period)}</td>
-                      <td>{formatAmount(record.amount)}</td>
-                      <td>{getContributionStatusLabel(record.status)}</td>
-                      <td>{getPaymentStatusLabel(record.payment?.status ?? null)}</td>
-                      <td>{formatDateTime(record.payment?.date ?? null) ?? '—'}</td>
+                    <tr
+                      key={record.id}
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    >
+                      <td className="py-4 px-4 text-gray-900 dark:text-white">{formatPeriod(record.period)}</td>
+                      <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">
+                        {formatAmount(record.amount)}
+                      </td>
+                      <td className="py-4 px-4">
+                        <Badge
+                          variant={
+                            record.status === 'paid'
+                              ? 'success'
+                              : record.status === 'failed'
+                              ? 'error'
+                              : record.status === 'processing'
+                              ? 'warning'
+                              : 'default'
+                          }
+                        >
+                          {getContributionStatusLabel(record.status)}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4">
+                        {record.payment?.status ? (
+                          <Badge
+                            variant={
+                              record.payment.status === 'succeeded'
+                                ? 'success'
+                                : record.payment.status === 'failed'
+                                ? 'error'
+                                : record.payment.status === 'processing'
+                                ? 'warning'
+                                : 'default'
+                            }
+                          >
+                            {getPaymentStatusLabel(record.payment.status)}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">Geen betaling</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
+                        {formatDateTime(record.payment?.date ?? null) ?? '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p>Geen contributies gevonden.</p>
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              Geen contributies gevonden.
+            </div>
           )}
-        </div>
+        </Card>
       )}
     </div>
   )

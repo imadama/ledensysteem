@@ -60,6 +60,7 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
         Route::get('contributions/summary', [ContributionReportController::class, 'organisationSummary']);
         Route::get('contributions/matrix', [ContributionReportController::class, 'membersPaymentMatrix']);
         Route::get('subscription', [SubscriptionController::class, 'show']);
+        Route::get('subscription/audit-logs', [SubscriptionController::class, 'auditLogs']);
         Route::post('subscription/start', [SubscriptionController::class, 'start']);
         Route::post('subscription/cancel', [SubscriptionController::class, 'cancel']);
         Route::post('subscription/upgrade', [SubscriptionController::class, 'upgrade']);

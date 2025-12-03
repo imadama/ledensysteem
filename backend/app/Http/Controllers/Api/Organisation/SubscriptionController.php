@@ -309,4 +309,49 @@ class SubscriptionController extends Controller
             ], Response::HTTP_BAD_GATEWAY);
         }
     }
+
+    public function auditLogs(Request $request): JsonResponse
+    {
+        $admin = $request->user()->loadMissing('organisation');
+        $organisation = $admin->organisation;
+
+        if (! $organisation) {
+            return response()->json([
+                'message' => __('Geen organisatie gekoppeld aan deze gebruiker.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $logs = $organisation->subscriptionAuditLogs()
+            ->with('user:id,name,email')
+            ->orderByDesc('created_at')
+            ->paginate(50);
+
+        $data = $logs->getCollection()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'action_type' => $log->action_type,
+                'description' => $log->description,
+                'old_value' => $log->old_value,
+                'new_value' => $log->new_value,
+                'metadata' => $log->metadata,
+                'user' => $log->user ? [
+                    'id' => $log->user->id,
+                    'name' => $log->user->name,
+                    'email' => $log->user->email,
+                ] : null,
+                'created_at' => $log->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
+            ],
+        ]);
+    }
 }
