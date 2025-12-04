@@ -65,6 +65,19 @@ class PlatformOrganisationController extends Controller
         return response()->json($this->transformOrganisationSummary($organisation));
     }
 
+    public function updateBillingStatus(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'billing_status' => ['required', 'string', 'in:ok,pending_payment,restricted'],
+            'billing_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $organisation = Organisation::findOrFail($id);
+        $organisation->update($validated);
+
+        return response()->json($this->transformOrganisationSummary($organisation->fresh()));
+    }
+
     protected function updateStatus(int $id, string $status): Organisation
     {
         $organisation = Organisation::findOrFail($id);

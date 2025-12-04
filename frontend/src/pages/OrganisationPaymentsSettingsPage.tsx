@@ -11,6 +11,7 @@ type ConnectionResponse = {
   status: ConnectionStatus
   stripe_account_id: string | null
   activated_at?: string | null
+  last_error?: string | null
 }
 
 const OrganisationPaymentsSettingsPage: React.FC = () => {
@@ -82,10 +83,18 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
       window.location.href = data.url
     } catch (err: any) {
       console.error(err)
-      const message =
-        err?.response?.data?.message ?? 'Kon geen onboardinglink aanmaken. Controleer later opnieuw.'
+      let message = err?.response?.data?.message ?? 'Kon geen onboardinglink aanmaken. Controleer later opnieuw.'
+      
+      // Voeg specifieke Stripe foutmelding toe als beschikbaar
+      if (err?.response?.data?.errors?.stripe?.[0]) {
+        message += ` Details: ${err.response.data.errors.stripe[0]}`
+      }
+      
       setError(message)
       setIsRedirecting(false)
+      
+      // Refresh connection om laatste status op te halen
+      await fetchConnection()
     }
   }
 
@@ -186,10 +195,15 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
             {connection?.status === 'blocked' && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                 <strong className="block text-sm font-semibold text-red-900 dark:text-red-300 mb-2">Account geblokkeerd</strong>
-                <p className="text-sm text-red-800 dark:text-red-400">
+                <p className="text-sm text-red-800 dark:text-red-400 mb-2">
                   Er is een probleem met je Stripe-account. Neem contact op met Stripe support of probeer opnieuw te
                   koppelen.
                 </p>
+                {connection.last_error && (
+                  <p className="text-xs text-red-700 dark:text-red-500 mt-2 font-mono bg-red-100 dark:bg-red-900/40 p-2 rounded">
+                    {connection.last_error}
+                  </p>
+                )}
               </div>
             )}
 

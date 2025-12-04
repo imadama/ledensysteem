@@ -26,9 +26,22 @@ const LoginPage: React.FC = () => {
 
       const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'
       navigate(from, { replace: true })
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setError('Inloggen mislukt. Controleer je gegevens.')
+      
+      // Toon specifieke foutmelding als beschikbaar
+      if (err?.response?.status === 422) {
+        const validationErrors = err?.response?.data?.errors
+        if (validationErrors?.email?.[0]) {
+          setError(validationErrors.email[0])
+        } else {
+          setError('Inloggen mislukt. Controleer je gegevens.')
+        }
+      } else if (err?.message) {
+        setError(err.message)
+      } else {
+        setError('Inloggen mislukt. Controleer je gegevens.')
+      }
     } finally {
       setLoading(false)
     }

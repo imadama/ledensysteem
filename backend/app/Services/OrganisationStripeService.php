@@ -39,9 +39,17 @@ class OrganisationStripeService
                 ]);
                 $connection->save();
             } else {
+                // Refresh status voordat we een link proberen aan te maken
                 $account = $this->stripe->accounts->retrieve($connection->stripe_account_id, []);
                 $this->refreshStatusFromAccount($connection, $account);
                 $connection->save();
+                
+                // Als account geblokkeerd is, gooi een exception met duidelijke melding
+                if ($connection->status === 'blocked') {
+                    throw new ApiErrorException(
+                        $connection->last_error ?? 'Stripe account is geblokkeerd. Neem contact op met Stripe support.'
+                    );
+                }
             }
 
             $link = $this->stripe->accountLinks->create([

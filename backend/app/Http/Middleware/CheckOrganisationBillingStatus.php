@@ -49,6 +49,13 @@ class CheckOrganisationBillingStatus
 
     private function shouldBlockAccess($organisation): bool
     {
+        // Als er geen subscription is, blokkeer dan alleen als billing_status = 'restricted'
+        // Dit geeft organisaties zonder plan de mogelijkheid om het systeem te gebruiken
+        if (! $organisation->currentSubscription) {
+            return $organisation->billing_status === 'restricted';
+        }
+
+        // Als er wel een subscription is, blokkeer bij pending_payment of restricted
         return in_array($organisation->billing_status, ['pending_payment', 'restricted'], true);
     }
 

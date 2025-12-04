@@ -84,6 +84,7 @@ class PaymentConnectionController extends Controller
             'status' => $connection->status ?? 'none',
             'stripe_account_id' => $connection->stripe_account_id,
             'activated_at' => $connection->activated_at?->toIso8601String(),
+            'last_error' => $connection->last_error,
         ];
     }
 }

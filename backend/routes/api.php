@@ -102,6 +102,7 @@ Route::middleware(['auth:sanctum', 'role:platform_admin'])
         Route::get('organisations/{id}/audit-logs', [PlatformOrganisationController::class, 'auditLogs']);
         Route::patch('organisations/{id}/activate', [PlatformOrganisationController::class, 'activate']);
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);
+        Route::patch('organisations/{id}/billing-status', [PlatformOrganisationController::class, 'updateBillingStatus']);
         Route::get('plans', [PlatformPlanController::class, 'index']);
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);

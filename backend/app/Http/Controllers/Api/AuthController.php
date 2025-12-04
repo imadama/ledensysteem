@@ -110,7 +110,7 @@ class AuthController extends Controller
             $this->logoutUser($request);
 
             throw ValidationException::withMessages([
-                'email' => [__('Your organisation is blocked.')],
+                'email' => [__('Uw account is geblokkeerd. Neem contact op met Aidatim voor meer informatie.')],
             ]);
         }
 
