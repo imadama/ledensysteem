@@ -97,12 +97,38 @@ class ContributionReportController extends Controller
         ];
 
         if ($month !== null) {
-            $row = (clone $baseQuery)
-                ->whereMonth('member_contribution_records.period', $month)
-                ->select($select)
-                ->first();
+            try {
+                $row = (clone $baseQuery)
+                    ->whereMonth('member_contribution_records.period', $month)
+                    ->select($select)
+                    ->first();
 
-            if (! $row) {
+                if (! $row) {
+                    return response()->json([
+                        'year' => (int) $year,
+                        'month' => (int) $month,
+                        'total_received' => 0.0,
+                        'paid_members' => 0,
+                        'members_with_open' => 0,
+                    ]);
+                }
+
+                return response()->json([
+                    'year' => (int) $year,
+                    'month' => (int) $month,
+                    'total_received' => (float) ($row->total_received ?? 0.0),
+                    'paid_members' => (int) ($row->paid_members ?? 0),
+                    'members_with_open' => (int) ($row->members_with_open ?? 0),
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Error in organisationSummary for month', [
+                    'year' => $year,
+                    'month' => $month,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                // Return empty data instead of error
                 return response()->json([
                     'year' => (int) $year,
                     'month' => (int) $month,
@@ -111,14 +137,6 @@ class ContributionReportController extends Controller
                     'members_with_open' => 0,
                 ]);
             }
-
-            return response()->json([
-                'year' => (int) $year,
-                'month' => (int) $month,
-                'total_received' => (float) $row->total_received,
-                'paid_members' => (int) $row->paid_members,
-                'members_with_open' => (int) $row->members_with_open,
-            ]);
         }
 
         $rows = $baseQuery

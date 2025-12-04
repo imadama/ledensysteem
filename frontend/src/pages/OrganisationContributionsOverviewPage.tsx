@@ -60,7 +60,7 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
     try {
       const params: Record<string, string | number> = { year }
       if (month !== '') {
-        params.month = month
+        params.month = Number(month) // Zorg dat month een number is, niet een string
       }
 
       const { data } = await apiClient.get<SummaryResponse | SingleMonthResponse>('/api/organisation/contributions/summary', {
@@ -72,9 +72,19 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
       } else {
         setSingleMonthSummary(data)
       }
-    } catch (err) {
-      console.error(err)
-      setError('Kon de bijdrageoverzichten niet laden. Probeer het later opnieuw.')
+    } catch (err: any) {
+      console.error('Error bij ophalen contributie overzicht:', err)
+      const errorMessage = err.response?.data?.message || err.message || 'Onbekende fout'
+      const statusCode = err.response?.status
+      
+      console.error('Error details:', {
+        status: statusCode,
+        message: errorMessage,
+        data: err.response?.data,
+        params: { year, month },
+      })
+      
+      setError(`Kon de bijdrageoverzichten niet laden: ${errorMessage}${statusCode ? ` (${statusCode})` : ''}`)
     } finally {
       setLoading(false)
     }

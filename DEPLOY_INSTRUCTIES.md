@@ -200,3 +200,4 @@ docker compose -f docker-compose.prod.yml ps
 - ✅ Verbeterde frontend voor subscription management
 - ✅ Betere error handling en logging
 
+
