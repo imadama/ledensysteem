@@ -23,7 +23,7 @@ const monthNames = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep
 const currentYear = new Date().getFullYear()
 
 const MonitorPage: React.FC = () => {
-  const [year, setYear] = useState<number>(currentYear)
+  const [year] = useState<number>(currentYear)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [monitorData, setMonitorData] = useState<MonitorResponse | null>(null)
@@ -31,9 +31,9 @@ const MonitorPage: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false)
   
   const tableContainerRef = useRef<HTMLDivElement>(null)
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const scrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const horizontalScrollRef = useRef<HTMLDivElement>(null)
-  const horizontalScrollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const horizontalScrollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isResettingVerticalRef = useRef<boolean>(false)
   const isResettingHorizontalRef = useRef<boolean>(false)
 

@@ -74,7 +74,7 @@ const RegisterOrganisationPage: React.FC = () => {
         console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)
       }
 
-      const response = await apiClient.post('/api/auth/register-organisation', {
+      await apiClient.post('/api/auth/register-organisation', {
         organisation,
         admin,
         accept_terms: acceptTerms,

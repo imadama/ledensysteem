@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { ArrowLeft, User, Mail, Calendar, Ban, CheckCircle2, UserCheck } from 'lucide-react'
+import { ArrowLeft, User, Mail, Calendar, Ban, UserCheck } from 'lucide-react'
 import MemberForm, { type MemberFormErrors, type MemberFormValues } from '../components/Organisation/MemberForm'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
