@@ -11,7 +11,8 @@ import {
   DollarSign,
   User,
   CreditCard,
-  FileText
+  FileText,
+  Monitor
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useMemberAuth } from '../context/MemberAuthContext'
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
     { name: 'Leden', icon: Users, view: 'members', path: '/organisation/members' },
     { name: 'Contributies', icon: DollarSign, view: 'contributions', path: '/organisation/contributions' },
     { name: 'Beheerders', icon: Users, view: 'users', path: '/organisation/users' },
+    { name: 'Monitor', icon: Monitor, view: 'monitor', path: '/monitor' },
     { name: 'Stripe', icon: CreditCard, view: 'stripe', path: '/organisation/settings/payments' },
     { name: 'Instellingen', icon: Settings, view: 'settings', path: '/organisation/subscription' },
   ]

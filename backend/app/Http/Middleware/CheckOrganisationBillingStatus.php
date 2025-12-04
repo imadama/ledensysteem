@@ -73,6 +73,7 @@ class CheckOrganisationBillingStatus
             'organisation/subscription/upgrade',
             'organisation/subscription/downgrade',
             'organisation/payments/connection',
+            'organisation/monitor', // Monitor pagina altijd toegankelijk
             'auth/me',
             'plans',
         ];

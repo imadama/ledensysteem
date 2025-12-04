@@ -24,6 +24,7 @@ const OrganisationUsersPage: React.FC = () => {
     last_name: '',
     email: '',
     status: 'pending',
+    role: 'org_admin',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -52,7 +53,7 @@ const OrganisationUsersPage: React.FC = () => {
     try {
       const { data } = await apiClient.post<OrgUser>('/api/organisation/users', form)
       setUsers((prev) => [...prev, data])
-      setForm({ first_name: '', last_name: '', email: '', status: 'pending' })
+      setForm({ first_name: '', last_name: '', email: '', status: 'pending', role: 'org_admin' })
       setShowForm(false)
     } catch (err) {
       console.error(err)
@@ -176,6 +177,20 @@ const OrganisationUsersPage: React.FC = () => {
               >
                 <option value="pending">In afwachting</option>
                 <option value="active">Actief</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="new-role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Rol
+              </label>
+              <select
+                id="new-role"
+                value={form.role}
+                onChange={(event) => setForm((prev) => ({ ...prev, role: event.target.value }))}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="org_admin">Organisatie Beheerder</option>
+                <option value="monitor">Monitor</option>
               </select>
             </div>
             <Button type="submit" disabled={isSubmitting}>

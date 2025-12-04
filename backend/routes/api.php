@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Member\SelfServiceController;
 use App\Http\Controllers\Api\Organisation\SubscriptionController;
 use App\Http\Controllers\Api\Organisation\ContributionReportController;
 use App\Http\Controllers\Api\Organisation\MemberController;
+use App\Http\Controllers\Api\Organisation\MonitorController;
 use App\Http\Controllers\Api\Organisation\PaymentConnectionController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
@@ -71,6 +72,14 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
             Route::post('connection/onboarding-link', [PaymentConnectionController::class, 'createOnboardingLink']);
             Route::post('connection/refresh', [PaymentConnectionController::class, 'refresh']);
         });
+    });
+
+// Monitor route - toegankelijk voor zowel monitor als org_admin rollen
+// Geen billing.status check zodat monitor altijd werkt
+Route::middleware(['auth:sanctum'])
+    ->prefix('organisation')
+    ->group(function (): void {
+        Route::get('monitor', [MonitorController::class, 'index']);
     });
 
 Route::middleware(['auth:sanctum', 'role:member', 'billing.status'])

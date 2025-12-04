@@ -15,6 +15,7 @@ class RolesAndAdminSeeder extends Seeder
             ['name' => 'platform_admin', 'description' => 'Beheerder van het platform'],
             ['name' => 'org_admin', 'description' => 'Beheerder van een organisatie'],
             ['name' => 'member', 'description' => 'Lid met een persoonlijk account'],
+            ['name' => 'monitor', 'description' => 'Monitor rol voor TV scherm weergave'],
         ];
 
         foreach ($roles as $roleData) {

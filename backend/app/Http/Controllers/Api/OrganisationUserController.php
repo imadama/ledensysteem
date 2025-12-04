@@ -49,6 +49,7 @@ class OrganisationUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'status' => ['sometimes', 'string', Rule::in(['pending', 'active'])],
+            'role' => ['sometimes', 'string', Rule::in(['org_admin', 'monitor'])],
         ]);
 
         $user = $this->service->createUser($admin, $data);

@@ -35,7 +35,8 @@ class OrganisationUserService
                 'organisation_id' => $admin->organisation_id,
             ]);
 
-            $user->assignRole('org_admin');
+            $role = $data['role'] ?? 'org_admin';
+            $user->assignRole($role);
 
             $token = Password::createToken($user);
             $user->sendPasswordResetNotification($token);

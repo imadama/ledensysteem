@@ -7,9 +7,10 @@ type ProtectedRouteProps = {
   component: ComponentType
   roles?: string[]
   redirectTo?: string
+  noLayout?: boolean
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component, roles, redirectTo = '/dashboard' }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component, roles, redirectTo = '/dashboard', noLayout = false }) => {
   const { user, isLoading, roles: userRoles } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -47,6 +48,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ component: Component, r
     if (!hasRole) {
       return null
     }
+  }
+
+  if (noLayout) {
+    return <Component />
   }
 
   return (

@@ -29,6 +29,7 @@ import MemberProfilePage from './pages/member/MemberProfilePage'
 import MemberContributionPage from './pages/member/MemberContributionPage'
 import MemberContributionSuccessPage from './pages/member/MemberContributionSuccessPage'
 import MemberContributionCancelPage from './pages/member/MemberContributionCancelPage'
+import MonitorPage from './pages/MonitorPage'
 
 function App() {
   return (
@@ -100,6 +101,10 @@ function App() {
         <Route
           path="/platform/plans"
           element={<ProtectedRoute component={PlatformPlansPage} roles={['platform_admin']} />}
+        />
+        <Route
+          path="/monitor"
+          element={<ProtectedRoute component={MonitorPage} roles={['monitor', 'org_admin']} noLayout={true} />}
         />
 
           <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
