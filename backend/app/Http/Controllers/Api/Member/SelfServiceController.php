@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Member;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\UpdateProfileRequest;
 use App\Models\MemberContributionRecord;
+use App\Models\MemberSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,12 +54,38 @@ class SelfServiceController extends Controller
     {
         [, $member] = $this->resolveContext($request);
 
+        // Check voor actieve subscription eerst
+        $activeSubscription = MemberSubscription::query()
+            ->where('member_id', $member->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
+        // Als er een actieve subscription is, gebruik die gegevens
+        if ($activeSubscription) {
+            $startDate = $activeSubscription->current_period_start 
+                ?? $activeSubscription->created_at 
+                ?? now();
+            
+            return response()->json([
+                'data' => [
+                    'contribution_amount' => $activeSubscription->amount,
+                    'contribution_frequency' => 'Maandelijks',
+                    'contribution_start_date' => $startDate->toDateString(),
+                    'contribution_note' => 'Automatische incasso via Stripe',
+                    'has_subscription' => true,
+                ],
+            ]);
+        }
+
+        // Anders gebruik de handmatig ingevulde contributieafspraak
         return response()->json([
             'data' => [
                 'contribution_amount' => $member->contribution_amount,
                 'contribution_frequency' => $member->contribution_frequency,
                 'contribution_start_date' => $member->contribution_start_date?->toDateString(),
                 'contribution_note' => $member->contribution_note,
+                'has_subscription' => false,
             ],
         ]);
     }
@@ -86,6 +113,31 @@ class SelfServiceController extends Controller
                     'updated_at' => $record->updated_at?->toIso8601String(),
                 ];
             }),
+        ]);
+    }
+
+    public function subscription(Request $request): JsonResponse
+    {
+        [, $member] = $this->resolveContext($request);
+
+        $subscription = MemberSubscription::query()
+            ->where('member_id', $member->id)
+            ->where('status', 'active')
+            ->latest()
+            ->first();
+
+        if (! $subscription) {
+            return response()->json([
+                'data' => null,
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'amount' => $subscription->amount,
+                'currency' => $subscription->currency,
+                'status' => $subscription->status,
+            ],
         ]);
     }
 

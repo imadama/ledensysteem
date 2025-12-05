@@ -88,19 +88,16 @@ class ContributionReportController extends Controller
             ->whereNotNull('member_contribution_records.period')
             ->whereYear('member_contribution_records.period', $year);
 
-        $select = [
-            DB::raw('YEAR(member_contribution_records.period) as year'),
-            DB::raw('MONTH(member_contribution_records.period) as month'),
-            DB::raw('COALESCE(SUM(CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.amount ELSE 0 END), 0) as total_received'),
-            DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.member_id END) as paid_members'),
-            DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "open" THEN member_contribution_records.member_id END) as members_with_open'),
-        ];
-
         if ($month !== null) {
             try {
+                // Voor een specifieke maand, gebruik alleen aggregaties zonder YEAR/MONTH in SELECT
                 $row = (clone $baseQuery)
                     ->whereMonth('member_contribution_records.period', $month)
-                    ->select($select)
+                    ->select([
+                        DB::raw('COALESCE(SUM(CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.amount ELSE 0 END), 0) as total_received'),
+                        DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.member_id END) as paid_members'),
+                        DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "open" THEN member_contribution_records.member_id END) as members_with_open'),
+                    ])
                     ->first();
 
                 if (! $row) {
@@ -139,6 +136,15 @@ class ContributionReportController extends Controller
             }
         }
 
+        // Voor hele jaar, gebruik GROUP BY met YEAR en MONTH
+        $select = [
+            DB::raw('YEAR(member_contribution_records.period) as year'),
+            DB::raw('MONTH(member_contribution_records.period) as month'),
+            DB::raw('COALESCE(SUM(CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.amount ELSE 0 END), 0) as total_received'),
+            DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "paid" THEN member_contribution_records.member_id END) as paid_members'),
+            DB::raw('COUNT(DISTINCT CASE WHEN member_contribution_records.status = "open" THEN member_contribution_records.member_id END) as members_with_open'),
+        ];
+
         $rows = $baseQuery
             ->select($select)
             ->groupBy(DB::raw('YEAR(member_contribution_records.period)'), DB::raw('MONTH(member_contribution_records.period)'))
@@ -173,7 +179,7 @@ class ContributionReportController extends Controller
             'year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
         ]);
 
-        $year = $validated['year'] ?? Carbon::now()->year;
+        $year = (int) ($validated['year'] ?? Carbon::now()->year);
 
         // Haal alle actieve members op
         $members = Member::query()
@@ -185,15 +191,17 @@ class ContributionReportController extends Controller
 
         // Haal alle contributie records op voor dit jaar (inclusief contributies zonder period)
         // Contributies zonder period worden onder de huidige maand getoond
+        // Gebruik whereHas in plaats van join om ervoor te zorgen dat casts correct worden toegepast
         $contributions = MemberContributionRecord::query()
-            ->with(['paymentTransaction'])
-            ->join('members', 'members.id', '=', 'member_contribution_records.member_id')
-            ->where('members.organisation_id', $organisationId)
+            ->with(['paymentTransaction', 'member'])
+            ->whereHas('member', function ($query) use ($organisationId) {
+                $query->where('organisation_id', $organisationId);
+            })
             ->where(function ($query) use ($year) {
-                $query->whereYear('member_contribution_records.period', $year)
+                // Match op jaar - gebruik DATE_FORMAT om ook records met verschillende dagen in de maand te vinden
+                $query->whereRaw('YEAR(member_contribution_records.period) = ?', [$year])
                     ->orWhereNull('member_contribution_records.period');
             })
-            ->select('member_contribution_records.*')
             ->get()
             ->groupBy('member_id');
 
@@ -220,7 +228,9 @@ class ContributionReportController extends Controller
                         }
 
                         if ($dateToUse) {
-                            return $dateToUse->year === $year && $dateToUse->month === $month;
+                            $yearInt = (int) $year;
+                            $monthInt = (int) $month;
+                            return $dateToUse->year === $yearInt && $dateToUse->month === $monthInt;
                         }
 
                         // Als er helemaal geen datum is, toon alleen in huidige maand
@@ -230,7 +240,17 @@ class ContributionReportController extends Controller
                     }
 
                     // $record->period is al een Carbon instance door de cast
-                    return $record->period->year === $year && $record->period->month === $month;
+                    // Normaliseer naar eerste van de maand voor matching
+                    try {
+                        $periodStart = $record->period->copy()->startOfMonth();
+                        // Zorg ervoor dat $year en $month integers zijn voor de vergelijking
+                        $yearInt = (int) $year;
+                        $monthInt = (int) $month;
+                        return $periodStart->year === $yearInt && $periodStart->month === $monthInt;
+                    } catch (\Exception $e) {
+                        // Als er een fout is met de period, skip deze record
+                        return false;
+                    }
                 });
 
                 if ($contribution) {

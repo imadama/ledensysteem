@@ -174,6 +174,13 @@ class StripeWebhookController extends Controller
         );
 
         if (! $transaction) {
+            // Log dat we geen transaction kunnen vinden
+            \Log::warning('Stripe webhook: checkout.session.completed maar geen transaction gevonden', [
+                'session_id' => data_get($object, 'id'),
+                'client_reference_id' => data_get($object, 'client_reference_id'),
+                'payment_intent' => data_get($object, 'payment_intent'),
+                'metadata' => data_get($object, 'metadata', []),
+            ]);
             return;
         }
 
@@ -252,6 +259,13 @@ class StripeWebhookController extends Controller
         );
 
         if (! $transaction) {
+            // Log dat we geen transaction kunnen vinden
+            \Log::warning('Stripe webhook: payment_intent.succeeded maar geen transaction gevonden', [
+                'payment_intent_id' => $object->id ?? null,
+                'metadata' => $object->metadata ?? [],
+                'amount' => data_get($object, 'amount'),
+                'currency' => data_get($object, 'currency'),
+            ]);
             return;
         }
 
@@ -608,7 +622,46 @@ class StripeWebhookController extends Controller
         }
 
         $periodStart = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.start'));
+        if ($periodStart) {
+            $periodStart = $periodStart->copy()->startOfMonth();
+        }
         $periodEnd = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.end'));
+
+        $invoiceId = data_get($object, 'id');
+
+        // Check of er al een transaction bestaat voor deze invoice
+        $transaction = PaymentTransaction::query()
+            ->where('stripe_payment_intent_id', $paymentIntentId)
+            ->first();
+
+        // Check ook op invoice ID in metadata om dubbele records te voorkomen
+        if (! $transaction) {
+            $transaction = PaymentTransaction::query()
+                ->whereJsonContains('metadata->stripe_invoice_id', $invoiceId)
+                ->first();
+        }
+
+        // Als er al een transaction is, check of er al een contribution record is
+        if ($transaction) {
+            $existingContribution = MemberContributionRecord::query()
+                ->where('payment_transaction_id', $transaction->id)
+                ->first();
+
+            if ($existingContribution) {
+                // Contribution record bestaat al, update alleen de transaction als nodig
+                $transaction->update([
+                    'status' => 'succeeded',
+                    'metadata' => array_merge($transaction->metadata ?? [], [
+                        'stripe_invoice_id' => $invoiceId,
+                        'stripe_invoice_number' => data_get($object, 'number'),
+                        'member_subscription_id' => (string) $subscription->id,
+                        'member_contribution_id' => (string) $existingContribution->id,
+                    ]),
+                    'occurred_at' => $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? $transaction->occurred_at ?? now(),
+                ]);
+                return;
+            }
+        }
 
         // Maak een contribution record aan voor deze maand
         $contribution = MemberContributionRecord::create([
@@ -621,10 +674,6 @@ class StripeWebhookController extends Controller
 
         // Maak of update payment transaction
         $occurredAt = $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? now();
-
-        $transaction = PaymentTransaction::query()
-            ->where('stripe_payment_intent_id', $paymentIntentId)
-            ->first();
 
         $metadata = [
             'stripe_invoice_id' => data_get($object, 'id'),

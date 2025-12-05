@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiClient } from '../../api/axios'
+import { Card } from '../../components/ui/Card'
+import { Button } from '../../components/ui/Button'
+import { Badge } from '../../components/ui/Badge'
 
 type ContributionInfo = {
   contribution_amount: string | null
   contribution_frequency: string | null
   contribution_start_date: string | null
   contribution_note: string | null
+  has_subscription?: boolean
 }
 
 type ContributionRecord = {
@@ -212,149 +216,198 @@ const MemberContributionPage: React.FC = () => {
   )
 
   return (
-    <div className="card">
-      <h1>Mijn contributie</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mijn contributie</h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Onderstaande gegevens zijn door de organisatie vastgelegd en alleen leesbaar. Neem contact op met de administratie bij vragen of afwijkingen.
+        </p>
+      </div>
 
-      <p>
-        Onderstaande gegevens zijn door de organisatie vastgelegd en alleen leesbaar. Neem contact op met de administratie bij vragen of afwijkingen.
-      </p>
-
-      {loading && <div>Bezig met laden...</div>}
-      {error && <div className="alert alert--error">{error}</div>}
+      {loading && (
+        <Card className="p-6">
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
+        </Card>
+      )}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {!loading && !error && (
         <>
-          <section style={{ marginBottom: '2rem' }}>
-            <h2>Huidige afspraak</h2>
-            <div className="info-grid">
-              <div>
-                <strong>Bedrag</strong>
-                <div>{formatAmount(info?.contribution_amount ?? null)}</div>
+          {info && (info.contribution_amount || info.has_subscription) ? (
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                {info.has_subscription ? 'Actieve automatische incasso' : 'Huidige afspraak'}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Bedrag</dt>
+                  <dd className="mt-1 text-lg text-gray-900 dark:text-white">{formatAmount(info.contribution_amount ?? null)}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Frequentie</dt>
+                  <dd className="mt-1 text-lg text-gray-900 dark:text-white">{info.contribution_frequency ?? 'Niet bekend'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Startdatum</dt>
+                  <dd className="mt-1 text-lg text-gray-900 dark:text-white">{info.contribution_start_date ?? 'Niet bekend'}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-600 dark:text-gray-400">Opmerking</dt>
+                  <dd className="mt-1 text-lg text-gray-900 dark:text-white">{info.contribution_note ?? 'Geen opmerking'}</dd>
+                </div>
               </div>
-              <div>
-                <strong>Frequentie</strong>
-                <div>{info?.contribution_frequency ?? 'Niet bekend'}</div>
-              </div>
-              <div>
-                <strong>Startdatum</strong>
-                <div>{info?.contribution_start_date ?? 'Niet bekend'}</div>
-              </div>
-              <div>
-                <strong>Opmerking</strong>
-                <div>{info?.contribution_note ?? 'Geen opmerking'}</div>
-              </div>
-            </div>
-          </section>
+            </Card>
+          ) : null}
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2>Vrije contributie</h2>
-            <p>Je kunt hier een vrijwillige bijdrage doen met een bedrag naar keuze.</p>
-            {manualError && <div className="alert alert--error">{manualError}</div>}
-            <form onSubmit={handleManualPay}>
-              <div className="form-group">
-                <label htmlFor="manual_amount">Bedrag (€)</label>
-                <input
-                  id="manual_amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={manualAmount}
-                  onChange={(e) => setManualAmount(e.target.value)}
-                  className="input"
-                  placeholder="0.00"
-                  required
-                  disabled={manualPaying}
-                />
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Vrije contributie</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Je kunt hier een vrijwillige bijdrage doen met een bedrag naar keuze.</p>
+            {manualError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                {manualError}
               </div>
-              <div className="form-group">
-                <label htmlFor="manual_note">Opmerking (optioneel)</label>
+            )}
+            <form onSubmit={handleManualPay} className="space-y-4">
+              <div>
+                <label htmlFor="manual_amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Bedrag (€)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">€</span>
+                  <input
+                    id="manual_amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={manualAmount}
+                    onChange={(e) => setManualAmount(e.target.value)}
+                    className="w-full px-4 py-2 pl-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="0.00"
+                    required
+                    disabled={manualPaying}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="manual_note" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Opmerking (optioneel)
+                </label>
                 <textarea
                   id="manual_note"
                   value={manualNote}
                   onChange={(e) => setManualNote(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   rows={3}
                   maxLength={1000}
                   disabled={manualPaying}
                 />
               </div>
-              <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={setupRecurring}
-                    onChange={(e) => setSetupRecurring(e.target.checked)}
-                    disabled={manualPaying}
-                  />
-                  <span>Automatische incasso inschakelen (maandelijks afschrijven)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="setup_recurring"
+                  checked={setupRecurring}
+                  onChange={(e) => setSetupRecurring(e.target.checked)}
+                  disabled={manualPaying}
+                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="setup_recurring" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                  Automatische incasso inschakelen (maandelijks afschrijven)
                 </label>
               </div>
               {setupRecurring && (
-                <div className="form-group">
-                  <label htmlFor="payment_method">Betaalmethode voor automatische incasso</label>
+                <div>
+                  <label htmlFor="payment_method" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Betaalmethode voor automatische incasso
+                  </label>
                   <select
                     id="payment_method"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as 'card' | 'sepa')}
-                    className="input"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     disabled={manualPaying}
                   >
                     <option value="card">Creditcard / Debitcard</option>
                     <option value="sepa">SEPA Incasso (Bankrekening)</option>
                   </select>
                   {paymentMethod === 'sepa' && (
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#666' }}>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                       Met SEPA incasso geeft u toestemming om maandelijks automatisch af te schrijven van uw bankrekening.
                     </p>
                   )}
                 </div>
               )}
-              <button
+              <Button
                 type="submit"
-                className="button"
                 disabled={manualPaying || !manualAmount || Number.parseFloat(manualAmount) <= 0}
+                className="w-full"
               >
                 {manualPaying ? 'Bezig...' : setupRecurring ? 'Automatische incasso instellen' : 'Betaal contributie'}
-              </button>
+              </Button>
             </form>
-          </section>
+          </Card>
 
-          <section style={{ marginBottom: '2rem' }}>
-            <h2>Openstaande bijdragen</h2>
-            {payError && <div className="alert alert--error">{payError}</div>}
-            {openError && <div className="alert alert--error">{openError}</div>}
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Openstaande bijdragen</h2>
+            {payError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                {payError}
+              </div>
+            )}
+            {openError && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+                {openError}
+              </div>
+            )}
             {openLoading ? (
-              <p>Openstaande bijdragen worden geladen...</p>
+              <div className="text-center py-8 text-gray-600 dark:text-gray-400">Openstaande bijdragen worden geladen...</div>
             ) : !hasOpenContributions ? (
-              <p>Je hebt momenteel geen openstaande bijdragen.</p>
+              <p className="text-gray-600 dark:text-gray-400">Je hebt momenteel geen openstaande bijdragen.</p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead>
-                    <tr>
-                      <th>Periode</th>
-                      <th>Bedrag</th>
-                      <th>Status</th>
-                      <th />
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Periode</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Bedrag</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                      <th className="text-right py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Actie</th>
                     </tr>
                   </thead>
                   <tbody>
                     {openContributions.map((record) => {
                       const isPayable = ['open', 'failed'].includes(record.status)
                       return (
-                        <tr key={record.id}>
-                          <td>{formatPeriod(record.period)}</td>
-                          <td>{formatOpenAmount(record.amount)}</td>
-                          <td>{getStatusLabel(record.status)}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              className="button"
-                              onClick={() => handlePay(record.id)}
-                              disabled={!isPayable || payingId === record.id}
+                        <tr key={record.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="py-4 px-4 text-gray-900 dark:text-white">{formatPeriod(record.period)}</td>
+                          <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">{formatOpenAmount(record.amount)}</td>
+                          <td className="py-4 px-4">
+                            <Badge
+                              variant={
+                                record.status === 'paid' ? 'success' :
+                                record.status === 'open' || record.status === 'failed' ? 'error' :
+                                record.status === 'processing' ? 'warning' :
+                                'default'
+                              }
                             >
-                              {payingId === record.id ? 'Bezig...' : isPayable ? 'Betaal nu' : '—'}
-                            </button>
+                              {getStatusLabel(record.status)}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            {isPayable && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handlePay(record.id)}
+                                disabled={payingId === record.id}
+                              >
+                                {payingId === record.id ? 'Bezig...' : 'Betaal nu'}
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       )
@@ -363,37 +416,48 @@ const MemberContributionPage: React.FC = () => {
                 </table>
               </div>
             )}
-          </section>
+          </Card>
 
-          <section>
-            <h2>Historiek</h2>
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Historiek</h2>
             {history.length === 0 ? (
-              <p>Er zijn nog geen contributierecords beschikbaar.</p>
+              <p className="text-gray-600 dark:text-gray-400">Er zijn nog geen contributierecords beschikbaar.</p>
             ) : (
-              <div className="table-responsive">
-                <table className="table">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead>
-                    <tr>
-                      <th>Periode</th>
-                      <th>Bedrag</th>
-                      <th>Status</th>
-                      <th>Opmerking</th>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Periode</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Bedrag</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Opmerking</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.map((record) => (
-                      <tr key={record.id}>
-                        <td>{record.period ?? record.period_iso ?? '-'}</td>
-                        <td>{formatAmount(record.amount)}</td>
-                        <td>{record.status ?? '-'}</td>
-                        <td>{record.note ?? '-'}</td>
+                      <tr key={record.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="py-4 px-4 text-gray-900 dark:text-white">{record.period ?? record.period_iso ?? '-'}</td>
+                        <td className="py-4 px-4 text-gray-900 dark:text-white font-medium">{formatAmount(record.amount)}</td>
+                        <td className="py-4 px-4">
+                          <Badge
+                            variant={
+                              record.status === 'paid' ? 'success' :
+                              record.status === 'open' || record.status === 'failed' ? 'error' :
+                              record.status === 'processing' ? 'warning' :
+                              'default'
+                            }
+                          >
+                            {record.status ?? '-'}
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{record.note ?? '-'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             )}
-          </section>
+          </Card>
         </>
       )}
     </div>

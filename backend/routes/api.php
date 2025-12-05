@@ -89,6 +89,7 @@ Route::middleware(['auth:sanctum', 'role:member', 'billing.status'])
         Route::put('profile', [SelfServiceController::class, 'updateProfile']);
         Route::get('contribution', [SelfServiceController::class, 'contribution']);
         Route::get('contribution-history', [SelfServiceController::class, 'contributionHistory']);
+        Route::get('subscription', [SelfServiceController::class, 'subscription']);
         Route::get('contribution-open', [ContributionPaymentController::class, 'index']);
         Route::post('contribution-pay', [ContributionPaymentController::class, 'store']);
         Route::post('contribution-pay-manual', [ContributionPaymentController::class, 'payManual']);

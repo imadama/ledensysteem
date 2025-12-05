@@ -24,6 +24,7 @@ class MemberService
                 'user.roles',
                 'latestMemberInvitation',
                 'pendingMemberInvitation',
+                'activeSubscription',
             ])
             ->where('organisation_id', $organisationId);
 
@@ -102,6 +103,7 @@ class MemberService
                 'user.roles',
                 'latestMemberInvitation',
                 'pendingMemberInvitation',
+                'activeSubscription',
             ])
             ->where('organisation_id', $organisationId)
             ->find($memberId);

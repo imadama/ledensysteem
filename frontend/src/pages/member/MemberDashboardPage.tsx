@@ -28,6 +28,7 @@ type OpenContribution = {
 const MemberDashboardPage: React.FC = () => {
   const [contributions, setContributions] = useState<ContributionRecord[]>([])
   const [openContributions, setOpenContributions] = useState<OpenContribution[]>([])
+  const [activeSubscription, setActiveSubscription] = useState<{ amount: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,9 +36,10 @@ const MemberDashboardPage: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
-      const [historyResponse, openResponse] = await Promise.all([
+      const [historyResponse, openResponse, subscriptionResponse] = await Promise.all([
         apiClient.get<{ data: ContributionRecord[] }>('/api/member/contribution-history'),
         apiClient.get<{ data: OpenContribution[] }>('/api/member/contribution-open'),
+        apiClient.get<{ data: { amount: string } | null }>('/api/member/subscription').catch(() => ({ data: { data: null } })),
       ])
 
       // Combineer en sorteer: eerst openstaande, dan betaalde (nieuwste eerst)
@@ -73,6 +75,11 @@ const MemberDashboardPage: React.FC = () => {
 
       setContributions(allContributions.slice(0, 10)) // Toon laatste 10
       setOpenContributions(openResponse.data.data)
+      
+      // Set active subscription if available
+      if (subscriptionResponse.data.data?.amount) {
+        setActiveSubscription({ amount: Number(subscriptionResponse.data.data.amount) })
+      }
     } catch (err: any) {
       console.error('Contributies ophalen mislukt', err)
       setError('Kon contributies niet laden.')
@@ -129,11 +136,14 @@ const MemberDashboardPage: React.FC = () => {
   }
 
   const getMonthlyDues = () => {
-    // Calculate average from paid contributions
-    const paidContributions = contributions.filter(c => c.status === 'paid' && c.amount)
-    if (paidContributions.length === 0) return 0
-    const total = paidContributions.reduce((sum, c) => sum + Number(c.amount || 0), 0)
-    return total / paidContributions.length
+    // Use active subscription amount if available
+    if (activeSubscription && activeSubscription.amount > 0) {
+      return activeSubscription.amount
+    }
+    
+    // Fallback: use member's contribution_amount from profile if available
+    // Otherwise return 0 (don't show average of historical payments)
+    return 0
   }
 
   const hasOpenContributions = openContributions.length > 0

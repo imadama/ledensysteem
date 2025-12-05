@@ -185,11 +185,15 @@ class MemberController extends Controller
             'user.roles',
             'latestMemberInvitation',
             'pendingMemberInvitation',
+            'activeSubscription',
         ]);
 
         $accountStatus = $member->account_status;
         $accountEmail = $member->account_email;
         $lastInvitationSentAt = $member->last_invitation_sent_at?->toIso8601String();
+
+        // Gebruik actieve subscription amount als die bestaat, anders de member's contribution_amount
+        $contributionAmount = $member->activeSubscription?->amount ?? $member->contribution_amount;
 
         $base = [
             'id' => $member->id,
@@ -207,7 +211,7 @@ class MemberController extends Controller
             'city' => $member->city,
             'iban' => $member->iban,
             'status' => $member->status,
-            'contribution_amount' => $member->contribution_amount,
+            'contribution_amount' => $contributionAmount,
             'contribution_frequency' => $member->contribution_frequency,
             'contribution_start_date' => $member->contribution_start_date?->toDateString(),
             'contribution_note' => $member->contribution_note,

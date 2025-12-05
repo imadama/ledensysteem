@@ -35,7 +35,7 @@ class MonitorController extends Controller
             'year' => ['sometimes', 'integer', 'min:2000', 'max:2100'],
         ]);
 
-        $year = $validated['year'] ?? Carbon::now()->year;
+        $year = (int) ($validated['year'] ?? Carbon::now()->year);
         
         // Convert show_amounts to boolean (can be '1', '0', true, false, 'true', 'false')
         $showAmounts = false;
@@ -59,15 +59,17 @@ class MonitorController extends Controller
             ->get();
 
         // Haal alle contributie records op voor dit jaar (inclusief contributies zonder period)
+        // Gebruik whereHas in plaats van join om ervoor te zorgen dat casts correct worden toegepast
         $contributions = MemberContributionRecord::query()
-            ->with(['paymentTransaction'])
-            ->join('members', 'members.id', '=', 'member_contribution_records.member_id')
-            ->where('members.organisation_id', $organisationId)
+            ->with(['paymentTransaction', 'member'])
+            ->whereHas('member', function ($query) use ($organisationId) {
+                $query->where('organisation_id', $organisationId);
+            })
             ->where(function ($query) use ($year) {
-                $query->whereYear('member_contribution_records.period', $year)
+                // Match op jaar - gebruik whereRaw om ook records met verschillende dagen in de maand te vinden
+                $query->whereRaw('YEAR(member_contribution_records.period) = ?', [$year])
                     ->orWhereNull('member_contribution_records.period');
             })
-            ->select('member_contribution_records.*')
             ->get()
             ->groupBy('member_id');
 
@@ -94,7 +96,9 @@ class MonitorController extends Controller
                         }
 
                         if ($dateToUse) {
-                            return $dateToUse->year === $year && $dateToUse->month === $month;
+                            $yearInt = (int) $year;
+                            $monthInt = (int) $month;
+                            return $dateToUse->year === $yearInt && $dateToUse->month === $monthInt;
                         }
 
                         // Als er helemaal geen datum is, toon alleen in huidige maand
@@ -104,7 +108,17 @@ class MonitorController extends Controller
                     }
 
                     // $record->period is al een Carbon instance door de cast
-                    return $record->period->year === $year && $record->period->month === $month;
+                    // Normaliseer naar eerste van de maand voor matching
+                    try {
+                        $periodStart = $record->period->copy()->startOfMonth();
+                        // Zorg ervoor dat $year en $month integers zijn voor de vergelijking
+                        $yearInt = (int) $year;
+                        $monthInt = (int) $month;
+                        return $periodStart->year === $yearInt && $periodStart->month === $monthInt;
+                    } catch (\Exception $e) {
+                        // Als er een fout is met de period, skip deze record
+                        return false;
+                    }
                 });
 
                 if ($contribution) {

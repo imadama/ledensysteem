@@ -58,11 +58,11 @@ const OrganisationDashboardPage: React.FC = () => {
     setError(null)
 
     try {
-      const { data } = await apiClient.get<MatrixResponse>('/api/organisation/contributions/matrix', {
+      const response = await apiClient.get<MatrixResponse>('/api/organisation/contributions/matrix', {
         params: { year },
       })
-
-      console.log('Matrix data received:', data)
+      const { data } = response
+      
       setMatrixData(data)
     } catch (err: any) {
       console.error('Matrix ophalen mislukt', err)
@@ -300,7 +300,9 @@ const OrganisationDashboardPage: React.FC = () => {
                       </div>
                     </td>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
-                      const monthData = member.months[month.toString()]
+                      const monthKey = month.toString()
+                      const monthData = member.months?.[monthKey] ?? member.months?.[month] ?? null
+                      
                       return (
                         <td
                           key={month}
