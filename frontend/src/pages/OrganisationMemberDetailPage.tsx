@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { ArrowLeft, User, Mail, Calendar, Ban, UserCheck } from 'lucide-react'
 import MemberForm, { type MemberFormErrors, type MemberFormValues } from '../components/Organisation/MemberForm'
+import MemberSepaSubscriptionSection from '../components/Organisation/MemberSepaSubscriptionSection'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -642,6 +643,11 @@ const OrganisationMemberDetailPage: React.FC = () => {
               submitLabel="Wijzigingen opslaan"
             />
           </Card>
+
+          {/* SEPA Subscription Section */}
+          {id && (
+            <MemberSepaSubscriptionSection memberId={Number(id)} memberIban={initialValues.iban || null} />
+          )}
         </div>
       ) : (
         <Card className="p-6">

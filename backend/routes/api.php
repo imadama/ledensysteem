@@ -7,11 +7,13 @@ use App\Http\Controllers\Api\Member\SelfServiceController;
 use App\Http\Controllers\Api\Organisation\SubscriptionController;
 use App\Http\Controllers\Api\Organisation\ContributionReportController;
 use App\Http\Controllers\Api\Organisation\MemberController;
+use App\Http\Controllers\Api\Organisation\MemberSepaSubscriptionController;
 use App\Http\Controllers\Api\Organisation\MonitorController;
 use App\Http\Controllers\Api\Organisation\PaymentConnectionController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
 use App\Http\Controllers\Api\PlatformPlanController;
+use App\Http\Controllers\Api\PlatformSettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\PlanController;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +59,13 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
         Route::patch('members/{id}/block-account', [MemberController::class, 'blockAccount']);
         Route::patch('members/{id}/unblock-account', [MemberController::class, 'unblockAccount']);
         Route::get('members/{memberId}/contributions', [ContributionReportController::class, 'memberContributions']);
+
+        Route::prefix('members/{id}')->group(function (): void {
+            Route::get('sepa-subscription', [MemberSepaSubscriptionController::class, 'show']);
+            Route::post('sepa-subscription/setup', [MemberSepaSubscriptionController::class, 'setup']);
+            Route::post('sepa-subscription/disable', [MemberSepaSubscriptionController::class, 'disable']);
+            Route::post('sepa-subscription/update-amount', [MemberSepaSubscriptionController::class, 'updateAmount']);
+        });
 
         Route::get('contributions/summary', [ContributionReportController::class, 'organisationSummary']);
         Route::get('contributions/matrix', [ContributionReportController::class, 'membersPaymentMatrix']);
@@ -109,6 +118,13 @@ Route::middleware(['auth:sanctum', 'role:platform_admin'])
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);
         Route::delete('plans/{id}', [PlatformPlanController::class, 'destroy']);
+        
+        Route::get('settings', [PlatformSettingsController::class, 'index']);
+        // Specifieke routes moeten vóór generieke {key} routes komen
+        Route::get('settings/payment-methods', [PlatformSettingsController::class, 'getPaymentMethods']);
+        Route::put('settings/payment-methods', [PlatformSettingsController::class, 'updatePaymentMethods']);
+        Route::get('settings/{key}', [PlatformSettingsController::class, 'show']);
+        Route::put('settings/{key}', [PlatformSettingsController::class, 'update']);
     });
 
 Route::post('stripe/webhook', StripeWebhookController::class);

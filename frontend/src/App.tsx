@@ -14,6 +14,7 @@ import OrganisationUsersPage from './pages/OrganisationUsersPage'
 import PlatformOrganisationsPage from './pages/PlatformOrganisationsPage'
 import PlatformOrganisationDetailPage from './pages/PlatformOrganisationDetailPage'
 import PlatformPlansPage from './pages/PlatformPlansPage'
+import PlatformSettingsPage from './pages/PlatformSettingsPage'
 import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
 import OrganisationMemberCreatePage from './pages/OrganisationMemberCreatePage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
@@ -101,6 +102,10 @@ function App() {
         <Route
           path="/platform/plans"
           element={<ProtectedRoute component={PlatformPlansPage} roles={['platform_admin']} />}
+        />
+        <Route
+          path="/platform/settings"
+          element={<ProtectedRoute component={PlatformSettingsPage} roles={['platform_admin']} />}
         />
         <Route
           path="/monitor"

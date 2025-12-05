@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Stripe\Event as StripeEventObject;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\SignatureVerificationException;
+use Stripe\StripeClient;
 use Stripe\Webhook;
 use Symfony\Component\HttpFoundation\Response;
 use UnexpectedValueException;
@@ -27,6 +28,7 @@ class StripeWebhookController extends Controller
     public function __construct(
         private readonly OrganisationStripeService $stripeService,
         private readonly SubscriptionAuditService $auditService,
+        private readonly StripeClient $stripe,
     ) {
     }
 
@@ -611,8 +613,48 @@ class StripeWebhookController extends Controller
 
         // invoice.payment_succeeded - maak contribution record aan
         $subscription->status = 'active';
+        $subscription->current_period_start = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.start')) ?? $subscription->current_period_start;
         $subscription->current_period_end = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.end')) ?? $subscription->current_period_end;
         $subscription->save();
+
+        // Update member record met mandate ID als deze nog niet bestaat
+        $member = $subscription->member;
+        if ($member && ! $member->sepa_mandate_stripe_id && $member->organisation) {
+            $member->loadMissing('organisation.stripeConnection');
+            $connection = $member->organisation->stripeConnection;
+            
+            if ($connection && $connection->stripe_account_id) {
+                try {
+                    $paymentIntentId = data_get($object, 'payment_intent');
+                    if ($paymentIntentId) {
+                        $paymentIntent = $this->stripe->paymentIntents->retrieve(
+                            $paymentIntentId,
+                            [],
+                            ['stripe_account' => $connection->stripe_account_id]
+                        );
+                        $paymentMethodId = $paymentIntent->payment_method;
+                        if ($paymentMethodId) {
+                            $paymentMethod = $this->stripe->paymentMethods->retrieve(
+                                $paymentMethodId,
+                                [],
+                                ['stripe_account' => $connection->stripe_account_id]
+                            );
+                            $mandateId = $paymentMethod->sepa_debit->mandate ?? null;
+                            if ($mandateId) {
+                                $member->update(['sepa_mandate_stripe_id' => $mandateId]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Log maar gooi geen error - mandate kan later worden opgehaald
+                    \Log::warning('Could not update SEPA mandate ID from webhook', [
+                        'member_id' => $member->id,
+                        'subscription_id' => $subscription->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
 
         $amountPaid = (int) data_get($object, 'amount_paid', 0);
         $paymentIntentId = data_get($object, 'payment_intent');

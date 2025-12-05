@@ -437,11 +437,20 @@ class ContributionPaymentController extends Controller
         ?string $note,
         string $paymentMethod = 'card'
     ): Session {
-        // Bepaal payment method types
+        // Bepaal payment method types - gebruik geconfigureerde methodes of fallback
+        $availableMethods = \App\Models\PlatformSetting::getPaymentMethods();
+        
+        // Als er een specifieke payment method is gekozen, filter de beschikbare methodes
         $paymentMethodTypes = match ($paymentMethod) {
-            'sepa' => ['sepa_debit'],
-            default => ['card'],
+            'sepa' => in_array('sepa_debit', $availableMethods) ? ['sepa_debit'] : $availableMethods,
+            'card' => in_array('card', $availableMethods) ? ['card'] : $availableMethods,
+            default => $availableMethods,
         };
+        
+        // Zorg dat er altijd minstens één payment method is
+        if (empty($paymentMethodTypes)) {
+            $paymentMethodTypes = ['card'];
+        }
 
         $params = [
             'mode' => 'subscription',
@@ -512,12 +521,19 @@ class ContributionPaymentController extends Controller
         ?string $customerEmail
     ): Session {
         $currency = strtolower($transaction->currency ?? 'eur');
+        
+        // Gebruik geconfigureerde betaalmethodes
+        $paymentMethodTypes = \App\Models\PlatformSetting::getPaymentMethods();
+        if (empty($paymentMethodTypes)) {
+            $paymentMethodTypes = ['card'];
+        }
 
         $params = [
             'mode' => 'payment',
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
             'client_reference_id' => (string) $transaction->id,
+            'payment_method_types' => $paymentMethodTypes,
             'metadata' => [
                 'payment_transaction_id' => (string) $transaction->id,
             ],

@@ -40,6 +40,12 @@ class Member extends Model
         'contribution_frequency',
         'contribution_start_date',
         'contribution_note',
+        'sepa_subscription_enabled',
+        'sepa_subscription_iban',
+        'sepa_mandate_stripe_id',
+        'sepa_subscription_notes',
+        'sepa_subscription_setup_at',
+        'sepa_subscription_setup_by',
     ];
 
     /**
@@ -51,6 +57,8 @@ class Member extends Model
             'birth_date' => 'date',
             'contribution_start_date' => 'date',
             'contribution_amount' => 'decimal:2',
+            'sepa_subscription_enabled' => 'boolean',
+            'sepa_subscription_setup_at' => 'datetime',
         ];
     }
 
@@ -87,6 +95,11 @@ class Member extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class);
+    }
+
+    public function sepaSubscriptionSetupBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'sepa_subscription_setup_by');
     }
 
     public function memberInvitations(): HasMany
@@ -181,6 +194,22 @@ class Member extends Model
         }
 
         return $user->hasRole('member');
+    }
+
+    public function hasSepaSubscription(): bool
+    {
+        return $this->sepa_subscription_enabled && $this->activeSubscription !== null;
+    }
+
+    public function canSetupSepaSubscription(): bool
+    {
+        // Check of lid IBAN heeft
+        $hasIban = !empty($this->iban) || !empty($this->sepa_subscription_iban);
+        
+        // Check of lid geen actieve subscription heeft
+        $hasActiveSubscription = $this->activeSubscription !== null;
+        
+        return $hasIban && !$hasActiveSubscription;
     }
 }
 

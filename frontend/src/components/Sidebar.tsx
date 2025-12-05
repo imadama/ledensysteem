@@ -33,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
     { name: 'Dashboard', icon: LayoutDashboard, view: 'dashboard', path: '/dashboard' },
     { name: 'Organisaties', icon: Building2, view: 'organisations', path: '/platform/organisations' },
     { name: 'Plannen', icon: FileText, view: 'plans', path: '/platform/plans' },
-    { name: 'Instellingen', icon: Settings, view: 'settings', path: '/dashboard' },
+    { name: 'Instellingen', icon: Settings, view: 'settings', path: '/platform/settings' },
   ]
 
   const orgAdminItems = [
