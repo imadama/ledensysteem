@@ -12,12 +12,15 @@ class PlanController extends Controller
     {
         $plans = Plan::query()
             ->where('is_active', true)
+            ->orderBy('name')
+            ->orderBy('billing_interval')
             ->orderBy('monthly_price')
-            ->get(['id', 'name', 'monthly_price', 'currency', 'description']);
+            ->get(['id', 'name', 'billing_interval', 'monthly_price', 'currency', 'description']);
 
         $data = $plans->map(fn (Plan $plan) => [
             'id' => $plan->id,
             'name' => $plan->name,
+            'billing_interval' => $plan->billing_interval ?? 'month',
             'monthly_price' => (float) $plan->monthly_price,
             'currency' => $plan->currency,
             'description' => $plan->description,

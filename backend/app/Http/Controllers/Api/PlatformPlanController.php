@@ -21,6 +21,7 @@ class PlatformPlanController extends Controller
             'id' => $plan->id,
             'name' => $plan->name,
             'stripe_price_id' => $plan->stripe_price_id,
+            'billing_interval' => $plan->billing_interval ?? 'month',
             'monthly_price' => (float) $plan->monthly_price,
             'currency' => $plan->currency,
             'description' => $plan->description,
@@ -85,6 +86,7 @@ class PlatformPlanController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stripe_price_id' => ['required', 'string', 'max:255'],
+            'billing_interval' => ['required', 'string', 'in:month,year'],
             'monthly_price' => ['required', 'numeric', 'min:0'],
             'currency' => ['required', 'string', 'max:10'],
             'description' => ['nullable', 'string'],
@@ -98,6 +100,7 @@ class PlatformPlanController extends Controller
             'id' => $plan->id,
             'name' => $plan->name,
             'stripe_price_id' => $plan->stripe_price_id,
+            'billing_interval' => $plan->billing_interval ?? 'month',
             'monthly_price' => (float) $plan->monthly_price,
             'currency' => $plan->currency,
             'description' => $plan->description,

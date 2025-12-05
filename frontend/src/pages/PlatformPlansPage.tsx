@@ -9,6 +9,7 @@ export type Plan = {
   id: number
   name: string
   stripe_price_id: string
+  billing_interval?: 'month' | 'year'
   monthly_price: number
   currency: string
   description: string | null
@@ -18,6 +19,7 @@ export type Plan = {
 const emptyPlan: Omit<Plan, 'id'> = {
   name: '',
   stripe_price_id: '',
+  billing_interval: 'month',
   monthly_price: 0,
   currency: 'EUR',
   description: '',
@@ -56,6 +58,7 @@ const PlatformPlansPage: React.FC = () => {
     setForm({
       name: plan.name,
       stripe_price_id: plan.stripe_price_id,
+      billing_interval: plan.billing_interval ?? 'month',
       monthly_price: plan.monthly_price,
       currency: plan.currency,
       description: plan.description,
@@ -68,8 +71,8 @@ const PlatformPlansPage: React.FC = () => {
     setForm(emptyPlan)
   }
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const target = event.target as HTMLInputElement | HTMLTextAreaElement
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     const { name, value } = target
 
     if (target instanceof HTMLInputElement && target.type === 'checkbox') {
@@ -239,16 +242,32 @@ const PlatformPlansPage: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="plan-stripe-price" className={labelClassName}>Stripe prijs-ID</label>
-            <input
-              id="plan-stripe-price"
-              name="stripe_price_id"
-              value={form.stripe_price_id}
-              onChange={handleChange}
-              required
-              className={inputClassName}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="plan-billing-interval" className={labelClassName}>Factureringsperiode</label>
+              <select
+                id="plan-billing-interval"
+                name="billing_interval"
+                value={form.billing_interval ?? 'month'}
+                onChange={handleChange}
+                required
+                className={inputClassName}
+              >
+                <option value="month">Maandelijks</option>
+                <option value="year">Jaarlijks</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="plan-stripe-price" className={labelClassName}>Stripe prijs-ID</label>
+              <input
+                id="plan-stripe-price"
+                name="stripe_price_id"
+                value={form.stripe_price_id}
+                onChange={handleChange}
+                required
+                className={inputClassName}
+              />
+            </div>
           </div>
 
           <div>
@@ -312,6 +331,7 @@ const PlatformPlansPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Naam</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Periode</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Beschrijving</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Prijs</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Stripe prijs-ID</th>
@@ -325,11 +345,16 @@ const PlatformPlansPage: React.FC = () => {
                     <td className="py-4 px-4">
                       <div className="font-medium text-gray-900 dark:text-white">{plan.name}</div>
                     </td>
+                    <td className="py-4 px-4">
+                      <Badge variant={plan.billing_interval === 'year' ? 'default' : 'success'}>
+                        {plan.billing_interval === 'year' ? 'Jaarlijks' : 'Maandelijks'}
+                      </Badge>
+                    </td>
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400">
                       {plan.description || '-'}
                     </td>
                     <td className="py-4 px-4 text-gray-900 dark:text-white">
-                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} {plan.currency} p/m
+                      € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })} {plan.currency} {plan.billing_interval === 'year' ? 'p/j' : 'p/m'}
                     </td>
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400 font-mono text-xs">{plan.stripe_price_id || '-'}</td>
                     <td className="py-4 px-4">

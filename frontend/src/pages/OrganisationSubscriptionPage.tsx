@@ -10,6 +10,7 @@ import { Badge } from '../components/ui/Badge'
 type Plan = {
   id: number
   name: string
+  billing_interval?: 'month' | 'year'
   monthly_price: number
   currency: string
   description: string | null
@@ -361,11 +362,23 @@ const OrganisationSubscriptionPage: React.FC = () => {
                         {isCurrentPlan && (
                           <Badge variant="success">Huidig plan</Badge>
                         )}
+                        {plan.billing_interval && (
+                          <Badge variant={plan.billing_interval === 'year' ? 'default' : 'success'}>
+                            {plan.billing_interval === 'year' ? 'Jaarlijks' : 'Maandelijks'}
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                        € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
-                        <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> p/m</span>
-                      </p>
+                      <div>
+                        <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                          € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
+                          <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> {plan.billing_interval === 'year' ? 'p/j' : 'p/m'}</span>
+                        </p>
+                        {plan.billing_interval === 'year' && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            € {(plan.monthly_price / 12).toLocaleString('nl-NL', { minimumFractionDigits: 2 })} per maand
+                          </p>
+                        )}
+                      </div>
                     </div>
                     
                     {plan.description && (
