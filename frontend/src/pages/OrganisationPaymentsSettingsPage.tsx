@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { apiClient } from '../api/axios'
+import { useAuth } from '../context/AuthContext'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
@@ -21,8 +22,12 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [isOpeningDashboard, setIsOpeningDashboard] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { roles } = useAuth()
+  
+  const isOrgAdmin = roles.includes('org_admin')
 
   const fetchConnection = useCallback(async () => {
     setLoading(true)
@@ -95,6 +100,29 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
       
       // Refresh connection om laatste status op te halen
       await fetchConnection()
+    }
+  }
+
+  const handleOpenDashboard = async () => {
+    setIsOpeningDashboard(true)
+    setError(null)
+    setSuccessMessage(null)
+
+    try {
+      const { data } = await apiClient.post<{ url: string }>('/api/organisation/payments/connection/dashboard-link')
+      window.open(data.url, '_blank')
+    } catch (err: any) {
+      console.error(err)
+      let message = err?.response?.data?.message ?? 'Kon geen dashboard link aanmaken. Controleer later opnieuw.'
+      
+      // Voeg specifieke Stripe foutmelding toe als beschikbaar
+      if (err?.response?.data?.errors?.stripe?.[0]) {
+        message += ` Details: ${err.response.data.errors.stripe[0]}`
+      }
+      
+      setError(message)
+    } finally {
+      setIsOpeningDashboard(false)
     }
   }
 
@@ -232,6 +260,15 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
               >
                 {isRefreshing ? 'Vernieuwen...' : 'Status vernieuwen'}
               </Button>
+              {isOrgAdmin && connection?.stripe_account_id && (
+                <Button
+                  variant="secondary"
+                  onClick={handleOpenDashboard}
+                  disabled={isOpeningDashboard}
+                >
+                  {isOpeningDashboard ? 'Openen...' : 'Stripe Dashboard'}
+                </Button>
+              )}
             </div>
           </div>
         )}

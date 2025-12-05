@@ -71,6 +71,7 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
             Route::get('connection', [PaymentConnectionController::class, 'show']);
             Route::post('connection/onboarding-link', [PaymentConnectionController::class, 'createOnboardingLink']);
             Route::post('connection/refresh', [PaymentConnectionController::class, 'refresh']);
+            Route::post('connection/dashboard-link', [PaymentConnectionController::class, 'createDashboardLink']);
         });
     });
 

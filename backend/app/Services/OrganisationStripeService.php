@@ -117,6 +117,28 @@ class OrganisationStripeService
         return $connection->fresh();
     }
 
+    /**
+     * @return array{url: string}
+     */
+    public function createDashboardLoginLink(Organisation $organisation): array
+    {
+        $connection = $this->getConnectionForOrganisation($organisation);
+
+        if (! $connection->stripe_account_id) {
+            throw new \RuntimeException('Stripe account is not connected yet.');
+        }
+
+        try {
+            $loginLink = $this->stripe->accounts->createLoginLink($connection->stripe_account_id);
+        } catch (ApiErrorException $exception) {
+            throw $exception;
+        }
+
+        return [
+            'url' => $loginLink->url,
+        ];
+    }
+
     private function createStripeAccount(Organisation $organisation): Account
     {
         $type = config('stripe.connect_account_type', 'express');

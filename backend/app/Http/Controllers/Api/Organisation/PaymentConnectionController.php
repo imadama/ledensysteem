@@ -67,6 +67,32 @@ class PaymentConnectionController extends Controller
         return response()->json($this->transformConnection($connection));
     }
 
+    public function createDashboardLink(Request $request): JsonResponse
+    {
+        $organisation = $this->resolveOrganisation($request);
+
+        try {
+            $result = $this->stripeService->createDashboardLoginLink($organisation);
+        } catch (ApiErrorException $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => __('Unable to create Stripe dashboard link.'),
+                'errors' => [
+                    'stripe' => [$exception->getMessage()],
+                ],
+            ], Response::HTTP_BAD_GATEWAY);
+        } catch (\RuntimeException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        return response()->json([
+            'url' => $result['url'],
+        ]);
+    }
+
     private function resolveOrganisation(Request $request): Organisation
     {
         $user = $request->user()->loadMissing('organisation');
