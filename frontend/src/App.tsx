@@ -31,6 +31,8 @@ import MemberContributionPage from './pages/member/MemberContributionPage'
 import MemberContributionSuccessPage from './pages/member/MemberContributionSuccessPage'
 import MemberContributionCancelPage from './pages/member/MemberContributionCancelPage'
 import MonitorPage from './pages/MonitorPage'
+import PublicMemberRegistrationPage from './pages/PublicMemberRegistrationPage'
+import PublicMemberRegistrationSuccessPage from './pages/PublicMemberRegistrationSuccessPage'
 
 function App() {
   return (
@@ -41,6 +43,8 @@ function App() {
         <Route path="/register-organisation" element={<RegisterOrganisationPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/aanmelden" element={<PublicMemberRegistrationPage />} />
+        <Route path="/aanmelden/succes" element={<PublicMemberRegistrationSuccessPage />} />
 
           <Route path="/portal/login" element={<MemberLoginPage />} />
           <Route path="/portal/activate" element={<MemberActivationPage />} />

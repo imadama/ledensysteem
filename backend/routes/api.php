@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PlatformPlanController;
 use App\Http\Controllers\Api\PlatformSettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\PlanController;
+use App\Http\Controllers\Api\PublicMemberRegistrationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('member-activation')->group(function (): void {
@@ -24,6 +25,8 @@ Route::prefix('member-activation')->group(function (): void {
 });
 
 Route::get('plans', [PlanController::class, 'index']);
+
+Route::post('public/member-registration', [PublicMemberRegistrationController::class, 'store']);
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register-organisation', [AuthController::class, 'registerOrganisation']);

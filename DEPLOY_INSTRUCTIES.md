@@ -201,3 +201,4 @@ docker compose -f docker-compose.prod.yml ps
 - ✅ Betere error handling en logging
 
 
+
