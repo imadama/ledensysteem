@@ -99,8 +99,8 @@ const LoginPage: React.FC = () => {
             Wachtwoord vergeten?
           </Link>
           <div>
-            <Link to="/register-organisation" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
-              Nieuwe organisatie registreren
+            <Link to="/aanmelden" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+              Nieuwe lid aanmelden
             </Link>
           </div>
         </div>

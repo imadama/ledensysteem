@@ -8,6 +8,22 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Aidatim brand colors
+        aidatim: {
+          blue: {
+            DEFAULT: '#0B6FA8',
+            dark: '#0A5E8C',
+          },
+          green: {
+            DEFAULT: '#63B233',
+            dark: '#4E9A2A',
+          },
+          orange: '#F7941D',
+          gray: {
+            DEFAULT: '#6F6F6E',
+            light: '#BFBFBF',
+          },
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
