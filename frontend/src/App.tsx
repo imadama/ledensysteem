@@ -16,7 +16,6 @@ import PlatformOrganisationDetailPage from './pages/PlatformOrganisationDetailPa
 import PlatformPlansPage from './pages/PlatformPlansPage'
 import PlatformSettingsPage from './pages/PlatformSettingsPage'
 import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
-import OrganisationMemberCreatePage from './pages/OrganisationMemberCreatePage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
 import OrganisationMembersImportPage from './pages/OrganisationMembersImportPage'
 import OrganisationPaymentsSettingsPage from './pages/OrganisationPaymentsSettingsPage'
