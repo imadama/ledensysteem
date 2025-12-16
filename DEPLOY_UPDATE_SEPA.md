@@ -239,3 +239,4 @@ docker compose -f docker-compose.prod.yml exec backend tail -100 /var/www/html/s
 5. **Cache:** Clear cache VOOR migraties, rebuild cache NA migraties
 6. **Platform Settings:** Standaard zijn `card` en `sepa_debit` actief na seeding
 
+
