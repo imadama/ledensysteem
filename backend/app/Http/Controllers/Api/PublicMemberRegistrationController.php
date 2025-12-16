@@ -58,13 +58,18 @@ class PublicMemberRegistrationController extends Controller
                 // Setup SEPA abonnement als akkoord gegeven
                 if ($validated['sepa_consent'] ?? false) {
                     try {
-                        // Zoek een org_admin user voor deze organisatie om als actor te gebruiken
-                        $adminUser = User::where('organisation_id', $organisation->id)
-                            ->whereHas('roles', function ($query) {
-                                $query->where('name', 'org_admin');
-                            })
-                            ->where('status', 'active')
-                            ->first();
+                        // Gebruik ingelogde gebruiker als actor, anders zoek een org_admin
+                        $adminUser = $request->user();
+                        
+                        if (! $adminUser || ! $adminUser->hasRole('org_admin') || $adminUser->organisation_id !== $organisation->id) {
+                            // Zoek een org_admin user voor deze organisatie om als actor te gebruiken
+                            $adminUser = User::where('organisation_id', $organisation->id)
+                                ->whereHas('roles', function ($query) {
+                                    $query->where('name', 'org_admin');
+                                })
+                                ->where('status', 'active')
+                                ->first();
+                        }
 
                         if ($adminUser) {
                             $this->sepaService->setupSepaSubscription(
@@ -116,7 +121,16 @@ class PublicMemberRegistrationController extends Controller
 
     private function resolveOrganisation(PublicMemberRegistrationRequest $request): ?Organisation
     {
-        // Prioriteit 1: URL parameter org_id
+        // Prioriteit 1: Ingelogde admin gebruiker
+        $user = $request->user();
+        if ($user && $user->organisation_id && $user->hasRole('org_admin')) {
+            $organisation = Organisation::find($user->organisation_id);
+            if ($organisation) {
+                return $organisation;
+            }
+        }
+
+        // Prioriteit 2: URL parameter org_id
         if ($request->has('org_id') && $request->filled('org_id')) {
             $orgId = (int) $request->input('org_id');
             $organisation = Organisation::find($orgId);
@@ -126,7 +140,7 @@ class PublicMemberRegistrationController extends Controller
             }
         }
 
-        // Prioriteit 2: Platform setting voor subdomain mapping (toekomstig)
+        // Prioriteit 3: Platform setting voor subdomain mapping (toekomstig)
         // Voor nu gebruiken we alleen de fallback
 
         // Fallback: Platform setting voor single org

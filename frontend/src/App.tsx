@@ -67,10 +67,7 @@ function App() {
           path="/organisation/members"
           element={<ProtectedRoute component={OrganisationMembersListPage} roles={['org_admin']} />}
         />
-        <Route
-          path="/organisation/members/new"
-          element={<ProtectedRoute component={OrganisationMemberCreatePage} roles={['org_admin']} />}
-        />
+        <Route path="/organisation/members/new" element={<PublicMemberRegistrationPage />} />
         <Route
           path="/organisation/members/import"
           element={<ProtectedRoute component={OrganisationMembersImportPage} roles={['org_admin']} />}

@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiClient } from '../api/axios'
 import { Button } from '../components/ui/Button'
+import { useAuth } from '../context/AuthContext'
 
 type FormValues = {
   first_name: string
@@ -25,6 +26,8 @@ const PublicMemberRegistrationPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const orgId = searchParams.get('org_id')
+  const { user, organisation, roles } = useAuth()
+  const isAdmin = user && roles.includes('org_admin')
 
   const [values, setValues] = useState<FormValues>({
     first_name: '',
@@ -98,9 +101,14 @@ const PublicMemberRegistrationPage: React.FC = () => {
         payload.org_id = orgId
       }
 
-      await apiClient.post('/api/public/member-registration', payload)
+      const response = await apiClient.post<{ data: { id: number } }>('/api/public/member-registration', payload)
 
-      navigate('/aanmelden/succes', { replace: true })
+      // Als admin ingelogd is, redirect naar lid detail pagina
+      if (isAdmin && response.data?.data?.id) {
+        navigate(`/organisation/members/${response.data.data.id}`, { replace: true })
+      } else {
+        navigate('/aanmelden/succes', { replace: true })
+      }
     } catch (err: any) {
       if (err.response?.status === 422) {
         const validationErrors = err.response.data.errors ?? {}
@@ -136,6 +144,15 @@ const PublicMemberRegistrationPage: React.FC = () => {
           <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-8">
             Süleyman Çelebi Moskee / Üyelik ve Aidat Talimat Formu
           </h2>
+
+          {isAdmin && organisation && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg mb-6">
+              <p className="font-medium">
+                U bent ingelogd als beheerder voor {organisation.name}. Het nieuwe lid wordt direct
+                toegevoegd aan uw organisatie.
+              </p>
+            </div>
+          )}
 
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
             Wanneer u dit formulier indient, worden uw gegevens, zoals naam en e-mailadres, niet
