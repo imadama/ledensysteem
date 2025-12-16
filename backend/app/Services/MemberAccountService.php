@@ -6,6 +6,7 @@ use App\Mail\MemberInvitationMailable;
 use App\Models\Member;
 use App\Models\MemberInvitation;
 use App\Models\User;
+use App\Services\Concerns\ResolvesOrganisation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -13,6 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class MemberAccountService
 {
+    use ResolvesOrganisation;
     public function inviteMember(User $actor, Member $member): MemberInvitation
     {
         $this->ensureSameOrganisation($actor, $member);
@@ -199,14 +201,6 @@ class MemberAccountService
         }
     }
 
-    private function requireOrganisationId(User $user): int
-    {
-        if (! $user->organisation_id) {
-            abort(403, 'Gebruiker heeft geen organisatiecontext.');
-        }
-
-        return (int) $user->organisation_id;
-    }
 
     private function flattenValidationErrors(ValidationException $exception): string
     {

@@ -20,6 +20,7 @@ class Organisation extends Model
         'status',
         'billing_status',
         'billing_note',
+        'subdomain',
     ];
 
     public function users(): HasMany
@@ -60,5 +61,36 @@ class Organisation extends Model
     public function isBillingRestricted(): bool
     {
         return $this->billing_status === 'restricted';
+    }
+
+    /**
+     * Genereert een uniek subdomein op basis van de organisatienaam.
+     */
+    public static function generateSubdomainFromName(string $name): string
+    {
+        // Converteer naar slug-formaat
+        $subdomain = \Illuminate\Support\Str::slug($name);
+
+        // Verwijder speciale karakters en maak lowercase
+        $subdomain = strtolower($subdomain);
+
+        // Verwijder leidende/afsluitende streepjes
+        $subdomain = trim($subdomain, '-');
+
+        // Zorg dat subdomein niet leeg is
+        if (empty($subdomain)) {
+            $subdomain = 'organisatie-'.uniqid();
+        }
+
+        // Controleer uniekheid en voeg nummer toe indien nodig
+        $baseSubdomain = $subdomain;
+        $counter = 1;
+
+        while (self::where('subdomain', $subdomain)->exists()) {
+            $subdomain = $baseSubdomain.'-'.$counter;
+            $counter++;
+        }
+
+        return $subdomain;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Imports\MemberRowsImport;
 use App\Models\Member;
 use App\Models\User;
+use App\Services\Concerns\ResolvesOrganisation;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -15,6 +16,7 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class MemberImportService
 {
+    use ResolvesOrganisation;
     private const CACHE_PREFIX = 'member-import';
 
     /**
@@ -371,14 +373,6 @@ class MemberImportService
         return implode(':', [self::CACHE_PREFIX, $organisationId, $token]);
     }
 
-    private function requireOrganisationId(User $user): int
-    {
-        if (! $user->organisation_id) {
-            abort(403, 'Gebruiker heeft geen organisatie.');
-        }
-
-        return (int) $user->organisation_id;
-    }
 
     /**
      * @param mixed $value

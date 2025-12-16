@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { API_BASE_URL, getBaseUrl } from './config'
+import { API_BASE_URL, getBaseUrl, getCurrentSubdomain } from './config'
 import { authManager } from '../context/authManager'
 
 export const apiClient = axios.create({
@@ -210,7 +210,12 @@ apiClient.interceptors.response.use(
   },
 )
 
+// Interceptor om subdomein header toe te voegen voor organisatie detectie
 apiClient.interceptors.request.use((config) => {
+  const subdomain = getCurrentSubdomain()
+  if (subdomain) {
+    config.headers['X-Organisation-Subdomain'] = subdomain
+  }
   return config
 })
 

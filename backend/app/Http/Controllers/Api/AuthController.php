@@ -43,6 +43,9 @@ class AuthController extends Controller
         [$organisation, $user] = DB::transaction(function () use ($validated) {
             $organisationData = $validated['organisation'];
 
+            // Genereer uniek subdomein op basis van organisatienaam
+            $subdomain = Organisation::generateSubdomainFromName($organisationData['name']);
+
             $organisation = Organisation::create([
                 'name' => $organisationData['name'],
                 'type' => $organisationData['type'],
@@ -51,6 +54,7 @@ class AuthController extends Controller
                 'contact_email' => $organisationData['contact_email'],
                 'status' => 'new',
                 'billing_status' => 'pending_payment',
+                'subdomain' => $subdomain,
             ]);
 
             $adminData = $validated['admin'];
@@ -227,6 +231,7 @@ class AuthController extends Controller
             'id' => $organisation->id,
             'name' => $organisation->name,
             'type' => $organisation->type,
+            'subdomain' => $organisation->subdomain,
             'status' => $organisation->status,
             'billing_status' => $organisation->billing_status,
             'billing_note' => $organisation->billing_note,

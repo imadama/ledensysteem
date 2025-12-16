@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Member;
 use App\Models\MemberContributionHistory;
 use App\Models\User;
+use App\Services\Concerns\ResolvesOrganisation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
@@ -12,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class MemberService
 {
+    use ResolvesOrganisation;
     /**
      * @param array<string, mixed> $filters
      */
@@ -115,14 +117,6 @@ class MemberService
         return $member;
     }
 
-    private function requireOrganisationId(User $user): int
-    {
-        if (! $user->organisation_id) {
-            abort(403, 'User has no associated organisation.');
-        }
-
-        return (int) $user->organisation_id;
-    }
 
     /**
      * @param array<string, mixed> $data

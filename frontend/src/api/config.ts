@@ -1,26 +1,76 @@
-// Haal VITE_API_URL op en verwijder automatisch /api als het er is
-// Dit voorkomt dubbele /api/api/ in URLs
-const rawApiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
-
-// Verwijder /api van het einde als het er is (ook met trailing slash)
-let processedUrl = rawApiUrl.trim()
-if (processedUrl.endsWith('/api')) {
-  processedUrl = processedUrl.slice(0, -4) // Verwijder '/api'
-} else if (processedUrl.endsWith('/api/')) {
-  processedUrl = processedUrl.slice(0, -5) // Verwijder '/api/'
+// Helper om API base URL te bepalen op basis van huidig subdomein
+const getApiBaseUrl = (): string => {
+  if (typeof window === 'undefined') {
+    return import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+  }
+  
+  const hostname = window.location.hostname
+  const rawApiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+  
+  // Development: gebruik env variabele
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Verwijder /api van het einde als het er is (ook met trailing slash)
+    let processedUrl = rawApiUrl.trim()
+    if (processedUrl.endsWith('/api')) {
+      processedUrl = processedUrl.slice(0, -4) // Verwijder '/api'
+    } else if (processedUrl.endsWith('/api/')) {
+      processedUrl = processedUrl.slice(0, -5) // Verwijder '/api/'
+    }
+    return processedUrl
+  }
+  
+  // Productie: alle requests gaan naar app.aidatim.nl
+  if (hostname.endsWith('.aidatim.nl')) {
+    return 'https://app.aidatim.nl'
+  }
+  
+  // Fallback: gebruik env variabele
+  let processedUrl = rawApiUrl.trim()
+  if (processedUrl.endsWith('/api')) {
+    processedUrl = processedUrl.slice(0, -4)
+  } else if (processedUrl.endsWith('/api/')) {
+    processedUrl = processedUrl.slice(0, -5)
+  }
+  return processedUrl
 }
 
-export const API_BASE_URL = processedUrl
+export const API_BASE_URL = getApiBaseUrl()
+
+// Helper om huidig subdomein te krijgen
+export const getCurrentSubdomain = (): string | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  
+  const hostname = window.location.hostname
+  
+  // Development
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return null
+  }
+  
+  // Extract subdomein (alles voor .aidatim.nl)
+  if (hostname.endsWith('.aidatim.nl')) {
+    const parts = hostname.split('.')
+    if (parts.length >= 3) {
+      return parts[0] // Bijv. "vereniging-abc" of "portal"
+    }
+  }
+  
+  return null
+}
 
 // Maak API_BASE_URL beschikbaar in window voor debugging
 if (typeof window !== 'undefined') {
   ;(window as any).__API_BASE_URL__ = API_BASE_URL
+  ;(window as any).__CURRENT_SUBDOMAIN__ = getCurrentSubdomain()
 }
 
 // Debug: log altijd (ook in productie) zodat we kunnen zien wat er gebeurt
 if (typeof window !== 'undefined') {
-  console.log('[API CONFIG] VITE_API_URL (raw):', rawApiUrl)
-  console.log('[API CONFIG] API_BASE_URL (processed):', API_BASE_URL)
+  console.log('[API CONFIG] Hostname:', window.location.hostname)
+  console.log('[API CONFIG] Subdomain:', getCurrentSubdomain())
+  console.log('[API CONFIG] API_BASE_URL:', API_BASE_URL)
   console.log('[API CONFIG] Dit wordt gebruikt als baseURL voor axios')
   console.log('[API CONFIG] Beschikbaar als: window.__API_BASE_URL__')
 }

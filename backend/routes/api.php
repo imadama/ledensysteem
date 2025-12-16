@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\PlatformSettingsController;
 use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PublicMemberRegistrationController;
+use App\Http\Middleware\ResolveOrganisationFromSubdomain;
+use App\Http\Middleware\ValidateUserOrganisationAccess;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('member-activation')->group(function (): void {
@@ -43,7 +45,13 @@ Route::prefix('auth')->group(function (): void {
     });
 });
 
-Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
+Route::middleware([
+        'auth:sanctum',
+        'role:org_admin',
+        'billing.status',
+        ResolveOrganisationFromSubdomain::class,
+        ValidateUserOrganisationAccess::class,
+    ])
     ->prefix('organisation')
     ->group(function (): void {
         Route::get('users', [OrganisationUserController::class, 'index']);
@@ -92,13 +100,23 @@ Route::middleware(['auth:sanctum', 'role:org_admin', 'billing.status'])
 
 // Monitor route - toegankelijk voor zowel monitor als org_admin rollen
 // Geen billing.status check zodat monitor altijd werkt
-Route::middleware(['auth:sanctum'])
+Route::middleware([
+        'auth:sanctum',
+        ResolveOrganisationFromSubdomain::class,
+        ValidateUserOrganisationAccess::class,
+    ])
     ->prefix('organisation')
     ->group(function (): void {
         Route::get('monitor', [MonitorController::class, 'index']);
     });
 
-Route::middleware(['auth:sanctum', 'role:member', 'billing.status'])
+Route::middleware([
+        'auth:sanctum',
+        'role:member',
+        'billing.status',
+        ResolveOrganisationFromSubdomain::class,
+        ValidateUserOrganisationAccess::class,
+    ])
     ->prefix('member')
     ->group(function (): void {
         Route::get('profile', [SelfServiceController::class, 'profile']);
@@ -111,7 +129,11 @@ Route::middleware(['auth:sanctum', 'role:member', 'billing.status'])
         Route::post('contribution-pay-manual', [ContributionPaymentController::class, 'payManual']);
     });
 
-Route::middleware(['auth:sanctum', 'role:platform_admin'])
+Route::middleware([
+        'auth:sanctum',
+        'role:platform_admin',
+        ResolveOrganisationFromSubdomain::class,
+    ])
     ->prefix('platform')
     ->group(function (): void {
         Route::get('organisations', [PlatformOrganisationController::class, 'index']);

@@ -95,6 +95,7 @@ class PlatformOrganisationController extends Controller
             'id' => $organisation->id,
             'name' => $organisation->name,
             'type' => $organisation->type,
+            'subdomain' => $organisation->subdomain,
             'city' => $organisation->city,
             'country' => $organisation->country,
             'contact_email' => $organisation->contact_email,

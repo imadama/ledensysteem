@@ -19,10 +19,18 @@ Als je al bekend bent met Docker deployment, hier is de korte versie:
 4. Genereer APP_KEY: `docker compose -f docker-compose.prod.yml exec backend php artisan key:generate`
 5. Run migraties: `docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force`
 6. Seed database: `docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=RolesAndAdminSeeder --force`
-7. Configureer Nginx Proxy Manager:
-   - Frontend Proxy Host: `aidatim.nl` → `localhost:3000`
-   - Backend Proxy Host: `app.aidatim.nl` → `localhost:6969`
-8. Request SSL certificaten in NPM voor beide domeinen
+7. Genereer subdomeinen voor bestaande organisaties: `docker compose -f docker-compose.prod.yml exec backend php artisan organisations:generate-subdomains`
+8. Configureer Nginx Proxy Manager:
+   - Frontend Proxy Host: `aidatim.nl` → `localhost:3000` (voor statische website)
+   - Frontend Proxy Host: `portal.aidatim.nl` → `localhost:3000` (voor platform admin)
+   - Frontend Proxy Host: `*.aidatim.nl` → `localhost:3000` (wildcard voor organisatie subdomeinen)
+   - Backend Proxy Host: `app.aidatim.nl` → `localhost:6969` (API server)
+9. Request SSL certificaten in NPM voor alle domeinen
+10. Configureer DNS:
+    - A Record: `@` → server IP
+    - A Record: `app` → server IP
+    - A Record: `portal` → server IP
+    - Wildcard A Record: `*` → server IP (voor organisatie subdomeinen)
 
 Voor gedetailleerde instructies, lees verder.
 
@@ -86,8 +94,12 @@ DB_PASSWORD=ama123
 SESSION_DOMAIN=aidatim.nl
 SESSION_SECURE_COOKIE=true
 SESSION_SAME_SITE=lax
-SANCTUM_STATEFUL_DOMAINS=aidatim.nl
-CORS_ALLOWED_ORIGINS=https://aidatim.nl
+# SANCTUM_STATEFUL_DOMAINS: Alle subdomeinen die stateful authentication moeten ondersteunen
+# Format: comma-separated list (zonder spaties)
+SANCTUM_STATEFUL_DOMAINS=app.aidatim.nl,portal.aidatim.nl,*.aidatim.nl
+# CORS_ALLOWED_ORIGINS: Alle frontend domeinen die API calls mogen maken
+# Format: comma-separated list met https:// prefix
+CORS_ALLOWED_ORIGINS=https://aidatim.nl,https://portal.aidatim.nl,https://*.aidatim.nl
 
 # Mail Configuration
 MAIL_MAILER=smtp
@@ -125,8 +137,8 @@ VITE_API_URL=https://app.aidatim.nl
 - `SESSION_DOMAIN`: `aidatim.nl` (hoofddomein voor cookies)
 - `SESSION_SECURE_COOKIE`: `true` (vereist voor HTTPS - cookies alleen via HTTPS)
 - `SESSION_SAME_SITE`: `lax` (cookie SameSite attribuut voor cross-site requests)
-- `SANCTUM_STATEFUL_DOMAINS`: `aidatim.nl` (frontend domein)
-- `CORS_ALLOWED_ORIGINS`: `https://aidatim.nl` (frontend URL)
+- `SANCTUM_STATEFUL_DOMAINS`: `app.aidatim.nl,portal.aidatim.nl,*.aidatim.nl` (alle subdomeinen voor stateful auth)
+- `CORS_ALLOWED_ORIGINS`: `https://aidatim.nl,https://portal.aidatim.nl,https://*.aidatim.nl` (alle frontend domeinen)
 - `VITE_API_URL`: `https://app.aidatim.nl` (backend API URL voor frontend, ZONDER /api omdat alle API calls al /api/ prefix gebruiken)
 - Stripe variabelen: Vul je Stripe productie keys in
 - Mail variabelen: Vul je SMTP instellingen in
@@ -236,6 +248,23 @@ docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --cla
 
 **Let op:** De seeder maakt een admin account aan. Check de seeder code voor de standaard credentials of pas deze aan.
 
+### 3.4 Genereer subdomeinen voor bestaande organisaties
+
+Als je bestaande organisaties in de database hebt, moet je subdomeinen genereren:
+
+```bash
+# Dry run: zie wat er zou gebeuren zonder wijzigingen
+docker compose -f docker-compose.prod.yml exec backend php artisan organisations:generate-subdomains --dry-run
+
+# Werkelijk uitvoeren: genereer subdomeinen voor alle organisaties
+docker compose -f docker-compose.prod.yml exec backend php artisan organisations:generate-subdomains
+```
+
+**Let op:** 
+- Nieuwe organisaties krijgen automatisch een subdomein bij registratie
+- Bestaande organisaties moeten handmatig een subdomein krijgen via dit command
+- Subdomeinen worden gegenereerd op basis van de organisatienaam (slug-formaat)
+
 ### 3.4 Cache optimaliseren (optioneel maar aanbevolen)
 
 ```bash
@@ -246,11 +275,13 @@ docker compose -f docker-compose.prod.yml exec backend php artisan view:cache
 
 ## Stap 4: Nginx Proxy Manager configureren
 
-Omdat je al Nginx Proxy Manager hebt, maken we twee aparte Proxy Hosts aan:
-- **Frontend** op `aidatim.nl` → forward naar `localhost:3000`
-- **Backend API** op `app.aidatim.nl` → forward naar `localhost:6969`
+Omdat je al Nginx Proxy Manager hebt, maken we meerdere Proxy Hosts aan voor subdomein multi-tenancy:
+- **Frontend** op `aidatim.nl` → forward naar `localhost:3000` (statische website)
+- **Frontend** op `portal.aidatim.nl` → forward naar `localhost:3000` (platform admin)
+- **Frontend** op `*.aidatim.nl` → forward naar `localhost:3000` (wildcard voor organisatie subdomeinen)
+- **Backend API** op `app.aidatim.nl` → forward naar `localhost:6969` (API server)
 
-### 4.1 Frontend Proxy Host (aidatim.nl)
+### 4.1 Frontend Proxy Host (aidatim.nl - Statische Website)
 
 1. Log in op je Nginx Proxy Manager interface (meestal `http://jouw-server-ip:81`)
 2. Ga naar **Hosts** > **Proxy Hosts**
@@ -263,11 +294,6 @@ Omdat je al Nginx Proxy Manager hebt, maken we twee aparte Proxy Hosts aan:
   - Als Nginx Proxy Manager op de host draait: `localhost` of `127.0.0.1`
   - Als Nginx Proxy Manager in een Docker network draait: `leden_frontend` (container naam) of `172.17.0.1` (Docker bridge gateway)
 - **Forward Port:** `3000` (de poort van de frontend container)
-  
-**BELANGRIJK:** Als je een privé IP gebruikt (zoals 192.168.68.86), moet je:
-- Een publiek IP adres hebben voor je server, OF
-- Port forwarding configureren op je router (poort 80 → server IP, poort 443 → server IP)
-- DNS records moeten naar je publieke IP wijzen, niet naar het privé IP
 - **Cache Assets:** Aan (optioneel)
 - **Block Common Exploits:** Aan
 - **Websockets Support:** Uit
@@ -280,6 +306,59 @@ Omdat je al Nginx Proxy Manager hebt, maken we twee aparte Proxy Hosts aan:
 - **HSTS Subdomains:** Aan
 
 Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
+
+### 4.1.1 Frontend Proxy Host (portal.aidatim.nl - Platform Admin)
+
+1. Ga naar **Hosts** > **Proxy Hosts**
+2. Klik op **Add Proxy Host**
+
+**Details tab:**
+- **Domain Names:** `portal.aidatim.nl`
+- **Scheme:** `http`
+- **Forward Hostname / IP:** `localhost` of `127.0.0.1` (zelfde als aidatim.nl)
+- **Forward Port:** `3000`
+- **Cache Assets:** Aan (optioneel)
+- **Block Common Exploits:** Aan
+- **Websockets Support:** Uit
+
+**SSL tab:**
+- **SSL Certificate:** Kies "Request a new SSL Certificate" (of gebruik wildcard certificaat)
+- **Force SSL:** Aan
+- **HTTP/2 Support:** Aan
+- **HSTS Enabled:** Aan
+- **HSTS Subdomains:** Aan
+
+Klik op **Save**.
+
+### 4.1.2 Frontend Proxy Host (*.aidatim.nl - Wildcard voor Organisaties)
+
+**BELANGRIJK:** Nginx Proxy Manager ondersteunt wildcard subdomeinen. Maak een wildcard Proxy Host aan:
+
+1. Ga naar **Hosts** > **Proxy Hosts**
+2. Klik op **Add Proxy Host**
+
+**Details tab:**
+- **Domain Names:** `*.aidatim.nl` (wildcard voor alle subdomeinen)
+- **Scheme:** `http`
+- **Forward Hostname / IP:** `localhost` of `127.0.0.1`
+- **Forward Port:** `3000`
+- **Cache Assets:** Aan (optioneel)
+- **Block Common Exploits:** Aan
+- **Websockets Support:** Uit
+
+**SSL tab:**
+- **SSL Certificate:** Kies "Request a new SSL Certificate" met wildcard (`*.aidatim.nl`)
+- **Force SSL:** Aan
+- **HTTP/2 Support:** Aan
+- **HSTS Enabled:** Aan
+- **HSTS Subdomains:** Aan
+
+**Let op:** 
+- Wildcard SSL certificaten kunnen alleen via DNS validation worden aangevraagd
+- Zorg dat je DNS wildcard record (`*.aidatim.nl`) correct is geconfigureerd voordat je het certificaat aanvraagt
+- Het wildcard certificaat dekt alle subdomeinen (bijv. `vereniging-abc.aidatim.nl`, `portal.aidatim.nl`, etc.)
+
+Klik op **Save**.
 
 ### 4.2 Backend API Proxy Host (app.aidatim.nl)
 
@@ -379,9 +458,9 @@ Klik op **Save** en wacht tot het SSL certificaat is gegenereerd.
 
 ### 4.3 DNS Records configureren
 
-Je moet twee DNS records aanmaken in je DNS provider (bijv. Cloudflare, Namecheap, TransIP, etc.):
+Je moet meerdere DNS records aanmaken in je DNS provider (bijv. Cloudflare, Namecheap, TransIP, etc.) voor subdomein multi-tenancy:
 
-#### Optie 1: A Records (aanbevolen)
+#### A Records (aanbevolen)
 
 Maak de volgende **A records** aan:
 
@@ -391,10 +470,22 @@ Maak de volgende **A records** aan:
    - **Value/Points to:** `JOUW_SERVER_IP` (bijv. `123.45.67.89`)
    - **TTL:** 3600 (of Auto)
 
-2. **A Record voor subdomein:**
+2. **A Record voor backend API:**
    - **Name/Host:** `app`
    - **Type:** A
    - **Value/Points to:** `JOUW_SERVER_IP` (zelfde IP als hierboven)
+   - **TTL:** 3600 (of Auto)
+
+3. **A Record voor platform admin:**
+   - **Name/Host:** `portal`
+   - **Type:** A
+   - **Value/Points to:** `JOUW_SERVER_IP` (zelfde IP)
+   - **TTL:** 3600 (of Auto)
+
+4. **Wildcard A Record voor organisatie subdomeinen:**
+   - **Name/Host:** `*` (wildcard)
+   - **Type:** A
+   - **Value/Points to:** `JOUW_SERVER_IP` (zelfde IP)
    - **TTL:** 3600 (of Auto)
 
 **Voorbeeld bij verschillende providers:**
@@ -402,36 +493,38 @@ Maak de volgende **A records** aan:
 **TransIP/Namecheap:**
 - Host: `@`, Type: A, Value: `123.45.67.89`
 - Host: `app`, Type: A, Value: `123.45.67.89`
+- Host: `portal`, Type: A, Value: `123.45.67.89`
+- Host: `*`, Type: A, Value: `123.45.67.89`
 
-#### Optie 2: CNAME Record (alternatief)
-
-Als je liever een CNAME gebruikt voor het subdomein:
-
-1. **A Record voor hoofddomein:**
-   - **Name/Host:** `@` of `aidatim.nl`
-   - **Type:** A
-   - **Value/Points to:** `JOUW_SERVER_IP`
-
-2. **CNAME Record voor subdomein:**
-   - **Name/Host:** `app`
-   - **Type:** CNAME
-   - **Value/Points to:** `aidatim.nl`
+**Cloudflare:**
+- Type: A, Name: `@`, Content: `123.45.67.89`, Proxy: Off (of On voor DDoS protection)
+- Type: A, Name: `app`, Content: `123.45.67.89`, Proxy: Off
+- Type: A, Name: `portal`, Content: `123.45.67.89`, Proxy: Off
+- Type: A, Name: `*`, Content: `123.45.67.89`, Proxy: Off
 
 **Let op:** 
 - Vervang `JOUW_SERVER_IP` met het daadwerkelijke IP-adres van je server
 - Het kan 5 minuten tot 48 uur duren voordat DNS records zijn doorgevoerd (meestal binnen 1-2 uur)
+- Wildcard records (`*`) zorgen ervoor dat alle subdomeinen automatisch naar je server wijzen
 - Je kunt dit testen met:
   ```bash
   # Test of DNS records correct zijn
   dig aidatim.nl +short
   dig app.aidatim.nl +short
+  dig portal.aidatim.nl +short
+  dig vereniging-abc.aidatim.nl +short  # Test wildcard
   
   # Of met nslookup
   nslookup aidatim.nl
   nslookup app.aidatim.nl
+  nslookup portal.aidatim.nl
+  nslookup vereniging-abc.aidatim.nl
   ```
 
-**Belangrijk:** Zorg dat beide domeinen naar hetzelfde IP-adres wijzen voordat je SSL certificaten aanvraagt in Nginx Proxy Manager!
+**Belangrijk:** 
+- Zorg dat alle domeinen naar hetzelfde IP-adres wijzen voordat je SSL certificaten aanvraagt
+- Voor wildcard SSL certificaten moet je DNS validation gebruiken (niet HTTP validation)
+- Test eerst of wildcard DNS werkt voordat je het wildcard SSL certificaat aanvraagt
 
 ## Stap 5: Permissies controleren
 
@@ -942,6 +1035,266 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw allow 81/tcp  # Nginx Proxy Manager
 ufw enable
+```
+
+## Subdomein Multi-Tenancy Configuratie
+
+### Overzicht
+
+Het systeem gebruikt subdomein-gebaseerde multi-tenancy:
+- **Backend API**: `app.aidatim.nl` - Alle API requests gaan hiernaartoe
+- **Platform Admin**: `portal.aidatim.nl` - Frontend voor platform beheerders
+- **Organisaties**: `{subdomain}.aidatim.nl` - Elke organisatie heeft een uniek subdomein
+- **Website**: `aidatim.nl` - Statische website (niet gebruikt door applicatie)
+
+### Hoe het werkt
+
+1. **Frontend detectie**: De frontend detecteert automatisch het subdomein uit `window.location.hostname`
+2. **API requests**: Alle API requests gaan naar `app.aidatim.nl`, ongeacht het frontend subdomein
+3. **Subdomein header**: De frontend stuurt het subdomein mee in de `X-Organisation-Subdomain` header
+4. **Backend resolutie**: De backend middleware (`ResolveOrganisationFromSubdomain`) extraheert het subdomein en resolveert de organisatie
+5. **Validatie**: De middleware (`ValidateUserOrganisationAccess`) controleert of de gebruiker toegang heeft tot de organisatie
+
+### Nieuwe organisaties
+
+Nieuwe organisaties krijgen automatisch een subdomein bij registratie:
+- Subdomein wordt gegenereerd op basis van de organisatienaam (slug-formaat)
+- Bijvoorbeeld: "Vereniging ABC" → `vereniging-abc.aidatim.nl`
+- Uniekheid wordt automatisch gecontroleerd (nummer wordt toegevoegd indien nodig)
+
+### Bestaande organisaties
+
+Voor bestaande organisaties zonder subdomein:
+
+```bash
+# Genereer subdomeinen voor alle organisaties zonder subdomein
+docker compose -f docker-compose.prod.yml exec backend php artisan organisations:generate-subdomains
+```
+
+### Platform Admin Toegang
+
+Platform admins kunnen inloggen op `portal.aidatim.nl`:
+- Geen organisatie context vereist
+- Toegang tot alle platform admin routes
+- Kan alle organisaties beheren
+
+### Troubleshooting Subdomeinen
+
+**Probleem: "Organisatie niet gevonden voor dit subdomein" (404)**
+- Controleer of de organisatie een subdomein heeft: `docker compose -f docker-compose.prod.yml exec backend php artisan tinker` → `Organisation::where('subdomain', 'jouw-subdomein')->first()`
+- Genereer subdomein indien ontbreekt: `php artisan organisations:generate-subdomains`
+
+**Probleem: "U heeft geen toegang tot deze organisatie" (403)**
+- Controleer of de gebruiker bij de juiste organisatie hoort
+- Platform admins hebben altijd toegang
+
+**Probleem: Wildcard DNS werkt niet**
+- Controleer DNS records: `dig *.aidatim.nl +short`
+- Wacht op DNS propagatie (kan tot 48 uur duren)
+- Test met specifiek subdomein: `dig vereniging-abc.aidatim.nl +short`
+
+## Data Verwijdering Guide
+
+### Alle Data Verwijderen (Behalve Platform Account)
+
+Als je alle data wilt verwijderen behalve het platform admin account (`info@aidatim.nl`), volg deze stappen:
+
+#### Stap 1: Backup maken (aanbevolen)
+
+```bash
+# Maak een backup van de database voordat je data verwijdert
+docker compose -f docker-compose.prod.yml exec backend mysqldump -u ama -p ledenportaal > backup_before_cleanup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+#### Stap 2: Identificeer platform admin account
+
+```bash
+# Check welk account het platform admin account is
+docker compose -f docker-compose.prod.yml exec backend php artisan tinker
+```
+
+In tinker:
+```php
+$platformAdmin = User::where('email', 'info@aidatim.nl')->first();
+if ($platformAdmin) {
+    echo "Platform Admin ID: " . $platformAdmin->id . "\n";
+    echo "Organisation ID: " . ($platformAdmin->organisation_id ?? 'null') . "\n";
+}
+exit
+```
+
+#### Stap 3: Verwijder alle data (SQL script)
+
+Maak een SQL script aan om alle data te verwijderen:
+
+```bash
+# Maak een cleanup script
+cat > /tmp/cleanup_database.sql << 'EOF'
+-- Disable foreign key checks tijdelijk
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Verwijder alle organisaties (behalve die van platform admin als die bestaat)
+-- Eerst verwijderen we alle gerelateerde data
+
+-- Verwijder alle member subscriptions
+DELETE FROM member_subscriptions;
+
+-- Verwijder alle member contribution records
+DELETE FROM member_contribution_records;
+
+-- Verwijder alle member contribution histories
+DELETE FROM member_contribution_histories;
+
+-- Verwijder alle member invitations
+DELETE FROM member_invitations;
+
+-- Verwijder alle members
+DELETE FROM members;
+
+-- Verwijder alle payment transactions
+DELETE FROM payment_transactions;
+
+-- Verwijder alle organisation stripe connections
+DELETE FROM organisation_stripe_connections;
+
+-- Verwijder alle organisation subscriptions
+DELETE FROM organisation_subscriptions;
+
+-- Verwijder alle subscription audit logs
+DELETE FROM subscription_audit_logs;
+
+-- Verwijder alle users (behalve platform admin)
+DELETE FROM users WHERE email != 'info@aidatim.nl';
+
+-- Verwijder alle organisaties (behalve die van platform admin als die bestaat)
+-- Eerst checken we of platform admin een organisatie heeft
+-- Als platform admin organisation_id heeft, behouden we die organisatie
+DELETE FROM organisations 
+WHERE id NOT IN (
+    SELECT COALESCE(organisation_id, 0) 
+    FROM users 
+    WHERE email = 'info@aidatim.nl' 
+    AND organisation_id IS NOT NULL
+);
+
+-- Verwijder alle roles (behalve platform_admin rol)
+-- Maar eerst verwijderen we de koppelingen
+DELETE FROM role_user WHERE role_id NOT IN (
+    SELECT id FROM roles WHERE name = 'platform_admin'
+);
+
+-- Verwijder alle roles behalve platform_admin
+DELETE FROM roles WHERE name != 'platform_admin';
+
+-- Verwijder alle platform settings (optioneel - behouden of verwijderen)
+-- DELETE FROM platform_settings;
+
+-- Verwijder alle plans (optioneel - behouden of verwijderen)
+-- DELETE FROM plans;
+
+-- Verwijder alle stripe events (optioneel)
+DELETE FROM stripe_events;
+
+-- Reset platform admin account
+UPDATE users 
+SET 
+    organisation_id = NULL,
+    member_id = NULL,
+    status = 'active'
+WHERE email = 'info@aidatim.nl';
+
+-- Zorg dat platform admin de platform_admin rol heeft
+INSERT IGNORE INTO role_user (user_id, role_id)
+SELECT u.id, r.id
+FROM users u
+CROSS JOIN roles r
+WHERE u.email = 'info@aidatim.nl'
+AND r.name = 'platform_admin';
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
+EOF
+```
+
+#### Stap 4: Voer het cleanup script uit
+
+```bash
+# Voer het SQL script uit
+docker compose -f docker-compose.prod.yml exec backend mysql -u ama -p ledenportaal < /tmp/cleanup_database.sql
+
+# Of als je root gebruikt:
+docker compose -f docker-compose.prod.yml exec backend mysql -u root -p ledenportaal < /tmp/cleanup_database.sql
+```
+
+#### Stap 5: Verifieer dat alleen platform admin over is
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend php artisan tinker
+```
+
+In tinker:
+```php
+// Check users
+echo "Users: " . User::count() . "\n";
+$users = User::all();
+foreach ($users as $user) {
+    echo "- " . $user->email . " (ID: " . $user->id . ")\n";
+}
+
+// Check organisaties
+echo "\nOrganisaties: " . Organisation::count() . "\n";
+
+// Check members
+echo "Members: " . Member::count() . "\n";
+
+// Check platform admin
+$admin = User::where('email', 'info@aidatim.nl')->first();
+if ($admin) {
+    echo "\nPlatform Admin:\n";
+    echo "- Email: " . $admin->email . "\n";
+    echo "- Has platform_admin role: " . ($admin->hasRole('platform_admin') ? 'Yes' : 'No') . "\n";
+    echo "- Organisation ID: " . ($admin->organisation_id ?? 'null') . "\n";
+}
+
+exit
+```
+
+#### Alternatief: Via Artisan Command (veiliger)
+
+Voor een veiligere aanpak, maak een custom Artisan command:
+
+```bash
+# Maak een cleanup command (optioneel - kan handmatig worden toegevoegd)
+# Dit is veiliger omdat het validatie en checks bevat
+```
+
+**Let op:** 
+- Deze operatie is **IRREVERSIBEL** - maak altijd eerst een backup
+- Test eerst op een development/staging omgeving
+- Controleer na het uitvoeren of het platform admin account nog werkt
+- Log in op `portal.aidatim.nl` om te verifiëren dat alles werkt
+
+### Alleen Test Data Verwijderen
+
+Als je alleen test data wilt verwijderen maar productie data wilt behouden:
+
+```bash
+# Verwijder alleen organisaties met status 'new' of 'blocked'
+docker compose -f docker-compose.prod.yml exec backend php artisan tinker
+```
+
+In tinker:
+```php
+// Verwijder alleen test organisaties
+$testOrgs = Organisation::whereIn('status', ['new', 'blocked'])->get();
+foreach ($testOrgs as $org) {
+    // Verwijder gerelateerde data
+    $org->members()->delete();
+    $org->users()->where('email', '!=', 'info@aidatim.nl')->delete();
+    $org->delete();
+    echo "Verwijderd: " . $org->name . "\n";
+}
+exit
 ```
 
 ## Ondersteuning

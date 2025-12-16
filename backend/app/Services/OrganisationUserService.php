@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Services\Concerns\ResolvesOrganisation;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -12,11 +13,15 @@ use Illuminate\Validation\ValidationException;
 
 class OrganisationUserService
 {
+    use ResolvesOrganisation;
+
     public function listUsersFor(User $admin): LengthAwarePaginator
     {
+        $organisationId = $this->requireOrganisationId($admin);
+
         return User::query()
             ->with('roles')
-            ->where('organisation_id', $admin->organisation_id)
+            ->where('organisation_id', $organisationId)
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate();
@@ -24,7 +29,9 @@ class OrganisationUserService
 
     public function createUser(User $admin, array $data): User
     {
-        return DB::transaction(function () use ($admin, $data) {
+        $organisationId = $this->requireOrganisationId($admin);
+
+        return DB::transaction(function () use ($organisationId, $data) {
             $user = User::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -32,7 +39,7 @@ class OrganisationUserService
                 'email' => $data['email'],
                 'password' => bcrypt(Str::random(32)),
                 'status' => $data['status'] ?? 'pending',
-                'organisation_id' => $admin->organisation_id,
+                'organisation_id' => $organisationId,
             ]);
 
             $role = $data['role'] ?? 'org_admin';
@@ -74,11 +81,9 @@ class OrganisationUserService
 
     protected function ensureSameOrganisation(User $admin, User $user): void
     {
-        if (is_null($admin->organisation_id)) {
-            throw new AuthorizationException(__('Administrator is not assigned to an organisation.'));
-        }
+        $organisationId = $this->requireOrganisationId($admin);
 
-        if ($admin->organisation_id !== $user->organisation_id) {
+        if ($user->organisation_id !== $organisationId) {
             throw new AuthorizationException(__('You cannot manage users from another organisation.'));
         }
     }
@@ -89,8 +94,10 @@ class OrganisationUserService
             return;
         }
 
+        $organisationId = $this->requireOrganisationId($admin);
+
         $activeAdminCount = User::query()
-            ->where('organisation_id', $admin->organisation_id)
+            ->where('organisation_id', $organisationId)
             ->where('status', 'active')
             ->whereHas('roles', fn ($query) => $query->where('name', 'org_admin'))
             ->count();

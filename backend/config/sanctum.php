@@ -18,6 +18,10 @@ return [
     'stateful' => array_values(array_filter(explode(',', implode(',', array_filter([
         env('SANCTUM_STATEFUL_DOMAINS'),
         'localhost,localhost:5173,127.0.0.1,127.0.0.1:5173,::1',
+        'app.aidatim.nl',
+        'portal.aidatim.nl',
+        // Wildcard subdomeinen worden dynamisch toegevoegd via ServiceProvider indien nodig
+        // Voor nu: gebruik SANCTUM_STATEFUL_DOMAINS env variabele voor specifieke subdomeinen
         Sanctum::currentApplicationUrlWithPort(),
         // Sanctum::currentRequestHost(),
     ]))))),
