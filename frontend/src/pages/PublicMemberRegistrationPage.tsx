@@ -70,16 +70,6 @@ const PublicMemberRegistrationPage: React.FC = () => {
     }
   }
 
-  const formatDateForInput = (dateStr: string): string => {
-    if (!dateStr) return ''
-    // Convert dd-MM-yyyy to yyyy-MM-dd for HTML date input
-    const parts = dateStr.split('-')
-    if (parts.length === 3 && parts[0].length === 2) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`
-    }
-    return dateStr
-  }
-
   const formatDateForBackend = (dateStr: string): string => {
     if (!dateStr) return ''
     // Convert yyyy-MM-dd to dd-MM-yyyy for backend
