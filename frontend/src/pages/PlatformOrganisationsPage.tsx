@@ -254,7 +254,6 @@ const PlatformOrganisationsPage: React.FC = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => sendSubdomainInvitation(organisation.id)}
-                            title="Stuur uitnodiging met subdomein informatie"
                           >
                             <Mail size={16} />
                             Uitnodiging
