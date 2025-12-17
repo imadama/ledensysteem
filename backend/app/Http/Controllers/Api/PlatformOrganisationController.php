@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OrganisationSubdomainInvitationMailable;
 use App\Models\Organisation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
 class PlatformOrganisationController extends Controller
@@ -76,6 +78,35 @@ class PlatformOrganisationController extends Controller
         $organisation->update($validated);
 
         return response()->json($this->transformOrganisationSummary($organisation->fresh()));
+    }
+
+    public function sendSubdomainInvitation(int $id): JsonResponse
+    {
+        $organisation = Organisation::findOrFail($id);
+
+        if (! $organisation->subdomain) {
+            return response()->json([
+                'message' => 'Deze organisatie heeft geen subdomein.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (! $organisation->contact_email) {
+            return response()->json([
+                'message' => 'Deze organisatie heeft geen contact e-mailadres.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        try {
+            Mail::to($organisation->contact_email)->send(new OrganisationSubdomainInvitationMailable($organisation));
+
+            return response()->json([
+                'message' => 'Uitnodiging is verstuurd naar '.$organisation->contact_email,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Kon uitnodiging niet versturen: '.$e->getMessage(),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     protected function updateStatus(int $id, string $status): Organisation

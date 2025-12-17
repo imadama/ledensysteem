@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Eye, CheckCircle2, XCircle } from 'lucide-react'
+import { Building2, Eye, CheckCircle2, XCircle, Mail } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -10,6 +10,7 @@ type OrganisationSummary = {
   id: number
   name: string
   type: string
+  subdomain?: string | null
   city?: string | null
   country?: string | null
   contact_email: string
@@ -63,6 +64,19 @@ const PlatformOrganisationsPage: React.FC = () => {
     } catch (err) {
       console.error(err)
       setError(`Kon status niet wijzigen (${action}).`)
+    }
+  }
+
+  const sendSubdomainInvitation = async (id: number) => {
+    try {
+      await apiClient.post(`/api/platform/organisations/${id}/send-subdomain-invitation`)
+      setError(null)
+      // Toon success message (je kunt later een toast notification toevoegen)
+      alert('Uitnodiging is verstuurd!')
+    } catch (err: any) {
+      console.error(err)
+      const errorMessage = err.response?.data?.message || 'Kon uitnodiging niet versturen.'
+      setError(errorMessage)
     }
   }
 
@@ -147,6 +161,7 @@ const PlatformOrganisationsPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Organisatie</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Subdomein</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Type</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Contact</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-600 dark:text-gray-400">Status</th>
@@ -172,6 +187,18 @@ const PlatformOrganisationsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      {organisation.subdomain ? (
+                        <div className="space-y-1">
+                          <p className="text-sm font-mono text-gray-900 dark:text-white">{organisation.subdomain}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            {organisation.subdomain}.aidatim.nl
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 dark:text-gray-500">Geen subdomein</span>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-gray-600 dark:text-gray-400">{organisation.type}</td>
                     <td className="py-4 px-4">
@@ -222,6 +249,17 @@ const PlatformOrganisationsPage: React.FC = () => {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-2">
+                        {organisation.subdomain && (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => sendSubdomainInvitation(organisation.id)}
+                            title="Stuur uitnodiging met subdomein informatie"
+                          >
+                            <Mail size={16} />
+                            Uitnodiging
+                          </Button>
+                        )}
                         <Link to={`/platform/organisations/${organisation.id}`}>
                           <Button variant="outline" size="sm">
                             <Eye size={16} />
@@ -251,7 +289,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                 ))}
                 {filteredOrgs.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <td colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">
                       Geen organisaties gevonden.
                     </td>
                   </tr>

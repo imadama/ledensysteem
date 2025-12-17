@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, XCircle, Users, History } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Users, History, Mail } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -11,6 +11,7 @@ type OrganisationSummary = {
   id: number
   name: string
   type: string
+  subdomain?: string | null
   city?: string | null
   country?: string | null
   contact_email: string
@@ -131,6 +132,19 @@ const PlatformOrganisationDetailPage: React.FC = () => {
     }
   }
 
+  const sendSubdomainInvitation = async () => {
+    if (!id) return
+    try {
+      await apiClient.post(`/api/platform/organisations/${id}/send-subdomain-invitation`)
+      setError(null)
+      alert('Uitnodiging is verstuurd!')
+    } catch (err: any) {
+      console.error(err)
+      const errorMessage = err.response?.data?.message || 'Kon uitnodiging niet versturen.'
+      setError(errorMessage)
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
   }
@@ -218,6 +232,28 @@ const PlatformOrganisationDetailPage: React.FC = () => {
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Contact e-mail</p>
             <p className="text-gray-900 dark:text-white">{organisation.contact_email}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Subdomein</p>
+            {organisation.subdomain ? (
+              <div className="space-y-1">
+                <p className="text-gray-900 dark:text-white font-mono">{organisation.subdomain}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  {organisation.subdomain}.aidatim.nl
+                </p>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={sendSubdomainInvitation}
+                  className="mt-2"
+                >
+                  <Mail size={16} />
+                  Stuur uitnodiging
+                </Button>
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">Geen subdomein</p>
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Status</p>
