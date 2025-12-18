@@ -143,6 +143,7 @@ Route::middleware([
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);
         Route::patch('organisations/{id}/billing-status', [PlatformOrganisationController::class, 'updateBillingStatus']);
         Route::post('organisations/{id}/send-subdomain-invitation', [PlatformOrganisationController::class, 'sendSubdomainInvitation']);
+        Route::delete('organisations/{id}', [PlatformOrganisationController::class, 'destroy']);
         Route::get('plans', [PlatformPlanController::class, 'index']);
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);

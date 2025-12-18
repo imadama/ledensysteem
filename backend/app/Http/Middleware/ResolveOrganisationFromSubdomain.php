@@ -18,8 +18,15 @@ class ResolveOrganisationFromSubdomain
     {
         $subdomain = $this->extractSubdomain($request);
 
-        // Platform admin subdomein - geen organisatie context nodig
+        // Platform admin subdomein - controleer toegang
         if ($subdomain === 'portal') {
+            // Voor geauthenticeerde requests: alleen platform admins toegestaan
+            if ($request->user() && ! $request->user()->hasRole('platform_admin')) {
+                return response()->json([
+                    'message' => 'Alleen platform beheerders hebben toegang tot portal.aidatim.nl',
+                ], 403);
+            }
+
             return $next($request);
         }
 

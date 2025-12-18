@@ -118,6 +118,19 @@ class AuthController extends Controller
             ]);
         }
 
+        // Controleer subdomein voor portal toegang
+        $subdomain = $this->extractSubdomain($request);
+        if ($subdomain === 'portal') {
+            // Alleen platform admins mogen inloggen op portal subdomein
+            if (! $user->hasRole('platform_admin')) {
+                $this->logoutUser($request);
+
+                throw ValidationException::withMessages([
+                    'email' => [__('Alleen platform beheerders kunnen inloggen op portal.aidatim.nl')],
+                ]);
+            }
+        }
+
         return response()->json($this->transformUser($user));
     }
 
@@ -258,6 +271,95 @@ class AuthController extends Controller
             'status' => $subscription->status,
             'current_period_end' => $subscription->current_period_end?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Extraheert subdomein uit request headers.
+     * Gebruikt dezelfde logica als ResolveOrganisationFromSubdomain middleware.
+     */
+    protected function extractSubdomain(Request $request): ?string
+    {
+        // Prioriteit 1: Custom header (aanbevolen voor cross-domain requests)
+        $subdomainHeader = $request->header('X-Organisation-Subdomain');
+        if ($subdomainHeader) {
+            return $this->normalizeSubdomain($subdomainHeader);
+        }
+
+        // Prioriteit 2: Origin header
+        $origin = $request->header('Origin');
+        if ($origin) {
+            $subdomain = $this->extractSubdomainFromUrl($origin);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        // Prioriteit 3: Referer header
+        $referer = $request->header('Referer');
+        if ($referer) {
+            $subdomain = $this->extractSubdomainFromUrl($referer);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        // Prioriteit 4: Host header (voor directe backend requests)
+        $host = $request->header('Host');
+        if ($host) {
+            $subdomain = $this->extractSubdomainFromHost($host);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraheert subdomein uit URL (Origin/Referer).
+     */
+    private function extractSubdomainFromUrl(string $url): ?string
+    {
+        try {
+            $parsed = parse_url($url);
+            if (! isset($parsed['host'])) {
+                return null;
+            }
+
+            return $this->extractSubdomainFromHost($parsed['host']);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extraheert subdomein uit hostname.
+     */
+    private function extractSubdomainFromHost(string $host): ?string
+    {
+        // Verwijder poort als aanwezig
+        $host = explode(':', $host)[0];
+
+        // Check voor .aidatim.nl
+        if (! str_ends_with($host, '.aidatim.nl')) {
+            return null;
+        }
+
+        // Extract subdomein (alles voor .aidatim.nl)
+        $parts = explode('.', $host);
+        if (count($parts) >= 3) {
+            return $this->normalizeSubdomain($parts[0]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliseert subdomein (lowercase, trim).
+     */
+    private function normalizeSubdomain(string $subdomain): string
+    {
+        return strtolower(trim($subdomain));
     }
 }
 

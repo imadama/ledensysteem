@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, XCircle, Users, History, Mail } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, XCircle, Users, History, Mail, Trash2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -78,6 +78,8 @@ const PlatformOrganisationDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'audit'>('details')
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [auditLogsLoading, setAuditLogsLoading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const loadDetail = async () => {
     if (!id) {
@@ -145,6 +147,23 @@ const PlatformOrganisationDetailPage: React.FC = () => {
     }
   }
 
+  const handleDelete = async () => {
+    if (!id) return
+    setIsDeleting(true)
+    setError(null)
+    try {
+      await apiClient.delete(`/api/platform/organisations/${id}`)
+      // Redirect naar organisaties overzicht na succesvolle verwijdering
+      navigate('/platform/organisations', { replace: true })
+    } catch (err: any) {
+      console.error(err)
+      const errorMessage = err.response?.data?.message || 'Kon organisatie niet verwijderen.'
+      setError(errorMessage)
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   if (loading) {
     return <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
   }
@@ -195,8 +214,47 @@ const PlatformOrganisationDetailPage: React.FC = () => {
               Blokkeer
             </Button>
           )}
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-red-600 hover:text-red-700 border-red-300 dark:text-red-400 dark:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Trash2 size={16} />
+            Verwijderen
+          </Button>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <Card className="p-6 border-red-200 dark:border-red-800">
+          <h3 className="text-lg font-semibold text-red-900 dark:text-red-400 mb-2">
+            Organisatie verwijderen
+          </h3>
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Weet je zeker dat je <strong>{organisation.name}</strong> wilt verwijderen?
+            <br />
+            <span className="text-sm text-red-600 dark:text-red-400">
+              Deze actie kan niet ongedaan worden gemaakt. Alle gegevens, leden en gebruikers van deze organisatie worden permanent verwijderd.
+            </span>
+          </p>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Verwijderen...' : 'Ja, verwijderen'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
+            >
+              Annuleren
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex gap-4">

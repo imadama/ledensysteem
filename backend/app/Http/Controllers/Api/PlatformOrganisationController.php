@@ -4,9 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\OrganisationSubdomainInvitationMailable;
+use App\Models\Member;
+use App\Models\MemberContributionHistory;
+use App\Models\MemberInvitation;
+use App\Models\MemberSubscription;
 use App\Models\Organisation;
+use App\Models\OrganisationStripeConnection;
+use App\Models\OrganisationSubscription;
+use App\Models\PaymentTransaction;
+use App\Models\SubscriptionAuditLog;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -107,6 +117,69 @@ class PlatformOrganisationController extends Controller
                 'message' => 'Kon uitnodiging niet versturen: '.$e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $organisation = Organisation::findOrFail($id);
+
+        DB::transaction(function () use ($organisation): void {
+            // Verwijder alle member subscriptions
+            MemberSubscription::whereHas('member', function ($query) use ($organisation) {
+                $query->where('organisation_id', $organisation->id);
+            })->delete();
+
+            // Verwijder alle member contribution histories
+            MemberContributionHistory::whereHas('member', function ($query) use ($organisation) {
+                $query->where('organisation_id', $organisation->id);
+            })->delete();
+
+            // Verwijder alle member invitations
+            MemberInvitation::whereHas('member', function ($query) use ($organisation) {
+                $query->where('organisation_id', $organisation->id);
+            })->delete();
+
+            // Verwijder alle members (cascade delete verwijdert automatisch contribution records)
+            // Maar we doen het expliciet voor duidelijkheid
+            $memberIds = Member::where('organisation_id', $organisation->id)->pluck('id');
+            
+            // Verwijder member contribution records
+            DB::table('member_contribution_records')
+                ->whereIn('member_id', $memberIds)
+                ->delete();
+
+            // Verwijder members
+            Member::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder alle payment transactions
+            PaymentTransaction::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder stripe connection
+            OrganisationStripeConnection::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder alle subscriptions
+            OrganisationSubscription::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder subscription audit logs
+            SubscriptionAuditLog::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder alle users van deze organisatie
+            // Eerst roles loskoppelen
+            $userIds = User::where('organisation_id', $organisation->id)->pluck('id');
+            DB::table('role_user')
+                ->whereIn('user_id', $userIds)
+                ->delete();
+
+            // Verwijder users
+            User::where('organisation_id', $organisation->id)->delete();
+
+            // Verwijder de organisatie zelf
+            $organisation->delete();
+        });
+
+        return response()->json([
+            'message' => 'Organisatie en alle gerelateerde data zijn verwijderd.',
+        ]);
     }
 
     protected function updateStatus(int $id, string $status): Organisation

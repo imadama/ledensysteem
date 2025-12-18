@@ -1,8 +1,9 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { getSanctumCsrfCookie } from '../api/axios'
+import { getCurrentSubdomain } from '../api/config'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 
@@ -14,6 +15,16 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const subdomain = getCurrentSubdomain()
+  const isPortal = subdomain === 'portal'
+
+  useEffect(() => {
+    // Toon error message uit state als die er is (bijv. van ProtectedRoute redirect)
+    const state = location.state as { error?: string } | null
+    if (state?.error) {
+      setError(state.error)
+    }
+  }, [location.state])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -54,6 +65,13 @@ const LoginPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inloggen</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">Log in om toegang te krijgen tot het ledensysteem.</p>
         </div>
+
+        {isPortal && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg mb-4">
+            <p className="font-medium">Platform Beheerder Portaal</p>
+            <p className="text-sm mt-1">Alleen toegankelijk voor platform beheerders.</p>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
