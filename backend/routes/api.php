@@ -137,13 +137,13 @@ Route::middleware([
     ->prefix('platform')
     ->group(function (): void {
         Route::get('organisations', [PlatformOrganisationController::class, 'index']);
-        Route::get('organisations/{id}', [PlatformOrganisationController::class, 'show']);
         Route::get('organisations/{id}/audit-logs', [PlatformOrganisationController::class, 'auditLogs']);
         Route::patch('organisations/{id}/activate', [PlatformOrganisationController::class, 'activate']);
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);
         Route::patch('organisations/{id}/billing-status', [PlatformOrganisationController::class, 'updateBillingStatus']);
         Route::post('organisations/{id}/send-subdomain-invitation', [PlatformOrganisationController::class, 'sendSubdomainInvitation']);
         Route::delete('organisations/{id}', [PlatformOrganisationController::class, 'destroy']);
+        Route::get('organisations/{id}', [PlatformOrganisationController::class, 'show']);
         Route::get('plans', [PlatformPlanController::class, 'index']);
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);
