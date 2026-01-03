@@ -71,17 +71,27 @@ const PlatformOrganisationsPage: React.FC = () => {
     setLoading(true)
     setError(null)
     try {
+      console.log('[PlatformOrganisationsPage] Laden organisaties...')
       const { data } = await apiClient.get<{ data: OrganisationSummary[] }>('/api/platform/organisations')
-      setOrganisations(data.data)
-    } catch (err) {
-      console.error(err)
-      setError('Organisaties konden niet worden geladen.')
+      console.log('[PlatformOrganisationsPage] Response ontvangen:', data)
+      if (data && data.data) {
+        setOrganisations(data.data)
+        console.log('[PlatformOrganisationsPage] Organisaties ingesteld:', data.data.length)
+      } else {
+        console.error('[PlatformOrganisationsPage] Onverwachte response structuur:', data)
+        setError('Onverwachte response structuur van de server.')
+      }
+    } catch (err: any) {
+      console.error('[PlatformOrganisationsPage] Fout bij laden organisaties:', err)
+      console.error('[PlatformOrganisationsPage] Error response:', err.response)
+      setError(err.response?.data?.message || 'Organisaties konden niet worden geladen.')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    console.log('[PlatformOrganisationsPage] Component gemount, start laden...')
     loadOrganisations()
   }, [])
 
@@ -169,6 +179,8 @@ const PlatformOrganisationsPage: React.FC = () => {
   const filteredOrgs = organisations.filter((organisation) => 
     onlyIssues ? organisation.has_payment_issues : true
   )
+
+  console.log('[PlatformOrganisationsPage] Render - loading:', loading, 'organisations:', organisations.length, 'error:', error)
 
   return (
     <div className="space-y-6">
