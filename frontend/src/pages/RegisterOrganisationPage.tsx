@@ -2,6 +2,7 @@ import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Building2, UserPlus } from 'lucide-react'
 import { apiClient, getSanctumCsrfCookie } from '../api/axios'
+import { getCurrentSubdomain } from '../api/config'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 
@@ -74,7 +75,11 @@ const RegisterOrganisationPage: React.FC = () => {
         console.warn('CSRF cookie kon niet worden opgehaald:', csrfError)
       }
 
-      await apiClient.post('/api/auth/register-organisation', {
+      const response = await apiClient.post<{
+        organisation: {
+          subdomain: string
+        }
+      }>('/api/auth/register-organisation', {
         organisation,
         admin,
         accept_terms: acceptTerms,
@@ -90,8 +95,30 @@ const RegisterOrganisationPage: React.FC = () => {
         console.error('Auto-login failed:', loginError)
       }
 
-      // Redirect naar subscription pagina met melding
-      navigate('/organisation/subscription?payment_required=true', { replace: true })
+      // Bepaal waar we naartoe moeten redirecten
+      const subdomain = getCurrentSubdomain()
+      const isMainDomain = !subdomain || subdomain === 'www'
+      const organisationSubdomain = response.data.organisation.subdomain
+
+      if (isMainDomain && organisationSubdomain) {
+        // We zijn op het hoofddomein, redirect naar het subdomein
+        const hostname = window.location.hostname
+        const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+        
+        if (isLocalhost) {
+          // Development: gebruik localhost met poort
+          const port = window.location.port ? `:${window.location.port}` : ''
+          const subdomainUrl = `http://${organisationSubdomain}.localhost${port}/organisation/subscription?payment_required=true`
+          window.location.href = subdomainUrl
+        } else {
+          // Productie: gebruik aidatim.nl
+          const subdomainUrl = `https://${organisationSubdomain}.aidatim.nl/organisation/subscription?payment_required=true`
+          window.location.href = subdomainUrl
+        }
+      } else {
+        // We zijn al op een subdomein, gebruik normale navigatie
+        navigate('/organisation/subscription?payment_required=true', { replace: true })
+      }
     } catch (err: any) {
       // Voorkom dat errors de pagina reload veroorzaken
       console.error('Registratie error:', err)

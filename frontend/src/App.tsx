@@ -4,6 +4,8 @@ import { AuthProvider } from './context/AuthContext'
 import { MemberAuthProvider } from './context/MemberAuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import MemberProtectedRoute from './components/MemberProtectedRoute'
+import { getCurrentSubdomain } from './api/config'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterOrganisationPage from './pages/RegisterOrganisationPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -34,6 +36,22 @@ import PublicMemberRegistrationPage from './pages/PublicMemberRegistrationPage'
 import PublicMemberRegistrationSuccessPage from './pages/PublicMemberRegistrationSuccessPage'
 
 function App() {
+  // Detecteer of we op het hoofddomein zijn (geen subdomein)
+  const subdomain = getCurrentSubdomain()
+  const isMainDomain = !subdomain || subdomain === 'www'
+
+  // Als we op het hoofddomein zijn, toon marketing website
+  if (isMainDomain) {
+    return (
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register-organisation" element={<RegisterOrganisationPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
+  }
+
+  // Voor subdomeinen: toon applicatie routes
   return (
     <AuthProvider>
       <MemberAuthProvider>
