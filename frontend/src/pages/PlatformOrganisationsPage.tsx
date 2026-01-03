@@ -594,7 +594,6 @@ const PlatformOrganisationsPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                    </tr>
                   ))
                 ) : (
                   <tr>
