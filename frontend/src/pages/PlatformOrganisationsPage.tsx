@@ -84,7 +84,24 @@ const PlatformOrganisationsPage: React.FC = () => {
     } catch (err: any) {
       console.error('[PlatformOrganisationsPage] Fout bij laden organisaties:', err)
       console.error('[PlatformOrganisationsPage] Error response:', err.response)
-      setError(err.response?.data?.message || 'Organisaties konden niet worden geladen.')
+      console.error('[PlatformOrganisationsPage] Error status:', err.response?.status)
+      console.error('[PlatformOrganisationsPage] Error data:', err.response?.data)
+      
+      let errorMessage = 'Organisaties konden niet worden geladen.'
+      
+      if (err.response?.status === 401) {
+        errorMessage = 'Je bent niet ingelogd. Log opnieuw in.'
+      } else if (err.response?.status === 403) {
+        errorMessage = 'Je hebt geen toegang tot deze pagina. Je hebt de platform_admin rol nodig.'
+      } else if (err.response?.status === 404) {
+        errorMessage = 'API endpoint niet gevonden. Controleer of de backend correct is gedeployed.'
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -229,7 +246,19 @@ const PlatformOrganisationsPage: React.FC = () => {
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{error}</p>
+              <p className="text-sm mt-1">Controleer de browserconsole (F12) voor meer details.</p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => loadOrganisations()}
+            >
+              Opnieuw proberen
+            </Button>
+          </div>
         </div>
       )}
 
@@ -450,23 +479,24 @@ const PlatformOrganisationsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrgs.map((organisation) => (
-                  <tr key={organisation.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                          <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
+                {filteredOrgs.length > 0 ? (
+                  filteredOrgs.map((organisation) => (
+                    <tr key={organisation.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                            <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-900 dark:text-white">{organisation.name}</span>
+                            {(organisation.city || organisation.country) && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {organisation.city ?? ''} {organisation.country ?? ''}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium text-gray-900 dark:text-white">{organisation.name}</span>
-                          {(organisation.city || organisation.country) && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {organisation.city ?? ''} {organisation.country ?? ''}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                      </td>
                     <td className="py-4 px-4">
                       {organisation.subdomain ? (
                         <div className="space-y-1">
@@ -564,11 +594,38 @@ const PlatformOrganisationsPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
-                {filteredOrgs.length === 0 && !loading && (
+                    </tr>
+                  ))
+                ) : (
                   <tr>
                     <td colSpan={8} className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      Geen organisaties gevonden.
+                      {error ? (
+                        <div className="space-y-2">
+                          <p className="font-medium text-red-600 dark:text-red-400">Fout bij laden organisaties</p>
+                          <p className="text-sm">{error}</p>
+                          <Button 
+                            size="sm" 
+                            onClick={() => loadOrganisations()}
+                            className="mt-2"
+                          >
+                            Opnieuw proberen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p>Geen organisaties gevonden.</p>
+                          {!showForm && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => setShowForm(true)}
+                              className="mt-2"
+                            >
+                              <Plus size={16} />
+                              Eerste organisatie aanmaken
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}
