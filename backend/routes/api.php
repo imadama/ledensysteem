@@ -137,6 +137,7 @@ Route::middleware([
     ->prefix('platform')
     ->group(function (): void {
         Route::get('organisations', [PlatformOrganisationController::class, 'index']);
+        Route::post('organisations', [PlatformOrganisationController::class, 'store']);
         Route::get('organisations/{id}/audit-logs', [PlatformOrganisationController::class, 'auditLogs']);
         Route::patch('organisations/{id}/activate', [PlatformOrganisationController::class, 'activate']);
         Route::patch('organisations/{id}/block', [PlatformOrganisationController::class, 'block']);

@@ -48,6 +48,38 @@ class PlatformOrganisationController extends Controller
         ]);
     }
 
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'country' => ['nullable', 'string', 'max:255'],
+            'contact_email' => ['required', 'email', 'max:255'],
+            'subdomain' => ['nullable', 'string', 'max:255', 'unique:organisations,subdomain'],
+            'status' => ['sometimes', 'string', 'in:new,active,blocked'],
+            'billing_status' => ['sometimes', 'string', 'in:ok,pending_payment,restricted'],
+            'billing_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        // Genereer subdomein als niet opgegeven
+        if (empty($validated['subdomain'])) {
+            $validated['subdomain'] = Organisation::generateSubdomainFromName($validated['name']);
+        }
+
+        // Stel standaardwaarden in als niet opgegeven
+        $validated['status'] = $validated['status'] ?? 'new';
+        $validated['billing_status'] = $validated['billing_status'] ?? 'pending_payment';
+
+        $organisation = Organisation::create($validated);
+        $organisation->load([
+            'users' => fn ($query) => $query->with('roles')->orderBy('created_at')->limit(1),
+            'currentSubscription.plan',
+        ]);
+
+        return response()->json($this->transformOrganisationSummary($organisation), Response::HTTP_CREATED);
+    }
+
     public function show(int $id): JsonResponse
     {
         $organisation = Organisation::query()

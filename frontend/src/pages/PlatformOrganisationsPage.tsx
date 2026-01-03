@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, Eye, CheckCircle2, XCircle, Mail } from 'lucide-react'
+import { Building2, Eye, CheckCircle2, XCircle, Mail, Plus, X } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -33,11 +33,39 @@ type OrganisationSummary = {
   } | null
 }
 
+type OrganisationForm = {
+  name: string
+  type: string
+  city: string
+  country: string
+  contact_email: string
+  subdomain: string
+  status: 'new' | 'active' | 'blocked'
+  billing_status: 'ok' | 'pending_payment' | 'restricted'
+  billing_note: string
+}
+
+const emptyForm: OrganisationForm = {
+  name: '',
+  type: '',
+  city: '',
+  country: '',
+  contact_email: '',
+  subdomain: '',
+  status: 'new',
+  billing_status: 'pending_payment',
+  billing_note: '',
+}
+
 const PlatformOrganisationsPage: React.FC = () => {
   const [organisations, setOrganisations] = useState<OrganisationSummary[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [onlyIssues, setOnlyIssues] = useState(false)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState<OrganisationForm>(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof OrganisationForm, string>>>({})
 
   const loadOrganisations = async () => {
     setLoading(true)
@@ -77,6 +105,60 @@ const PlatformOrganisationsPage: React.FC = () => {
       console.error(err)
       const errorMessage = err.response?.data?.message || 'Kon uitnodiging niet versturen.'
       setError(errorMessage)
+    }
+  }
+
+  const handleFormChange = (field: keyof OrganisationForm) => (
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    setForm((prev) => ({ ...prev, [field]: event.target.value }))
+    // Clear error for this field when user starts typing
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const handleCreateOrganisation = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setSaving(true)
+    setError(null)
+    setFormErrors({})
+
+    try {
+      const payload = {
+        name: form.name,
+        type: form.type,
+        city: form.city || null,
+        country: form.country || null,
+        contact_email: form.contact_email,
+        subdomain: form.subdomain || null,
+        status: form.status,
+        billing_status: form.billing_status,
+        billing_note: form.billing_note || null,
+      }
+
+      const { data } = await apiClient.post<OrganisationSummary>('/api/platform/organisations', payload)
+      setOrganisations((prev) => [data, ...prev])
+      setForm(emptyForm)
+      setShowForm(false)
+      setError(null)
+    } catch (err: any) {
+      console.error('Organisatie aanmaken mislukt', err)
+      if (err.response?.status === 422) {
+        // Validation errors
+        const errors = err.response.data.errors || {}
+        setFormErrors(errors)
+        setError('Controleer de invoer van het formulier.')
+      } else {
+        const errorMessage = err.response?.data?.message || 'Kon organisatie niet aanmaken.'
+        setError(errorMessage)
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -139,18 +221,203 @@ const PlatformOrganisationsPage: React.FC = () => {
         </div>
       )}
 
+      {showForm && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Nieuwe Organisatie</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setShowForm(false)
+                setForm(emptyForm)
+                setFormErrors({})
+              }}
+            >
+              <X size={16} />
+            </Button>
+          </div>
+          <form onSubmit={handleCreateOrganisation} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Naam <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleFormChange('name')}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                {formErrors.name && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.name}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Type <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="type"
+                  type="text"
+                  value={form.type}
+                  onChange={handleFormChange('type')}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.type ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                {formErrors.type && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.type}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="contact_email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Contact E-mail <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="contact_email"
+                  type="email"
+                  value={form.contact_email}
+                  onChange={handleFormChange('contact_email')}
+                  required
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.contact_email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                {formErrors.contact_email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.contact_email}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="subdomain" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Subdomein (optioneel, wordt automatisch gegenereerd indien leeg)
+                </label>
+                <input
+                  id="subdomain"
+                  type="text"
+                  value={form.subdomain}
+                  onChange={handleFormChange('subdomain')}
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    formErrors.subdomain ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                />
+                {formErrors.subdomain && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.subdomain}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Stad
+                </label>
+                <input
+                  id="city"
+                  type="text"
+                  value={form.city}
+                  onChange={handleFormChange('city')}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Land
+                </label>
+                <input
+                  id="country"
+                  type="text"
+                  value={form.country}
+                  onChange={handleFormChange('country')}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  value={form.status}
+                  onChange={handleFormChange('status')}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="new">Nieuw</option>
+                  <option value="active">Actief</option>
+                  <option value="blocked">Geblokkeerd</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="billing_status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Betaalstatus
+                </label>
+                <select
+                  id="billing_status"
+                  value={form.billing_status}
+                  onChange={handleFormChange('billing_status')}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="ok">OK</option>
+                  <option value="pending_payment">Betaling in behandeling</option>
+                  <option value="restricted">Beperkt</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label htmlFor="billing_note" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Betaalnotitie
+              </label>
+              <textarea
+                id="billing_note"
+                value={form.billing_note}
+                onChange={handleFormChange('billing_note')}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowForm(false)
+                  setForm(emptyForm)
+                  setFormErrors({})
+                }}
+                disabled={saving}
+              >
+                Annuleren
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? 'Bezig met opslaan...' : 'Organisatie aanmaken'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Organisaties</h3>
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input
-              type="checkbox"
-              checked={onlyIssues}
-              onChange={(event) => setOnlyIssues(event.target.checked)}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            Alleen betalingsproblemen
-          </label>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={onlyIssues}
+                onChange={(event) => setOnlyIssues(event.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              Alleen betalingsproblemen
+            </label>
+            {!showForm && (
+              <Button onClick={() => setShowForm(true)} size="sm">
+                <Plus size={16} />
+                Nieuwe Organisatie
+              </Button>
+            )}
+          </div>
         </div>
 
         {loading ? (
