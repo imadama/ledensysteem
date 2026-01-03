@@ -25,13 +25,13 @@ export const Hero: React.FC = () => {
                 <ArrowRight className="ml-2" size={20} />
               </Button>
             </Link>
-            <a href="#features">
+            <a href="#pricing">
               <Button 
                 variant="outline" 
                 size="lg"
                 className="border-white text-white hover:bg-white/10 dark:border-gray-300 dark:text-gray-100"
               >
-                Meer informatie
+                Bekijk prijzen
               </Button>
             </a>
           </div>
