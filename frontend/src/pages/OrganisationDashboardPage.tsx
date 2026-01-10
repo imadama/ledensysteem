@@ -232,7 +232,7 @@ const OrganisationDashboardPage: React.FC = () => {
               id="year-select-matrix"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
-              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
             >
               {yearOptions.map((optionYear) => (
                 <option key={optionYear} value={optionYear}>

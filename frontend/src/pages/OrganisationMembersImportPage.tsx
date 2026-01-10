@@ -159,7 +159,7 @@ const OrganisationMembersImportPage: React.FC = () => {
       {/* Instructions */}
       <Card className="p-6">
         <div className="flex items-start gap-3 mb-4">
-          <FileSpreadsheet className="text-indigo-600 dark:text-indigo-400 mt-0.5" size={20} />
+          <FileSpreadsheet className="text-aidatim-blue dark:text-aidatim-blue mt-0.5" size={20} />
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Hoe werkt het?</h3>
             <p className="text-gray-600 dark:text-gray-400">
@@ -177,7 +177,7 @@ const OrganisationMembersImportPage: React.FC = () => {
       {/* Upload Section */}
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Upload className="text-indigo-600 dark:text-indigo-400" size={20} />
+          <Upload className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upload bestand</h3>
         </div>
         <form onSubmit={handlePreviewSubmit} className="space-y-4">
@@ -194,8 +194,8 @@ const OrganisationMembersImportPage: React.FC = () => {
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-lg file:border-0
                 file:text-sm file:font-medium
-                file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-900/30 dark:file:text-indigo-300
-                hover:file:bg-indigo-100 dark:hover:file:bg-indigo-900/50
+                file:bg-aidatim-blue/10 file:text-aidatim-blue dark:file:bg-aidatim-blue/20 dark:file:text-aidatim-blue
+                hover:file:bg-aidatim-blue/20 dark:hover:file:bg-aidatim-blue/30
                 cursor-pointer
                 border border-gray-300 dark:border-gray-600 rounded-lg
                 bg-white dark:bg-gray-800"
@@ -215,7 +215,7 @@ const OrganisationMembersImportPage: React.FC = () => {
       {preview && (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-6">
-            <FileSpreadsheet className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <FileSpreadsheet className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Voorvertoning</h3>
           </div>
 
@@ -355,7 +355,7 @@ const OrganisationMembersImportPage: React.FC = () => {
       {preview && preview.valid_count > 0 && (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Upload className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <Upload className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Importeer</h3>
           </div>
 
@@ -377,7 +377,7 @@ const OrganisationMembersImportPage: React.FC = () => {
             {confirmMessage && (
               <Link
                 to="/organisation/members"
-                className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                className="text-aidatim-blue dark:text-aidatim-blue hover:underline flex items-center gap-1"
               >
                 Ga naar ledenoverzicht
               </Link>

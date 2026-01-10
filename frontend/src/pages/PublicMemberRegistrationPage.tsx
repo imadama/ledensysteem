@@ -126,7 +126,7 @@ const PublicMemberRegistrationPage: React.FC = () => {
   }
 
   const inputClassName = (hasError: boolean) =>
-    `w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+    `w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue transition-colors ${
       hasError
         ? 'border-red-300 dark:border-red-600 focus:ring-red-500'
         : 'border-gray-300 dark:border-gray-600'
@@ -362,7 +362,7 @@ const PublicMemberRegistrationPage: React.FC = () => {
                         value={amount}
                         checked={values.contribution_amount === String(amount)}
                         onChange={handleChange('contribution_amount')}
-                        className="text-indigo-600 focus:ring-indigo-500"
+                        className="text-aidatim-blue focus:ring-aidatim-blue"
                       />
                       <span className="text-gray-700 dark:text-gray-300">€{amount}</span>
                     </label>
@@ -452,7 +452,7 @@ const PublicMemberRegistrationPage: React.FC = () => {
                     required
                     checked={values.sepa_consent}
                     onChange={handleChange('sepa_consent')}
-                    className="mt-1 text-indigo-600 focus:ring-indigo-500"
+                    className="mt-1 text-aidatim-blue focus:ring-aidatim-blue"
                   />
                   <span>
                     <strong>Akkoord/Kabul ediyorum</strong>

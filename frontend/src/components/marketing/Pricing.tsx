@@ -87,7 +87,7 @@ export const Pricing: React.FC = () => {
               key={plan.id}
               className={`p-8 flex flex-col ${
                 plan.name.toLowerCase().includes('plus') || plan.name.toLowerCase().includes('pro')
-                  ? 'ring-2 ring-indigo-500 dark:ring-indigo-400'
+                  ? 'ring-2 ring-aidatim-blue dark:ring-aidatim-blue'
                   : ''
               }`}
             >
@@ -95,7 +95,7 @@ export const Pricing: React.FC = () => {
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   {plan.name}
                 </h3>
-                <div className="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">
+                <div className="text-4xl font-bold text-aidatim-blue dark:text-aidatim-blue mb-2">
                   {formatPrice(plan.monthly_price, plan.currency, plan.billing_interval)}
                 </div>
                 {plan.description && (

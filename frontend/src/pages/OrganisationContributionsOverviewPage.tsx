@@ -120,7 +120,7 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
             </label>
             <select
               id="year-select"
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-aidatim-blue focus:border-aidatim-blue sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
               value={year}
               onChange={(event) => setYear(Number(event.target.value))}
             >
@@ -138,7 +138,7 @@ const OrganisationContributionsOverviewPage: React.FC = () => {
             </label>
             <select
               id="month-select"
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-aidatim-blue focus:border-aidatim-blue sm:text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100"
               value={month}
               onChange={(event) => {
                 const value = event.target.value

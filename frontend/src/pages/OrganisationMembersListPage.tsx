@@ -312,7 +312,7 @@ const OrganisationMembersListPage: React.FC = () => {
       <button
         type="button"
         onClick={() => handleSort(column)}
-        className="flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        className="flex items-center gap-1 hover:text-aidatim-blue dark:hover:text-aidatim-blue transition-colors"
       >
         {label}
         {isActive && (sortDirection === 'asc' ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
@@ -351,13 +351,13 @@ const OrganisationMembersListPage: React.FC = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Zoek op lidnummer, naam of e-mail"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
             />
           </div>
           <select
             value={statusFilter}
             onChange={handleStatusChange}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
           >
             <option value="active">Actief</option>
             <option value="inactive">Inactief</option>

@@ -122,7 +122,7 @@ const PlatformSettingsPage: React.FC = () => {
                 checked={paymentMethods.includes(method)}
                 onChange={() => handlePaymentMethodToggle(method)}
                 disabled={paymentMethods.length === 1 && paymentMethods.includes(method)}
-                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                className="w-4 h-4 text-aidatim-blue border-gray-300 rounded focus:ring-aidatim-blue"
               />
               <span className="text-gray-900 dark:text-white">{PAYMENT_METHOD_LABELS[method]}</span>
               {paymentMethods.length === 1 && paymentMethods.includes(method) && (

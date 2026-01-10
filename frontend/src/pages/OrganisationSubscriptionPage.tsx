@@ -351,8 +351,8 @@ const OrganisationSubscriptionPage: React.FC = () => {
                   key={plan.id} 
                   className={`p-6 border-2 transition-colors ${
                     isCurrentPlan 
-                      ? 'border-indigo-500 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
-                      : 'border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
+                      ? 'border-aidatim-blue dark:border-aidatim-blue bg-aidatim-blue/10 dark:bg-aidatim-blue/20' 
+                      : 'border-gray-200 dark:border-gray-700 hover:border-aidatim-blue dark:hover:border-aidatim-blue'
                   }`}
                 >
                   <div className="space-y-4">
@@ -369,7 +369,7 @@ const OrganisationSubscriptionPage: React.FC = () => {
                         )}
                       </div>
                       <div>
-                        <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                        <p className="text-3xl font-bold text-aidatim-blue dark:text-aidatim-blue">
                           € {plan.monthly_price.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
                           <span className="text-lg font-normal text-gray-600 dark:text-gray-400"> {plan.billing_interval === 'year' ? 'p/j' : 'p/m'}</span>
                         </p>

@@ -220,14 +220,14 @@ const MonitorPage: React.FC = () => {
                   setShowAmounts(e.target.checked)
                   // Data wordt automatisch opnieuw opgehaald via useEffect dependency
                 }}
-                className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="w-5 h-5 rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
               />
               <span className="text-lg text-gray-700 dark:text-gray-300">Toon bedragen</span>
             </label>
             
             <button
               onClick={() => setIsPaused(!isPaused)}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-lg font-medium transition-colors"
+              className="px-6 py-3 bg-aidatim-blue hover:bg-aidatim-blue-dark text-white rounded-lg text-lg font-medium transition-colors"
             >
               {isPaused ? '▶ Hervatten' : '⏸ Pauzeren'}
             </button>

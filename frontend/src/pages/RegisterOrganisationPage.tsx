@@ -144,7 +144,7 @@ const RegisterOrganisationPage: React.FC = () => {
     return false // Extra beveiliging tegen form submit
   }
 
-  const inputClassName = "w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+  const inputClassName = "w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
   const labelClassName = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
 
   return (
@@ -170,7 +170,7 @@ const RegisterOrganisationPage: React.FC = () => {
           <form className="space-y-8" onSubmit={handleSubmit} noValidate>
             <section className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
-                <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <Building2 className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Organisatie</h2>
               </div>
               <div>
@@ -228,7 +228,7 @@ const RegisterOrganisationPage: React.FC = () => {
 
             <section className="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-8">
               <div className="flex items-center gap-2 mb-4">
-                <UserPlus className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <UserPlus className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Eerste beheerder</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,7 +299,7 @@ const RegisterOrganisationPage: React.FC = () => {
                 checked={acceptTerms}
                 onChange={(event) => setAcceptTerms(event.target.checked)}
                 required
-                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="w-4 h-4 rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
               />
               <label htmlFor="accept-terms" className="text-sm text-gray-700 dark:text-gray-300">
                 Ik ga akkoord met de voorwaarden

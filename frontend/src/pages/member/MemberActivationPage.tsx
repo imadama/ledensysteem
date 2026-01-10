@@ -163,8 +163,8 @@ const MemberActivationPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="text-center mb-6">
-          <div className="mx-auto w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-4">
-            <User className="text-indigo-600 dark:text-indigo-400" size={32} />
+          <div className="mx-auto w-16 h-16 bg-aidatim-blue/10 dark:bg-aidatim-blue/20 rounded-full flex items-center justify-center mb-4">
+            <User className="text-aidatim-blue dark:text-aidatim-blue" size={32} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Account activeren</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -208,7 +208,7 @@ const MemberActivationPage: React.FC = () => {
               minLength={8}
               required
               aria-invalid={fieldErrors.password ? 'true' : 'false'}
-              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                 fieldErrors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
               }`}
             />
@@ -228,7 +228,7 @@ const MemberActivationPage: React.FC = () => {
               minLength={8}
               required
               aria-invalid={fieldErrors.password_confirmation ? 'true' : 'false'}
-              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                 fieldErrors.password_confirmation ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
               }`}
             />

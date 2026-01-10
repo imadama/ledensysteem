@@ -213,8 +213,8 @@ const PlatformOrganisationsPage: React.FC = () => {
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Totaal Organisaties</p>
               <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalOrgs}</p>
             </div>
-            <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-              <Building2 className="text-indigo-600 dark:text-indigo-400" size={24} />
+            <div className="p-3 bg-aidatim-blue/10 dark:bg-aidatim-blue/20 rounded-lg">
+              <Building2 className="text-aidatim-blue dark:text-aidatim-blue" size={24} />
             </div>
           </div>
         </Card>
@@ -290,7 +290,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   value={form.name}
                   onChange={handleFormChange('name')}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                     formErrors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
@@ -308,7 +308,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   value={form.type}
                   onChange={handleFormChange('type')}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                     formErrors.type ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
@@ -326,7 +326,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   value={form.contact_email}
                   onChange={handleFormChange('contact_email')}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                     formErrors.contact_email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
@@ -343,7 +343,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   type="text"
                   value={form.subdomain}
                   onChange={handleFormChange('subdomain')}
-                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue ${
                     formErrors.subdomain ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
@@ -360,7 +360,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   type="text"
                   value={form.city}
                   onChange={handleFormChange('city')}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                 />
               </div>
               <div>
@@ -372,7 +372,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   type="text"
                   value={form.country}
                   onChange={handleFormChange('country')}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                 />
               </div>
               <div>
@@ -383,7 +383,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   id="status"
                   value={form.status}
                   onChange={handleFormChange('status')}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                 >
                   <option value="new">Nieuw</option>
                   <option value="active">Actief</option>
@@ -398,7 +398,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                   id="billing_status"
                   value={form.billing_status}
                   onChange={handleFormChange('billing_status')}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                 >
                   <option value="ok">OK</option>
                   <option value="pending_payment">Betaling in behandeling</option>
@@ -415,7 +415,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                 value={form.billing_note}
                 onChange={handleFormChange('billing_note')}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
               />
             </div>
             <div className="flex items-center justify-end gap-3">
@@ -448,7 +448,7 @@ const PlatformOrganisationsPage: React.FC = () => {
                 type="checkbox"
                 checked={onlyIssues}
                 onChange={(event) => setOnlyIssues(event.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
               />
               Alleen betalingsproblemen
             </label>
@@ -484,8 +484,8 @@ const PlatformOrganisationsPage: React.FC = () => {
                     <tr key={organisation.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                            <Building2 className="text-indigo-600 dark:text-indigo-400" size={20} />
+                          <div className="w-10 h-10 bg-aidatim-blue/10 dark:bg-aidatim-blue/20 rounded-lg flex items-center justify-center">
+                            <Building2 className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
                           </div>
                           <div>
                             <span className="font-medium text-gray-900 dark:text-white">{organisation.name}</span>

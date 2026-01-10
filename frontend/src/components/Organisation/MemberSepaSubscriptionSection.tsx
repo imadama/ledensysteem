@@ -174,7 +174,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-4">
-        <CreditCard size={20} className="text-indigo-600 dark:text-indigo-400" />
+        <CreditCard size={20} className="text-aidatim-blue dark:text-aidatim-blue" />
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Automatische SEPA Incasso</h3>
       </div>
 
@@ -223,7 +223,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   value={formAmount}
                   onChange={(e) => setFormAmount(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   placeholder="0.00"
                 />
               </div>
@@ -237,7 +237,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   id="iban"
                   value={formIban}
                   onChange={(e) => setFormIban(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   placeholder={memberIban || 'IBAN'}
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -258,7 +258,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   maxLength={500}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   placeholder="Bijv. Maandelijkse contributie"
                 />
               </div>
@@ -273,7 +273,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   onChange={(e) => setFormNotes(e.target.value)}
                   maxLength={1000}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   placeholder="Interne notities..."
                 />
               </div>
@@ -394,7 +394,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   value={updateAmountValue}
                   onChange={(e) => setUpdateAmountValue(e.target.value)}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   placeholder={data.subscription ? formatAmount(data.subscription.amount) : '0.00'}
                 />
               </div>

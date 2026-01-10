@@ -285,7 +285,7 @@ const MemberContributionPage: React.FC = () => {
                     min="0.01"
                     value={manualAmount}
                     onChange={(e) => setManualAmount(e.target.value)}
-                    className="w-full px-4 py-2 pl-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 pl-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                     placeholder="0.00"
                     required
                     disabled={manualPaying}
@@ -300,7 +300,7 @@ const MemberContributionPage: React.FC = () => {
                   id="manual_note"
                   value={manualNote}
                   onChange={(e) => setManualNote(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                   rows={3}
                   maxLength={1000}
                   disabled={manualPaying}
@@ -313,7 +313,7 @@ const MemberContributionPage: React.FC = () => {
                   checked={setupRecurring}
                   onChange={(e) => setSetupRecurring(e.target.checked)}
                   disabled={manualPaying}
-                  className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  className="w-4 h-4 rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
                 />
                 <label htmlFor="setup_recurring" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                   Automatische incasso inschakelen (maandelijks afschrijven)
@@ -328,7 +328,7 @@ const MemberContributionPage: React.FC = () => {
                     id="payment_method"
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as 'card' | 'sepa')}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
                     disabled={manualPaying}
                   >
                     <option value="card">Creditcard / Debitcard</option>

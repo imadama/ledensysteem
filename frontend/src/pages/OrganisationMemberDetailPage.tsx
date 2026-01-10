@@ -493,7 +493,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
             onClick={() => setActiveTab('details')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               activeTab === 'details'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                ? 'border-aidatim-blue text-aidatim-blue dark:text-aidatim-blue'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
@@ -504,7 +504,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
             onClick={() => setActiveTab('payments')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               activeTab === 'payments'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                ? 'border-aidatim-blue text-aidatim-blue dark:text-aidatim-blue'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
@@ -526,7 +526,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
           {/* Account Section */}
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <User size={20} className="text-indigo-600 dark:text-indigo-400" />
+              <User size={20} className="text-aidatim-blue dark:text-aidatim-blue" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Account</h3>
             </div>
             
@@ -631,7 +631,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
           {/* Member Form */}
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-6">
-              <User size={20} className="text-indigo-600 dark:text-indigo-400" />
+              <User size={20} className="text-aidatim-blue dark:text-aidatim-blue" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lidgegevens</h3>
             </div>
             <MemberForm
@@ -652,7 +652,7 @@ const OrganisationMemberDetailPage: React.FC = () => {
       ) : (
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Calendar size={20} className="text-indigo-600 dark:text-indigo-400" />
+            <Calendar size={20} className="text-aidatim-blue dark:text-aidatim-blue" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Betalingen</h3>
           </div>
 

@@ -53,8 +53,8 @@ export const Features: React.FC = () => {
             return (
               <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-center mb-4">
-                  <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                    <Icon className="text-indigo-600 dark:text-indigo-400" size={24} />
+                  <div className="p-3 bg-aidatim-blue/10 dark:bg-aidatim-blue/20 rounded-lg">
+                    <Icon className="text-aidatim-blue dark:text-aidatim-blue" size={24} />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white ml-4">
                     {feature.title}

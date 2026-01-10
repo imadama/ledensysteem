@@ -68,7 +68,7 @@ const MemberLoginPage: React.FC = () => {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
             />
           </div>
           <div>
@@ -81,7 +81,7 @@ const MemberLoginPage: React.FC = () => {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue"
             />
           </div>
           <Button type="submit" disabled={loading} className="w-full" size="lg">
@@ -91,11 +91,11 @@ const MemberLoginPage: React.FC = () => {
         </form>
 
         <div className="mt-6 space-y-2 text-center">
-          <Link to="/forgot-password" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+          <Link to="/forgot-password" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
             Wachtwoord vergeten?
           </Link>
           <div>
-            <Link to="/login" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline">
+            <Link to="/login" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
               Naar beheerdersportaal
             </Link>
           </div>

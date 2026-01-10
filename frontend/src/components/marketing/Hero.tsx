@@ -5,13 +5,13 @@ import { ArrowRight } from 'lucide-react'
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 dark:from-indigo-900 dark:via-indigo-800 dark:to-purple-900 text-white py-20 md:py-32">
+    <section className="relative bg-gradient-to-br from-aidatim-blue via-aidatim-blue-dark to-aidatim-blue-dark dark:from-aidatim-blue-dark dark:via-aidatim-blue-dark dark:to-aidatim-blue-dark text-white py-20 md:py-32">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             Ledenbeheer voor Moskeeën, Stichtingen en Verenigingen
           </h1>
-          <p className="text-xl md:text-2xl text-indigo-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
             Eenvoudig beheer van leden, contributies en betalingen. Alles op één plek, altijd toegankelijk.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -19,7 +19,7 @@ export const Hero: React.FC = () => {
               <Button 
                 variant="secondary" 
                 size="lg"
-                className="bg-white text-indigo-600 hover:bg-gray-100 dark:bg-gray-100 dark:text-indigo-700 dark:hover:bg-gray-200"
+                className="bg-white text-aidatim-blue hover:bg-gray-100 dark:bg-gray-100 dark:text-aidatim-blue dark:hover:bg-gray-200"
               >
                 Start gratis
                 <ArrowRight className="ml-2" size={20} />

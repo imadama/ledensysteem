@@ -262,7 +262,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
             onClick={() => setActiveTab('details')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               activeTab === 'details'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                ? 'border-aidatim-blue text-aidatim-blue dark:text-aidatim-blue'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
@@ -272,7 +272,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
             onClick={() => setActiveTab('audit')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               activeTab === 'audit'
-                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                ? 'border-aidatim-blue text-aidatim-blue dark:text-aidatim-blue'
                 : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
@@ -376,7 +376,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
-          <Users className="text-indigo-600 dark:text-indigo-400" size={20} />
+          <Users className="text-aidatim-blue dark:text-aidatim-blue" size={20} />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Gebruikers</h3>
         </div>
         <div className="overflow-x-auto">
@@ -470,7 +470,7 @@ const PlatformOrganisationDetailPage: React.FC = () => {
         </Card>
       )}
 
-      <Link to="/platform/organisations" className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1">
+      <Link to="/platform/organisations" className="text-aidatim-blue dark:text-aidatim-blue hover:underline flex items-center gap-1">
         <ArrowLeft size={16} />
         Terug naar overzicht
       </Link>
