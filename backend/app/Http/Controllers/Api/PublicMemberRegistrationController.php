@@ -121,7 +121,14 @@ class PublicMemberRegistrationController extends Controller
 
     private function resolveOrganisation(PublicMemberRegistrationRequest $request): ?Organisation
     {
-        // Prioriteit 1: Ingelogde admin gebruiker
+        // Prioriteit 1: Request context (van ResolveOrganisationFromSubdomain middleware)
+        // Dit is de veiligste methode omdat het gebaseerd is op het geverifieerde subdomein.
+        $organisation = $request->attributes->get('organisation');
+        if ($organisation instanceof Organisation) {
+            return $organisation;
+        }
+
+        // Prioriteit 2: Ingelogde admin gebruiker (voor handmatige toevoegingen via publieke form)
         $user = $request->user();
         if ($user && $user->organisation_id && $user->hasRole('org_admin')) {
             $organisation = Organisation::find($user->organisation_id);
@@ -130,25 +137,11 @@ class PublicMemberRegistrationController extends Controller
             }
         }
 
-        // Prioriteit 2: URL parameter org_id
-        if ($request->has('org_id') && $request->filled('org_id')) {
-            $orgId = (int) $request->input('org_id');
-            $organisation = Organisation::find($orgId);
-
-            if ($organisation) {
-                return $organisation;
-            }
-        }
-
-        // Prioriteit 3: Platform setting voor subdomain mapping (toekomstig)
-        // Voor nu gebruiken we alleen de fallback
-
-        // Fallback: Platform setting voor single org
+        // Fallback: Platform setting voor single org (indien ingesteld)
         $orgId = PlatformSetting::get('public_registration_organisation_id');
 
         if ($orgId) {
-            $orgId = (int) $orgId;
-            return Organisation::find($orgId);
+            return Organisation::find((int) $orgId);
         }
 
         return null;

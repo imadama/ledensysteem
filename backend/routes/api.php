@@ -29,9 +29,11 @@ Route::prefix('member-activation')->group(function (): void {
 Route::get('plans', [PlanController::class, 'index']);
 
 // Publieke routes (geen authenticatie vereist)
-Route::prefix('public')->group(function (): void {
-    Route::post('member-registration', [PublicMemberRegistrationController::class, 'store']);
-});
+Route::prefix('public')
+    ->middleware([ResolveOrganisationFromSubdomain::class])
+    ->group(function (): void {
+        Route::post('member-registration', [PublicMemberRegistrationController::class, 'store']);
+    });
 
 Route::prefix('auth')->group(function (): void {
     Route::post('register-organisation', [AuthController::class, 'registerOrganisation']);
