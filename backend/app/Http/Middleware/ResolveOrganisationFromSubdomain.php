@@ -64,34 +64,25 @@ class ResolveOrganisationFromSubdomain
      */
     private function extractSubdomain(Request $request): ?string
     {
-        // Prioriteit 1: Custom header (aanbevolen voor cross-domain requests)
+        // Prioriteit 1: Host header (Meest betrouwbaar, wordt door de webserver gezet)
+        $host = $request->header('Host');
+        if ($host) {
+            $subdomain = $this->extractSubdomainFromHost($host);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        // Prioriteit 2: Custom header (voor specifieke cross-domain setups)
         $subdomainHeader = $request->header('X-Organisation-Subdomain');
         if ($subdomainHeader) {
             return $this->normalizeSubdomain($subdomainHeader);
         }
 
-        // Prioriteit 2: Origin header
-        $origin = $request->header('Origin');
-        if ($origin) {
-            $subdomain = $this->extractSubdomainFromUrl($origin);
-            if ($subdomain) {
-                return $subdomain;
-            }
-        }
-
-        // Prioriteit 3: Referer header
+        // Prioriteit 3: Referer header (Fallback)
         $referer = $request->header('Referer');
         if ($referer) {
             $subdomain = $this->extractSubdomainFromUrl($referer);
-            if ($subdomain) {
-                return $subdomain;
-            }
-        }
-
-        // Prioriteit 4: Host header (voor directe backend requests)
-        $host = $request->header('Host');
-        if ($host) {
-            $subdomain = $this->extractSubdomainFromHost($host);
             if ($subdomain) {
                 return $subdomain;
             }
