@@ -1,0 +1,64 @@
+erDiagram
+  ORGANISATIONS ||--o{ USERS : has
+  ORGANISATIONS ||--o{ MEMBERS : has
+  USERS ||--o{ MEMBER_CONTRIBUTION_HISTORIES : changes
+  MEMBERS ||--o{ MEMBER_CONTRIBUTION_HISTORIES : has
+  MEMBERS ||--o{ MEMBER_CONTRIBUTION_RECORDS : has
+  PAYMENT_TRANSACTIONS ||--o{ MEMBER_CONTRIBUTION_RECORDS : links
+  MEMBERS ||--o{ MEMBER_INVITATIONS : receives
+  MEMBERS ||--o{ MEMBER_SUBSCRIPTIONS : has
+  ORGANISATIONS ||--o{ ORGANISATION_SUBSCRIPTIONS : has
+  PLANS ||--o{ ORGANISATION_SUBSCRIPTIONS : chosen
+  ORGANISATIONS ||--|| ORGANISATION_STRIPE_CONNECTIONS : connects
+  ORGANISATIONS ||--o{ PAYMENT_TRANSACTIONS : has
+  ORGANISATIONS ||--o{ SUBSCRIPTION_AUDIT_LOGS : logs
+  USERS ||--o{ SUBSCRIPTION_AUDIT_LOGS : performs
+
+  USERS ||--o{ ROLE_USER : has
+  ROLES ||--o{ ROLE_USER : includes
+
+  ORGANISATIONS {
+    int id PK
+    string name
+    string subdomain
+    string type
+    string contact_email
+    string status
+    string billing_status
+  }
+  USERS {
+    int id PK
+    string email
+    string password
+    string status
+    int organisation_id FK
+    int member_id FK
+  }
+  ROLES {
+    int id PK
+    string name
+  }
+  ROLE_USER {
+    int role_id FK
+    int user_id FK
+  }
+  MEMBERS {
+    int id PK
+    int organisation_id FK
+    string first_name
+    string last_name
+    string status
+  }
+  PLANS {
+    int id PK
+    string name
+    string stripe_price_id
+    string billing_interval
+  }
+  ORGANISATION_SUBSCRIPTIONS {
+    int id PK
+    int organisation_id FK
+    int plan_id FK
+    string status
+  }
+

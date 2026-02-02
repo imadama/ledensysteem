@@ -1,0 +1,29 @@
+flowchart LR
+  subgraph Client["Client device"]
+    B[Browser]
+  end
+
+  subgraph Host["Server/Laptop (Docker host)"]
+    subgraph Proxy["Reverse proxy (Nginx)"]
+      N[Nginx]
+    end
+    subgraph App["Applicatie"]
+      FE["Frontend<br/>React (static build)"]
+      API["Backend<br/>Laravel API"]
+    end
+    subgraph Data["Database"]
+      DB[(MySQL)]
+    end
+  end
+
+  subgraph Extern["Externe diensten"]
+    Stripe[Stripe API]
+    Mail[Mail server]
+  end
+
+  B -->|HTTPS| N
+  N --> FE
+  N -->|/api| API
+  API --> DB
+  API --> Stripe
+  API --> Mail

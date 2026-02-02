@@ -1,0 +1,64 @@
+classDiagram
+  direction LR
+
+  class AuthController
+  class PlatformPlanController
+  class OrganisationUserController
+  class MemberController
+  class MemberActivationController
+
+  class OrganisationUserService
+  class MemberService
+  class MemberAccountService
+  class MemberImportService
+
+  class User
+  class Role
+  class Organisation
+  class Member
+  class Plan
+  class OrganisationSubscription
+  class MemberInvitation
+
+  AuthController : +login(request)
+  AuthController : +logout(request)
+  AuthController : +me(request)
+
+  MemberController : +index(request)
+  MemberController : +store(request)
+  MemberController : +show(request,id)
+  MemberController : +update(request,id)
+  MemberController : +invite(request,id)
+  MemberController : +inviteBulk(request)
+
+  MemberActivationController : +show(token)
+  MemberActivationController : +store(request,token)
+  MemberActivationController : -findInvitation(token)
+  MemberActivationController : -validateInvitation(invitation)
+
+  MemberAccountService : +inviteMember(actor,member)
+  MemberInvitation : +save()
+  User : +save()
+  User : +assignRole(roleName)
+  User : +createToken(name)
+
+  AuthController --> User
+  PlatformPlanController --> Plan
+  OrganisationUserController --> OrganisationUserService
+  MemberController --> MemberService
+  MemberController --> MemberAccountService
+  MemberController --> MemberImportService
+  MemberActivationController --> MemberInvitation
+  MemberActivationController --> User
+
+  OrganisationUserService --> User
+  MemberService --> Member
+  MemberAccountService --> MemberInvitation
+
+  User "*" --> "*" Role : belongsToMany
+  Organisation "1" --> "*" User
+  Organisation "1" --> "*" Member
+  Plan "1" --> "*" OrganisationSubscription
+  Organisation "1" --> "*" OrganisationSubscription
+  Member "1" --> "*" MemberInvitation
+

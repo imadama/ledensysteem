@@ -1,0 +1,28 @@
+flowchart LR
+  actorVisitor([Bezoeker])
+  actorPlatform([Platform admin])
+  actorOrg([Organisatie admin])
+  actorMonitor([Monitor])
+  actorMember([Lid])
+
+  ucRegOrg((Organisatie registreren))
+  ucLogin((Inloggen))
+  ucManageMembers((Leden beheren))
+  ucInviteMember((Lid uitnodigen / activeren))
+  ucManageOrgUsers((Organisatiegebruikers beheren))
+  ucManagePlans((Plannen beheren))
+  ucManageOrgs((Organisaties beheren))
+  ucViewMonitor((Monitor bekijken))
+  ucMemberPortal((Ledenportaal gebruiken))
+
+  actorVisitor --> ucRegOrg
+  actorVisitor --> ucLogin
+  actorPlatform --> ucManagePlans
+  actorPlatform --> ucManageOrgs
+  actorOrg --> ucManageMembers
+  actorOrg --> ucInviteMember
+  actorOrg --> ucManageOrgUsers
+  actorMonitor --> ucViewMonitor
+  actorMember --> ucMemberPortal
+  actorMember --> ucLogin
+

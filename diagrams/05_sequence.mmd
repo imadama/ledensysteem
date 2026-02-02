@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  participant MemberController
+  participant MemberAccountService
+  participant MemberInvitation
+  participant MemberActivationController
+  participant User
+
+  MemberController->>MemberAccountService: inviteMember(actor, member)
+  MemberAccountService->>MemberInvitation: save(token,status=pending)
+  MemberAccountService-->>MemberController: return invitation
+
+  MemberActivationController->>MemberActivationController: findInvitation(token)
+  MemberActivationController->>MemberActivationController: validateInvitation(invitation)
+  Note over MemberActivationController,User: Maak/koppel User aan Member + zet password
+  MemberActivationController->>User: assignRole('member')
+  MemberActivationController->>User: createToken('member-portal')
+  MemberActivationController->>MemberInvitation: save(status=used, used_at=now)
+

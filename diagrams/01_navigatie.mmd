@@ -1,0 +1,28 @@
+flowchart TD
+  Visitor[Bezoeker] --> Home[Marketing/Home]
+  Visitor --> RegOrg[Organisatie registreren]
+  Visitor --> PublicMember[Publieke lid-aanmelding]
+
+  Admin[Gebruiker] --> Login[Inloggen]
+  Login --> Dash[Dashboard]
+
+  Dash -->|platform_admin| POrg[Platform: Organisaties]
+  Dash -->|platform_admin| PPlans[Platform: Plannen]
+  Dash -->|platform_admin| PSettings[Platform: Settings]
+
+  Dash -->|org_admin| ODash[Org: Dashboard]
+  ODash --> OUsers[Org: Gebruikers]
+  ODash --> OMembers[Org: Leden]
+  OMembers --> OMemberDetail[Lid detail/bewerken]
+  OMembers --> OImport[Leden import]
+  ODash --> OContrib[Bijdragen/rapportage]
+  ODash --> OSub[Abonnement]
+  ODash --> OPay[Betalingsinstellingen]
+
+  Dash -->|monitor/org_admin| Monitor[Monitor]
+
+  Member[Lid] --> PortalLogin[Ledenportaal login]
+  PortalLogin --> PortalDash[Portaal dashboard]
+  PortalDash --> PortalProfile[Profiel]
+  PortalDash --> PortalContribution[Bijdrage/betalen]
+
