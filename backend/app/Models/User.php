@@ -96,7 +96,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function assignRole(string $roleName): void
     {
-        $role = Role::where('name', $roleName)->firstOrFail();
+        $role = Role::where('name', $roleName)->first();
+
+        if (! $role) {
+            \Illuminate\Support\Facades\Log::error("Role '{$roleName}' not found in database. Make sure roles are seeded.");
+            throw new \Exception("Systeemfout: Rol '{$roleName}' niet gevonden. Neem contact op met de beheerder.");
+        }
 
         $this->roles()->syncWithoutDetaching([$role->id]);
     }
