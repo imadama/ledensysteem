@@ -19,9 +19,11 @@ const getApiBaseUrl = (): string => {
     return processedUrl
   }
   
-  // Productie: alle requests gaan naar app.aidatim.nl
-  if (hostname.endsWith('.aidatim.nl')) {
-    return 'https://app.aidatim.nl'
+  // Productie: bepaal root domein via helper of env
+  const rootDomain = import.meta.env.VITE_ROOT_DOMAIN ?? 'aidatim.nl'
+  
+  if (hostname.endsWith(`.${rootDomain}`)) {
+    return `https://app.${rootDomain}`
   }
   
   // Fallback: gebruik env variabele
@@ -49,8 +51,9 @@ export const getCurrentSubdomain = (): string | null => {
     return null
   }
   
-  // Extract subdomein (alles voor .aidatim.nl)
-  if (hostname.endsWith('.aidatim.nl')) {
+  // Extract subdomein (alles voor rootDomain)
+  const rootDomain = import.meta.env.VITE_ROOT_DOMAIN ?? 'aidatim.nl'
+  if (hostname.endsWith(`.${rootDomain}`)) {
     const parts = hostname.split('.')
     if (parts.length >= 3) {
       return parts[0] // Bijv. "vereniging-abc" of "portal"
