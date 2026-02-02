@@ -125,12 +125,14 @@ class ResolveOrganisationFromSubdomain
         // Verwijder poort als aanwezig
         $host = explode(':', $host)[0];
 
-        // Check voor .aidatim.nl
-        if (! str_ends_with($host, '.aidatim.nl')) {
+        $rootDomain = config('tenancy.root_domain', 'aidatim.nl');
+
+        // Check voor .rootdomain
+        if (! str_ends_with($host, '.' . $rootDomain)) {
             return null;
         }
 
-        // Extract subdomein (alles voor .aidatim.nl)
+        // Extract subdomein (alles voor .rootdomain)
         $parts = explode('.', $host);
         if (count($parts) >= 3) {
             return $this->normalizeSubdomain($parts[0]);
