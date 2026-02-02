@@ -6,7 +6,9 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class MemberRowsImport implements ToCollection, WithHeadingRow
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+
+class MemberRowsImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
     /**
      * @var Collection<int, array<string, mixed>>
@@ -29,6 +31,11 @@ class MemberRowsImport implements ToCollection, WithHeadingRow
     public function getRows(): Collection
     {
         return $this->rows;
+    }
+
+    public function chunkSize(): int
+    {
+        return 500;
     }
 }
 

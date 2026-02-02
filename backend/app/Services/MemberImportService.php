@@ -26,7 +26,11 @@ class MemberImportService
     {
         $organisationId = $this->requireOrganisationId($user);
 
-        $collection = Excel::toCollection(new MemberRowsImport(), $file)->first() ?? collect();
+        // Gebruik Excel::import in plaats van toCollection om geheugenverbruik te beperken bij grote bestanden
+        // Hoewel previewImport nog steeds de rijen verzamelt voor de UI, helpt ChunkReading bij het inlezen.
+        $import = new MemberRowsImport();
+        Excel::import($import, $file);
+        $collection = $import->getRows();
 
         $totalRows = 0;
         $validRows = [];
