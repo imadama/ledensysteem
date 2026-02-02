@@ -111,11 +111,11 @@ function App() {
         />
         <Route
           path="/platform/organisations"
-          element={<ProtectedRoute component={PlatformOrganisationsPage} />}
+          element={<ProtectedRoute component={PlatformOrganisationsPage} roles={['platform_admin']} />}
         />
         <Route
           path="/platform/organisations/:id"
-          element={<ProtectedRoute component={PlatformOrganisationDetailPage} />}
+          element={<ProtectedRoute component={PlatformOrganisationDetailPage} roles={['platform_admin']} />}
         />
         <Route
           path="/platform/plans"
