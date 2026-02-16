@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../ui/Button'
-import { ArrowRight, CheckCircle, Smartphone, Users, CreditCard } from 'lucide-react'
+import { ArrowRight, CheckCircle, Users, CreditCard } from 'lucide-react'
 
 export const Hero: React.FC = () => {
   return (
