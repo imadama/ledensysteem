@@ -1,20 +1,18 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
-import { apiClient } from '../../api/axios'
-import { Button } from '../ui/Button'
 
 type Plan = {
   id: number
   name: string
-  billing_interval?: 'month' | 'year'
   monthly_price: number | string
   currency: string
-  description: string | null
-  features?: string[]
+  description: string
+  features: string[]
+  popular?: boolean
 }
 
-const defaultPlans: Plan[] = [
+const plans: Plan[] = [
   {
     id: 1,
     name: 'Basis',
@@ -42,7 +40,8 @@ const defaultPlans: Plan[] = [
       'Uitgebreide rapportages',
       'Betaallinks voor donaties',
       'Prioriteit support',
-    ]
+    ],
+    popular: true
   },
   {
     id: 3,
@@ -61,34 +60,6 @@ const defaultPlans: Plan[] = [
 ]
 
 export const Pricing: React.FC = () => {
-  const [plans, setPlans] = useState<Plan[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadPlans = async () => {
-      try {
-        const { data } = await apiClient.get<{ data: Plan[] }>('/api/plans')
-        if (data.data && data.data.length > 0) {
-          // Merge API data met default features als die ontbreken
-          const mergedPlans = data.data.map((apiPlan, index) => ({
-            ...apiPlan,
-            features: defaultPlans[index]?.features || defaultPlans[1].features // Fallback features
-          }))
-          setPlans(mergedPlans)
-        } else {
-          setPlans(defaultPlans)
-        }
-      } catch (err) {
-        console.warn('Kon prijzen niet laden van API, gebruik defaults.', err)
-        setPlans(defaultPlans)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    void loadPlans()
-  }, [])
-
   const formatPrice = (price: number | string, currency: string) => {
     if (typeof price === 'string') return price
     
@@ -114,91 +85,83 @@ export const Pricing: React.FC = () => {
           </p>
         </div>
         
-        {loading ? (
-          <div className="mt-16 flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : (
-          <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-3">
-            {plans.map((plan, planIdx) => {
-              const isPopular = plan.name.toLowerCase().includes('plus') || plan.name.toLowerCase().includes('pro')
-              
-              return (
-                <div
-                  key={plan.id}
-                  className={`
+        <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 items-center gap-y-6 sm:mt-20 sm:gap-y-0 lg:max-w-4xl lg:grid-cols-3">
+          {plans.map((plan, planIdx) => {
+            const isPopular = plan.popular
+            
+            return (
+              <div
+                key={plan.id}
+                className={`
+                  ${isPopular 
+                    ? 'relative bg-slate-900 dark:bg-slate-800 shadow-2xl ring-2 ring-blue-600 sm:mx-0 lg:z-10 rounded-3xl' 
+                    : 'bg-white/60 dark:bg-slate-800/60 sm:mx-8 lg:mx-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-3xl lg:rounded-none'
+                  }
+                  ${planIdx === 0 ? 'lg:rounded-l-3xl lg:border-r-0' : ''}
+                  ${planIdx === plans.length - 1 ? 'lg:rounded-r-3xl lg:border-l-0' : ''}
+                  p-8 xl:p-10
+                `}
+              >
+                {isPopular && (
+                  <div className="absolute -top-5 left-0 right-0 mx-auto w-32 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1 text-sm font-medium text-white text-center shadow-md">
+                    Meest gekozen
+                  </div>
+                )}
+
+                <h3
+                  id={`tier-${plan.id}`}
+                  className={`text-lg font-semibold leading-8 ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}
+                >
+                  {plan.name}
+                </h3>
+                
+                <div className="mt-4 flex items-baseline gap-x-2">
+                  <span className={`text-4xl font-bold tracking-tight ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                    {formatPrice(plan.monthly_price, plan.currency)}
+                  </span>
+                  {typeof plan.monthly_price === 'number' && (
+                    <span className={`text-sm font-semibold leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                      /maand
+                    </span>
+                  )}
+                </div>
+                
+                <p className={`mt-6 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {plan.description}
+                </p>
+                
+                <ul role="list" className={`mt-8 space-y-3 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex gap-x-3">
+                      <Check className={`h-6 w-5 flex-none ${isPopular ? 'text-blue-400' : 'text-blue-600'}`} aria-hidden="true" />
+                      {feature}
+                    </li>
+                  ))}
+                  {!isPopular && plan.name === 'Basis' && (
+                     <li className="flex gap-x-3 text-slate-400 opacity-75">
+                        <X className="h-6 w-5 flex-none" />
+                        Geen automatische incasso
+                     </li>
+                  )}
+                </ul>
+                
+                <Link
+                  to="/register-organisation"
+                  aria-describedby={`tier-${plan.id}`}
+                  className={`mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 shadow-sm transition-all
                     ${isPopular 
-                      ? 'relative bg-slate-900 dark:bg-slate-800 shadow-2xl ring-2 ring-blue-600 sm:mx-0 lg:z-10 rounded-3xl' 
-                      : 'bg-white/60 dark:bg-slate-800/60 sm:mx-8 lg:mx-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-3xl lg:rounded-none'
+                      ? 'bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-blue-600' 
+                      : 'bg-white dark:bg-slate-700 text-blue-600 ring-1 ring-inset ring-blue-200 dark:ring-blue-900 hover:ring-blue-300 dark:hover:ring-blue-800'
                     }
-                    ${planIdx === 0 ? 'lg:rounded-l-3xl lg:border-r-0' : ''}
-                    ${planIdx === plans.length - 1 ? 'lg:rounded-r-3xl lg:border-l-0' : ''}
-                    p-8 xl:p-10
                   `}
                 >
-                  {isPopular && (
-                    <div className="absolute -top-5 left-0 right-0 mx-auto w-32 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1 text-sm font-medium text-white text-center shadow-md">
-                      Meest gekozen
-                    </div>
-                  )}
-
-                  <h3
-                    id={`tier-${plan.id}`}
-                    className={`text-lg font-semibold leading-8 ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}
-                  >
-                    {plan.name}
-                  </h3>
-                  
-                  <div className="mt-4 flex items-baseline gap-x-2">
-                    <span className={`text-4xl font-bold tracking-tight ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                      {formatPrice(plan.monthly_price, plan.currency)}
-                    </span>
-                    {typeof plan.monthly_price === 'number' && (
-                      <span className={`text-sm font-semibold leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
-                        /maand
-                      </span>
-                    )}
-                  </div>
-                  
-                  <p className={`mt-6 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                    {plan.description}
-                  </p>
-                  
-                  <ul role="list" className={`mt-8 space-y-3 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                    {plan.features?.map((feature) => (
-                      <li key={feature} className="flex gap-x-3">
-                        <Check className={`h-6 w-5 flex-none ${isPopular ? 'text-blue-400' : 'text-blue-600'}`} aria-hidden="true" />
-                        {feature}
-                      </li>
-                    ))}
-                    {!isPopular && plan.name === 'Basis' && (
-                       <li className="flex gap-x-3 text-slate-400 opacity-75">
-                          <X className="h-6 w-5 flex-none" />
-                          Geen automatische incasso
-                       </li>
-                    )}
-                  </ul>
-                  
-                  <Link
-                    to="/register-organisation"
-                    aria-describedby={`tier-${plan.id}`}
-                    className={`mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 shadow-sm transition-all
-                      ${isPopular 
-                        ? 'bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-blue-600' 
-                        : 'bg-white dark:bg-slate-700 text-blue-600 ring-1 ring-inset ring-blue-200 dark:ring-blue-900 hover:ring-blue-300 dark:hover:ring-blue-800'
-                      }
-                    `}
-                  >
-                    {typeof plan.monthly_price === 'string' ? 'Neem contact op' : 'Start gratis proefperiode'}
-                  </Link>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                  {typeof plan.monthly_price === 'string' ? 'Neem contact op' : 'Start gratis proefperiode'}
+                </Link>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
 }
-
-
