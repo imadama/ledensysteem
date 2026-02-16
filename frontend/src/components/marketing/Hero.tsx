@@ -11,19 +11,19 @@ export const Hero: React.FC = () => {
           
           {/* Tekst Content (Links) */}
           <div className="flex-1 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-aidatim-blue/10 text-aidatim-blue dark:bg-aidatim-blue/20 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-aidatim-blue/10 text-aidatim-blue font-medium text-sm mb-6 border border-aidatim-blue/20">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-aidatim-blue opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-aidatim-blue"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-aidatim-orange opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-aidatim-orange"></span>
               </span>
               Nieuw: Automatische SEPA Incasso
             </div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-              Ledenbeheer <span className="text-aidatim-blue">zonder gedoe</span> voor jouw organisatie.
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-aidatim-blue-dark dark:text-white mb-6 leading-tight">
+              Ledenbeheer <span className="text-aidatim-green">zonder gedoe</span> voor jouw organisatie.
             </h1>
             
-            <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-lg sm:text-xl text-aidatim-gray dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
               Van ledenadministratie tot automatische incasso's. Aidatim helpt stichtingen, verenigingen en moskeeën om professioneel en efficiënt te werken.
             </p>
             
@@ -31,7 +31,7 @@ export const Hero: React.FC = () => {
               <Link to="/register-organisation" className="w-full sm:w-auto">
                 <Button 
                   size="lg"
-                  className="w-full bg-aidatim-blue hover:bg-aidatim-blue-dark text-white shadow-lg shadow-aidatim-blue/25 transition-all hover:-translate-y-0.5"
+                  className="w-full bg-aidatim-green hover:bg-aidatim-green-dark text-white shadow-lg shadow-aidatim-green/25 transition-all hover:-translate-y-0.5"
                 >
                   Start gratis proefperiode
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -41,20 +41,20 @@ export const Hero: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="w-full border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="w-full border-aidatim-blue/30 text-aidatim-blue hover:bg-aidatim-blue/5 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Bekijk alle functies
                 </Button>
               </a>
             </div>
 
-            <div className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-sm text-slate-500 dark:text-slate-400">
+            <div className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-sm text-aidatim-gray/80 dark:text-slate-400">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-aidatim-green" />
                 <span>Geen creditcard nodig</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-aidatim-green" />
                 <span>14 dagen gratis</span>
               </div>
             </div>

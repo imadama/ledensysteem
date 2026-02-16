@@ -94,7 +94,7 @@ export const Pricing: React.FC = () => {
                 key={plan.id}
                 className={`
                   ${isPopular 
-                    ? 'relative bg-slate-900 dark:bg-slate-800 shadow-2xl ring-2 ring-blue-600 sm:mx-0 lg:z-10 rounded-3xl' 
+                    ? 'relative bg-aidatim-blue-dark dark:bg-slate-800 shadow-2xl ring-2 ring-aidatim-orange sm:mx-0 lg:z-10 rounded-3xl' 
                     : 'bg-white/60 dark:bg-slate-800/60 sm:mx-8 lg:mx-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-3xl lg:rounded-none'
                   }
                   ${planIdx === 0 ? 'lg:rounded-l-3xl lg:border-r-0' : ''}
@@ -103,37 +103,37 @@ export const Pricing: React.FC = () => {
                 `}
               >
                 {isPopular && (
-                  <div className="absolute -top-5 left-0 right-0 mx-auto w-32 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1 text-sm font-medium text-white text-center shadow-md">
+                  <div className="absolute -top-5 left-0 right-0 mx-auto w-32 rounded-full bg-gradient-to-r from-aidatim-orange to-aidatim-orange-dark px-3 py-1 text-sm font-medium text-white text-center shadow-md">
                     Meest gekozen
                   </div>
                 )}
 
                 <h3
                   id={`tier-${plan.id}`}
-                  className={`text-lg font-semibold leading-8 ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}
+                  className={`text-lg font-semibold leading-8 ${isPopular ? 'text-white' : 'text-aidatim-blue-dark dark:text-white'}`}
                 >
                   {plan.name}
                 </h3>
                 
                 <div className="mt-4 flex items-baseline gap-x-2">
-                  <span className={`text-4xl font-bold tracking-tight ${isPopular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                  <span className={`text-4xl font-bold tracking-tight ${isPopular ? 'text-white' : 'text-aidatim-blue-dark dark:text-white'}`}>
                     {formatPrice(plan.monthly_price, plan.currency)}
                   </span>
                   {typeof plan.monthly_price === 'number' && (
-                    <span className={`text-sm font-semibold leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                    <span className={`text-sm font-semibold leading-6 ${isPopular ? 'text-blue-100' : 'text-aidatim-gray dark:text-slate-400'}`}>
                       /maand
                     </span>
                   )}
                 </div>
                 
-                <p className={`mt-6 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                <p className={`mt-6 text-sm leading-6 ${isPopular ? 'text-blue-100' : 'text-aidatim-gray dark:text-slate-400'}`}>
                   {plan.description}
                 </p>
                 
-                <ul role="list" className={`mt-8 space-y-3 text-sm leading-6 ${isPopular ? 'text-slate-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                <ul role="list" className={`mt-8 space-y-3 text-sm leading-6 ${isPopular ? 'text-blue-100' : 'text-aidatim-gray dark:text-slate-400'}`}>
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex gap-x-3">
-                      <Check className={`h-6 w-5 flex-none ${isPopular ? 'text-blue-400' : 'text-blue-600'}`} aria-hidden="true" />
+                      <Check className={`h-6 w-5 flex-none ${isPopular ? 'text-aidatim-orange' : 'text-aidatim-green'}`} aria-hidden="true" />
                       {feature}
                     </li>
                   ))}
@@ -150,8 +150,8 @@ export const Pricing: React.FC = () => {
                   aria-describedby={`tier-${plan.id}`}
                   className={`mt-8 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 shadow-sm transition-all
                     ${isPopular 
-                      ? 'bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-blue-600' 
-                      : 'bg-white dark:bg-slate-700 text-blue-600 ring-1 ring-inset ring-blue-200 dark:ring-blue-900 hover:ring-blue-300 dark:hover:ring-blue-800'
+                      ? 'bg-aidatim-green text-white hover:bg-aidatim-green-dark focus-visible:outline-aidatim-green' 
+                      : 'bg-white dark:bg-slate-700 text-aidatim-blue ring-1 ring-inset ring-aidatim-blue/20 dark:ring-blue-900 hover:ring-aidatim-blue/40 dark:hover:ring-blue-800'
                     }
                   `}
                 >

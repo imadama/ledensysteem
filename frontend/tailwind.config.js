@@ -11,44 +11,38 @@ export default {
         // Aidatim brand colors
         aidatim: {
           blue: {
-            DEFAULT: '#0B6FA8',
-            dark: '#0A5E8C',
+            DEFAULT: '#0B6FA8', // Hoofdkleur
+            light: '#3B9DD4',
+            dark: '#08537E',    // Donkerder variant voor hover
           },
           green: {
-            DEFAULT: '#63B233',
-            dark: '#4E9A2A',
+            DEFAULT: '#63B233', // Secundaire kleur (acties/succes)
+            light: '#85D455',
+            dark: '#4E9A2A',    // Donkerder groen uit logo
           },
-          orange: '#F7941D',
+          orange: {
+            DEFAULT: '#F7941D', // Accentkleur
+            light: '#FFB35C',
+            dark: '#C8720B',
+          },
           gray: {
-            DEFAULT: '#6F6F6E',
-            light: '#BFBFBF',
+            DEFAULT: '#6F6F6E', // Tekstkleur
+            light: '#BFBFBF',   // Lichte tekst
+            dark: '#4A4A4A',
           },
         },
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--popover))',
-          foreground: 'hsl(var(--popover-foreground))',
-        },
+        // Map standaard Tailwind classes naar brand colors voor consistentie
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: '#0B6FA8',
+          foreground: '#FFFFFF',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT: '#63B233',
+          foreground: '#FFFFFF',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT: '#F7941D',
+          foreground: '#FFFFFF',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
