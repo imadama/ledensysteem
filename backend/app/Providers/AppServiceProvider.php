@@ -23,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Dynamisch subdomeinen van aidatim.nl toevoegen aan Sanctum stateful domains
+        // Dit voorkomt dat we handmatig elk subdomein moeten configureren
+        if (!app()->runningInConsole() && request()->getHost()) {
+            $host = request()->getHost();
+            if (str_ends_with($host, '.aidatim.nl')) {
+                $stateful = config('sanctum.stateful', []);
+                if (!in_array($host, $stateful)) {
+                    config(['sanctum.stateful' => array_merge($stateful, [$host])]);
+                }
+            }
+        }
     }
 }

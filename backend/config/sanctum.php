@@ -20,14 +20,8 @@ return [
         'localhost,localhost:5173,127.0.0.1,127.0.0.1:5173,::1',
         'app.aidatim.nl',
         'portal.aidatim.nl',
-        // Dynamisch subdomeinen van aidatim.nl toevoegen
-        (function() {
-            $host = request()->getHost();
-            if (str_ends_with($host, '.aidatim.nl')) {
-                return $host;
-            }
-            return null;
-        })(),
+        // Dynamisch subdomeinen worden nu toegevoegd in AppServiceProvider.php
+        // om build errors met request() te voorkomen.
         Sanctum::currentApplicationUrlWithPort(),
     ]))))),
 
