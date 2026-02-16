@@ -1,5 +1,5 @@
 import React from 'react'
-import { Users, CreditCard, Shield, Globe, BarChart3, FileText, Check } from 'lucide-react'
+import { Users, CreditCard, Globe, BarChart3, FileText, Check } from 'lucide-react'
 
 // Kleine features voor onderaan
 const moreFeatures = [
