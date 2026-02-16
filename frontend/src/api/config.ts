@@ -21,7 +21,17 @@ const getApiBaseUrl = (): string => {
   
   // Productie: alle requests gaan naar app.aidatim.nl
   if (hostname.endsWith('.aidatim.nl')) {
-    return 'https://app.aidatim.nl'
+    // Gebruik env variabele als die er is, anders fallback naar api.aidatim.nl
+    const url = import.meta.env.VITE_API_URL ?? 'https://api.aidatim.nl'
+    
+    // Verwijder /api van het einde als het er is
+    let processedUrl = url.trim()
+    if (processedUrl.endsWith('/api')) {
+      processedUrl = processedUrl.slice(0, -4)
+    } else if (processedUrl.endsWith('/api/')) {
+      processedUrl = processedUrl.slice(0, -5)
+    }
+    return processedUrl
   }
   
   // Fallback: gebruik env variabele
