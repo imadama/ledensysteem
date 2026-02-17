@@ -51,33 +51,63 @@ class PlatformOrganisationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:255'],
-            'contact_email' => ['required', 'email', 'max:255'],
-            'subdomain' => ['nullable', 'string', 'max:255', 'unique:organisations,subdomain'],
-            'status' => ['sometimes', 'string', 'in:new,active,blocked'],
-            'billing_status' => ['sometimes', 'string', 'in:ok,pending_payment,restricted'],
-            'billing_note' => ['nullable', 'string', 'max:1000'],
+            // Organisatie validatie
+            'organisation.name' => ['required', 'string', 'max:255'],
+            'organisation.type' => ['required', 'string', 'max:255'],
+            'organisation.city' => ['nullable', 'string', 'max:255'],
+            'organisation.country' => ['nullable', 'string', 'max:255'],
+            'organisation.contact_email' => ['required', 'email', 'max:255'],
+            'organisation.subdomain' => ['nullable', 'string', 'max:255', 'unique:organisations,subdomain'],
+            'organisation.status' => ['sometimes', 'string', 'in:new,active,blocked'],
+            'organisation.billing_status' => ['sometimes', 'string', 'in:ok,pending_payment,restricted'],
+            'organisation.billing_note' => ['nullable', 'string', 'max:1000'],
+
+            // Admin user validatie (optioneel, maar aanbevolen)
+            'admin.first_name' => ['nullable', 'string', 'max:255'],
+            'admin.last_name' => ['nullable', 'string', 'max:255'],
+            'admin.email' => ['nullable', 'string', 'email', 'max:255', 'unique:users,email'],
+            'admin.password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
 
+        $orgData = $validated['organisation'];
+        
         // Genereer subdomein als niet opgegeven
-        if (empty($validated['subdomain'])) {
-            $validated['subdomain'] = Organisation::generateSubdomainFromName($validated['name']);
+        if (empty($orgData['subdomain'])) {
+            $orgData['subdomain'] = Organisation::generateSubdomainFromName($orgData['name']);
         }
 
         // Stel standaardwaarden in als niet opgegeven
-        $validated['status'] = $validated['status'] ?? 'new';
-        $validated['billing_status'] = $validated['billing_status'] ?? 'pending_payment';
+        $orgData['status'] = $orgData['status'] ?? 'new';
+        $orgData['billing_status'] = $orgData['billing_status'] ?? 'pending_payment';
 
-        $organisation = Organisation::create($validated);
-        $organisation->load([
-            'users' => fn ($query) => $query->with('roles')->orderBy('created_at')->limit(1),
-            'currentSubscription.plan',
-        ]);
+        return DB::transaction(function () use ($orgData, $validated) {
+            // 1. Maak organisatie aan
+            $organisation = Organisation::create($orgData);
 
-        return response()->json($this->transformOrganisationSummary($organisation), Response::HTTP_CREATED);
+            // 2. Maak admin user aan (als data aanwezig is)
+            if (!empty($validated['admin']['email']) && !empty($validated['admin']['password'])) {
+                $userData = $validated['admin'];
+                
+                $user = User::create([
+                    'first_name' => $userData['first_name'] ?? 'Admin',
+                    'last_name' => $userData['last_name'] ?? $organisation->name,
+                    'name' => ($userData['first_name'] ?? 'Admin') . ' ' . ($userData['last_name'] ?? $organisation->name),
+                    'email' => $userData['email'],
+                    'password' => \Illuminate\Support\Facades\Hash::make($userData['password']),
+                    'organisation_id' => $organisation->id,
+                    'status' => 'active',
+                ]);
+
+                $user->assignRole('org_admin');
+            }
+
+            $organisation->load([
+                'users' => fn ($query) => $query->with('roles')->orderBy('created_at')->limit(1),
+                'currentSubscription.plan',
+            ]);
+
+            return response()->json($this->transformOrganisationSummary($organisation), Response::HTTP_CREATED);
+        });
     }
 
     public function show(int $id): JsonResponse
