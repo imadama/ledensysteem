@@ -15,12 +15,12 @@ type Plan = {
 const plans: Plan[] = [
   {
     id: 1,
-    name: 'Basis',
-    monthly_price: 19,
+    name: 'Basic',
+    monthly_price: 150,
     currency: 'EUR',
-    description: 'Voor kleine verenigingen die willen starten met professionaliseren.',
+    description: 'Voor kleine organisaties <150 leden.',
     features: [
-      'Tot 100 leden',
+      'Tot 150 leden',
       'Ledenadministratie',
       'Handmatige betalingen',
       'Basis rapportages',
@@ -29,12 +29,12 @@ const plans: Plan[] = [
   },
   {
     id: 2,
-    name: 'Plus',
-    monthly_price: 39,
+    name: 'Professional',
+    monthly_price: 250,
     currency: 'EUR',
-    description: 'Alles wat je nodig hebt voor een groeiende organisatie.',
+    description: 'Voor middenbedrijven en stichtingen 150–750 leden.',
     features: [
-      'Onbeperkt aantal leden',
+      'Tot 750 leden',
       'Automatische SEPA Incasso',
       'Ledenportaal (Mijn Omgeving)',
       'Uitgebreide rapportages',
@@ -46,11 +46,11 @@ const plans: Plan[] = [
   {
     id: 3,
     name: 'Enterprise',
-    monthly_price: 'Op aanvraag',
+    monthly_price: 499,
     currency: 'EUR',
-    description: 'Voor grote stichtingen met specifieke wensen.',
+    description: 'Voor organisaties >750 leden of complexe processen.',
     features: [
-      'Alles in Plus',
+      'Onbeperkt aantal leden',
       'Custom domeinnaam',
       'SLA & Contract',
       'Import service',
