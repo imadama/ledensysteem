@@ -35,6 +35,8 @@ import MonitorPage from './pages/MonitorPage'
 import PublicMemberRegistrationPage from './pages/PublicMemberRegistrationPage'
 import PublicMemberRegistrationSuccessPage from './pages/PublicMemberRegistrationSuccessPage'
 
+import SystemArchitecturePage from './pages/SystemArchitecturePage'
+
 function App() {
   // Detecteer of we op het hoofddomein zijn (geen subdomein)
   const subdomain = getCurrentSubdomain()
@@ -124,6 +126,10 @@ function App() {
         <Route
           path="/platform/settings"
           element={<ProtectedRoute component={PlatformSettingsPage} roles={['platform_admin']} />}
+        />
+        <Route
+          path="/platform/architecture"
+          element={<ProtectedRoute component={SystemArchitecturePage} roles={['platform_admin']} />}
         />
         <Route
           path="/monitor"

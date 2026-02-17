@@ -12,7 +12,8 @@ import {
   User,
   CreditCard,
   FileText,
-  Monitor
+  Monitor,
+  Share2
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useMemberAuth } from '../context/MemberAuthContext'
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
     { name: 'Dashboard', icon: LayoutDashboard, view: 'dashboard', path: '/dashboard' },
     { name: 'Organisaties', icon: Building2, view: 'organisations', path: '/platform/organisations' },
     { name: 'Plannen', icon: FileText, view: 'plans', path: '/platform/plans' },
+    { name: 'Architectuur', icon: Share2, view: 'architecture', path: '/platform/architecture' },
     { name: 'Instellingen', icon: Settings, view: 'settings', path: '/platform/settings' },
   ]
 
