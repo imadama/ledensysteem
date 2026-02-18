@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ReactFlow, MiniMap, Controls, Background, useNodesState, useEdgesState, addEdge, Connection, Edge, Node, Position } from '@xyflow/react';
+import { ReactFlow, MiniMap, Controls, Background, useNodesState, useEdgesState, addEdge, Connection, Edge, Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Card } from '../components/ui/Card';
 
