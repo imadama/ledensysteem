@@ -121,16 +121,7 @@ class PublicMemberRegistrationController extends Controller
 
     private function resolveOrganisation(PublicMemberRegistrationRequest $request): ?Organisation
     {
-        // Prioriteit 1: Ingelogde admin gebruiker
-        $user = $request->user();
-        if ($user && $user->organisation_id && $user->hasRole('org_admin')) {
-            $organisation = Organisation::find($user->organisation_id);
-            if ($organisation) {
-                return $organisation;
-            }
-        }
-
-        // Prioriteit 2: URL parameter org_id
+        // Prioriteit 1: URL parameter org_id (expliciet meegegeven)
         if ($request->has('org_id') && $request->filled('org_id')) {
             $orgId = (int) $request->input('org_id');
             $organisation = Organisation::find($orgId);
@@ -140,10 +131,28 @@ class PublicMemberRegistrationController extends Controller
             }
         }
 
-        // Prioriteit 3: Platform setting voor subdomain mapping (toekomstig)
+        // Prioriteit 2: Subdomein extractie (voor publieke aanmeldpagina's)
+        $subdomain = $this->extractSubdomain($request);
+        if ($subdomain) {
+            $organisation = Organisation::where('subdomain', $subdomain)->first();
+            if ($organisation) {
+                return $organisation;
+            }
+        }
+
+        // Prioriteit 3: Ingelogde admin gebruiker (als backup context)
+        $user = $request->user();
+        if ($user && $user->organisation_id && $user->hasRole('org_admin')) {
+            $organisation = Organisation::find($user->organisation_id);
+            if ($organisation) {
+                return $organisation;
+            }
+        }
+
+        // Prioriteit 4: Platform setting voor subdomain mapping (toekomstig)
         // Voor nu gebruiken we alleen de fallback
 
-        // Fallback: Platform setting voor single org
+        // Fallback: Platform setting voor single org (als default)
         $orgId = PlatformSetting::get('public_registration_organisation_id');
 
         if ($orgId) {
@@ -153,4 +162,106 @@ class PublicMemberRegistrationController extends Controller
 
         return null;
     }
+
+    /**
+     * Extraheert subdomein uit request headers.
+     */
+    private function extractSubdomain(PublicMemberRegistrationRequest $request): ?string
+    {
+        // Prioriteit 1: Custom header
+        $subdomainHeader = $request->header('X-Organisation-Subdomain');
+        if ($subdomainHeader) {
+            return $this->normalizeSubdomain($subdomainHeader);
+        }
+
+        // Prioriteit 2: Origin header
+        $origin = $request->header('Origin');
+        if ($origin) {
+            $subdomain = $this->extractSubdomainFromUrl($origin);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        // Prioriteit 3: Referer header
+        $referer = $request->header('Referer');
+        if ($referer) {
+            $subdomain = $this->extractSubdomainFromUrl($referer);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        // Prioriteit 4: Host header
+        $host = $request->header('Host');
+        if ($host) {
+            $subdomain = $this->extractSubdomainFromHost($host);
+            if ($subdomain) {
+                return $subdomain;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extraheert subdomein uit URL (Origin/Referer).
+     */
+    private function extractSubdomainFromUrl(string $url): ?string
+    {
+        try {
+            $parsed = parse_url($url);
+            if (! isset($parsed['host'])) {
+                return null;
+            }
+
+            return $this->extractSubdomainFromHost($parsed['host']);
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Extraheert subdomein uit hostname.
+     */
+    private function extractSubdomainFromHost(string $host): ?string
+    {
+        // Verwijder poort als aanwezig
+        $host = explode(':', $host)[0];
+
+        // Check voor .aidatim.nl
+        if (! str_ends_with($host, '.aidatim.nl')) {
+            return null;
+        }
+
+        // Extract subdomein (alles voor .aidatim.nl)
+        $parts = explode('.', $host);
+        
+        // Voor subdomeinen zoals 'isn-gorinchem-suleyman-celebi.aidatim.nl'
+        // parts[0] is 'isn-gorinchem-suleyman-celebi'
+        if (count($parts) >= 3) {
+            // Neem het eerste deel als subdomein (alles voor de eerste punt)
+            // Maar wacht, als het subdomein zelf punten bevat (wat niet gebruikelijk is, maar technisch kan), 
+            // dan klopt dit niet helemaal.
+            // Echter, standaard setup is <subdomain>.aidatim.nl
+            
+            // We nemen alles wat voor .aidatim.nl staat
+            // Dit is veiliger dan expliciet parts[0] nemen als we complexere structuren zouden hebben
+            $baseDomain = '.aidatim.nl';
+            $subdomain = substr($host, 0, -strlen($baseDomain));
+            
+            return $this->normalizeSubdomain($subdomain);
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliseert subdomein (lowercase, trim).
+     */
+    private function normalizeSubdomain(string $subdomain): string
+    {
+        return strtolower(trim($subdomain));
+    }
 }
+
