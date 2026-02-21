@@ -99,9 +99,10 @@ Route::middleware([
     });
 
 // Monitor route - toegankelijk voor zowel monitor als org_admin rollen
-// Geen billing.status check zodat monitor altijd werkt
+// Billing status check toegevoegd zodat monitor geblokkeerd is bij betalingsachterstand
 Route::middleware([
         'auth:sanctum',
+        'billing.status',
         ResolveOrganisationFromSubdomain::class,
         ValidateUserOrganisationAccess::class,
     ])
