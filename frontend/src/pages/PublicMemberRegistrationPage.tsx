@@ -169,7 +169,7 @@ const PublicMemberRegistrationPage: React.FC = () => {
             Lidmaatschap & Contributiemachtiging
           </h1>
           <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-8">
-            {organisationName || 'Süleyman Çelebi Moskee'} / Üyelik ve Aidat Talimat Formu
+            {organisationName} / Üyelik ve Aidat Talimat Formu
           </h2>
 
           {isAdmin && organisation && (
@@ -449,10 +449,10 @@ const PublicMemberRegistrationPage: React.FC = () => {
               <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
                 <div>
                   <p className="mb-2">
-                    Door ondertekening van dit formulier geeft u toestemming aan {organisationName || 'Süleyman Çelebi Moskee Gorinchem'} om doorlopende incasso-opdrachten te sturen naar uw bank om een
+                    Door ondertekening van dit formulier geeft u toestemming aan {organisationName} om doorlopende incasso-opdrachten te sturen naar uw bank om een
                     bedrag van uw rekening af te schrijven wegens contributie bijdrage en uw bank om
                     doorlopend een bedrag van uw rekening af te schrijven overeenkomstig de opdracht
-                    van {organisationName || 'Süleyman Çelebi Moskee Gorinchem'}. Als u het niet eens bent met deze
+                    van {organisationName}. Als u het niet eens bent met deze
                     afschrijving kunt u deze laten terugboeken. Neem hiervoor binnen acht weken na
                     afschrijving contact op met uw bank. Vraag uw bank naar de voorwaarden. Door op
                     'Akkoord' te klikken, bevestigt u uitdrukkelijk dat u instemt met de inhoud
@@ -460,9 +460,9 @@ const PublicMemberRegistrationPage: React.FC = () => {
                     digitale handtekening in de zin van de toepasselijke wet- en regelgeving.
                   </p>
                   <p>
-                    Bu formu imzalayarak, {organisationName || 'Süleyman Çelebi Camii Gorinchem'}'in bankanıza düzenli ödeme
+                    Bu formu imzalayarak, {organisationName}'in bankanıza düzenli ödeme
                     talimatları göndermesine ve aidat ödemesi kapsamında hesabınızdan tutar
-                    çekilmesine; bankanızın ise {organisationName || 'Süleyman Çelebi Camii Gorinchem'}'in talimatına uygun
+                    çekilmesine; bankanızın ise {organisationName}'in talimatına uygun
                     olarak hesabınızdan düzenli olarak ödeme çekmesine izin vermiş olursunuz. Bu
                     ödemeye itiraz etmeniz halinde, söz konusu tutarı geri alma hakkınız
                     bulunmaktadır. Bunun için, kesintiden itibaren sekiz hafta içinde bankanızla
