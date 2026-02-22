@@ -191,313 +191,321 @@ const PublicMemberRegistrationPage: React.FC = () => {
               {generalError}
             </div>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="first_name" className={labelClassName}>
-                  1. Voornaam/Isim <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="first_name"
-                  type="text"
-                  required
-                  value={values.first_name}
-                  onChange={handleChange('first_name')}
-                  className={inputClassName(!!errors.first_name)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.first_name && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.first_name}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="last_name" className={labelClassName}>
-                  2. Achternaam/Soyisim <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="last_name"
-                  type="text"
-                  required
-                  value={values.last_name}
-                  onChange={handleChange('last_name')}
-                  className={inputClassName(!!errors.last_name)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.last_name && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.last_name}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="gender" className={labelClassName}>
-                  3. Geslacht/Cinsiyet <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="gender"
-                  required
-                  value={values.gender}
-                  onChange={handleChange('gender')}
-                  className={inputClassName(!!errors.gender)}
-                >
-                  <option value="m">Man/Bay</option>
-                  <option value="f">Vrouw/Bayan</option>
-                </select>
-                {errors.gender && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.gender}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="birth_date" className={labelClassName}>
-                  4. Geboortedatum/Dogum Tarihi
-                </label>
-                <input
-                  id="birth_date"
-                  type="date"
-                  value={values.birth_date}
-                  onChange={handleChange('birth_date')}
-                  className={inputClassName(!!errors.birth_date)}
-                />
-                {errors.birth_date && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.birth_date}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="email" className={labelClassName}>
-                  5. Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  value={values.email}
-                  onChange={handleChange('email')}
-                  className={inputClassName(!!errors.email)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.email && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.email}
-                  </span>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <label htmlFor="street_address" className={labelClassName}>
-                  6. Adres <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="street_address"
-                  type="text"
-                  required
-                  value={values.street_address}
-                  onChange={handleChange('street_address')}
-                  className={inputClassName(!!errors.street_address)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.street_address && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.street_address}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="postal_code" className={labelClassName}>
-                  7. Postcode <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="postal_code"
-                  type="text"
-                  required
-                  value={values.postal_code}
-                  onChange={handleChange('postal_code')}
-                  className={inputClassName(!!errors.postal_code)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.postal_code && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.postal_code}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="city" className={labelClassName}>
-                  8. Woonplaats/Ikamet yeri <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="city"
-                  type="text"
-                  required
-                  value={values.city}
-                  onChange={handleChange('city')}
-                  className={inputClassName(!!errors.city)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.city && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.city}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="iban" className={labelClassName}>
-                  9. IBAN <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="iban"
-                  type="text"
-                  required
-                  value={values.iban}
-                  onChange={handleChange('iban')}
-                  className={inputClassName(!!errors.iban)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.iban && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.iban}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="contribution_amount" className={labelClassName}>
-                  10. Contributiebedrag/Katkı payı <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[10, 15, 20, 25].map((amount) => (
-                    <label
-                      key={amount}
-                      className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <input
-                        type="radio"
-                        name="contribution_amount"
-                        value={amount}
-                        checked={values.contribution_amount === String(amount)}
-                        onChange={handleChange('contribution_amount')}
-                        className="text-aidatim-blue focus:ring-aidatim-blue"
-                      />
-                      <span className="text-gray-700 dark:text-gray-300">€{amount}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.contribution_amount && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.contribution_amount}
-                  </span>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="contribution_start_date" className={labelClassName}>
-                  11. Start Contributie/Başlangıc üyelik <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="contribution_start_date"
-                  type="date"
-                  required
-                  min={new Date().toISOString().split('T')[0]}
-                  value={values.contribution_start_date}
-                  onChange={handleChange('contribution_start_date')}
-                  className={inputClassName(!!errors.contribution_start_date)}
-                />
-                {errors.contribution_start_date && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.contribution_start_date}
-                  </span>
-                )}
-              </div>
-
-              <div className="md:col-span-2">
-                <label htmlFor="contribution_note" className={labelClassName}>
-                  12. Opmerking/Açıklama
-                </label>
-                <textarea
-                  id="contribution_note"
-                  rows={4}
-                  value={values.contribution_note}
-                  onChange={handleChange('contribution_note')}
-                  className={inputClassName(!!errors.contribution_note)}
-                  placeholder="Voer uw antwoord in"
-                />
-                {errors.contribution_note && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.contribution_note}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                13. SEPA Machtiging
-              </h3>
-              <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+          
+          {organisationName ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Form content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="mb-2">
-                    Door ondertekening van dit formulier geeft u toestemming aan {organisationName} om doorlopende incasso-opdrachten te sturen naar uw bank om een
-                    bedrag van uw rekening af te schrijven wegens contributie bijdrage en uw bank om
-                    doorlopend een bedrag van uw rekening af te schrijven overeenkomstig de opdracht
-                    van {organisationName}. Als u het niet eens bent met deze
-                    afschrijving kunt u deze laten terugboeken. Neem hiervoor binnen acht weken na
-                    afschrijving contact op met uw bank. Vraag uw bank naar de voorwaarden. Door op
-                    'Akkoord' te klikken, bevestigt u uitdrukkelijk dat u instemt met de inhoud
-                    van dit document en dat deze handeling wordt beschouwd als een rechtsgeldige
-                    digitale handtekening in de zin van de toepasselijke wet- en regelgeving.
-                  </p>
-                  <p>
-                    Bu formu imzalayarak, {organisationName}'in bankanıza düzenli ödeme
-                    talimatları göndermesine ve aidat ödemesi kapsamında hesabınızdan tutar
-                    çekilmesine; bankanızın ise {organisationName}'in talimatına uygun
-                    olarak hesabınızdan düzenli olarak ödeme çekmesine izin vermiş olursunuz. Bu
-                    ödemeye itiraz etmeniz halinde, söz konusu tutarı geri alma hakkınız
-                    bulunmaktadır. Bunun için, kesintiden itibaren sekiz hafta içinde bankanızla
-                    iletişime geçiniz. Şartlar hakkında bankanızdan bilgi alınız. 'Kabul Ediyorum'
-                    butonuna tıklayarak, bu belgenin içeriğini açıkça onayladığınızı ve bu işlemin
-                    yürürlükteki mevzuat kapsamında geçerli bir dijital imza olarak kabul edildiğini
-                    beyan edersiniz.
-                  </p>
-                </div>
-                <label className="flex items-start space-x-3 cursor-pointer">
+                  <label htmlFor="first_name" className={labelClassName}>
+                    1. Voornaam/Isim <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    type="checkbox"
+                    id="first_name"
+                    type="text"
                     required
-                    checked={values.sepa_consent}
-                    onChange={handleChange('sepa_consent')}
-                    className="mt-1 text-aidatim-blue focus:ring-aidatim-blue"
+                    value={values.first_name}
+                    onChange={handleChange('first_name')}
+                    className={inputClassName(!!errors.first_name)}
+                    placeholder="Voer uw antwoord in"
                   />
-                  <span>
-                    <strong>Akkoord/Kabul ediyorum</strong>
-                  </span>
-                </label>
-                {errors.sepa_consent && (
-                  <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                    {errors.sepa_consent}
-                  </span>
-                )}
-              </div>
-            </div>
+                  {errors.first_name && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.first_name}
+                    </span>
+                  )}
+                </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Bezig met verzenden...' : 'Verzenden'}
-              </Button>
+                <div>
+                  <label htmlFor="last_name" className={labelClassName}>
+                    2. Achternaam/Soyisim <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="last_name"
+                    type="text"
+                    required
+                    value={values.last_name}
+                    onChange={handleChange('last_name')}
+                    className={inputClassName(!!errors.last_name)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.last_name && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.last_name}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="gender" className={labelClassName}>
+                    3. Geslacht/Cinsiyet <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="gender"
+                    required
+                    value={values.gender}
+                    onChange={handleChange('gender')}
+                    className={inputClassName(!!errors.gender)}
+                  >
+                    <option value="m">Man/Bay</option>
+                    <option value="f">Vrouw/Bayan</option>
+                  </select>
+                  {errors.gender && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.gender}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="birth_date" className={labelClassName}>
+                    4. Geboortedatum/Dogum Tarihi
+                  </label>
+                  <input
+                    id="birth_date"
+                    type="date"
+                    value={values.birth_date}
+                    onChange={handleChange('birth_date')}
+                    className={inputClassName(!!errors.birth_date)}
+                  />
+                  {errors.birth_date && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.birth_date}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="email" className={labelClassName}>
+                    5. Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={values.email}
+                    onChange={handleChange('email')}
+                    className={inputClassName(!!errors.email)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.email && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.email}
+                    </span>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="street_address" className={labelClassName}>
+                    6. Adres <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="street_address"
+                    type="text"
+                    required
+                    value={values.street_address}
+                    onChange={handleChange('street_address')}
+                    className={inputClassName(!!errors.street_address)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.street_address && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.street_address}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="postal_code" className={labelClassName}>
+                    7. Postcode <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="postal_code"
+                    type="text"
+                    required
+                    value={values.postal_code}
+                    onChange={handleChange('postal_code')}
+                    className={inputClassName(!!errors.postal_code)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.postal_code && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.postal_code}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="city" className={labelClassName}>
+                    8. Woonplaats/Ikamet yeri <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="city"
+                    type="text"
+                    required
+                    value={values.city}
+                    onChange={handleChange('city')}
+                    className={inputClassName(!!errors.city)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.city && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.city}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="iban" className={labelClassName}>
+                    9. IBAN <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="iban"
+                    type="text"
+                    required
+                    value={values.iban}
+                    onChange={handleChange('iban')}
+                    className={inputClassName(!!errors.iban)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.iban && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.iban}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="contribution_amount" className={labelClassName}>
+                    10. Contributiebedrag/Katkı payı <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[10, 15, 20, 25].map((amount) => (
+                      <label
+                        key={amount}
+                        className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <input
+                          type="radio"
+                          name="contribution_amount"
+                          value={amount}
+                          checked={values.contribution_amount === String(amount)}
+                          onChange={handleChange('contribution_amount')}
+                          className="text-aidatim-blue focus:ring-aidatim-blue"
+                        />
+                        <span className="text-gray-700 dark:text-gray-300">€{amount}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.contribution_amount && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.contribution_amount}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="contribution_start_date" className={labelClassName}>
+                    11. Start Contributie/Başlangıc üyelik <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="contribution_start_date"
+                    type="date"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                    value={values.contribution_start_date}
+                    onChange={handleChange('contribution_start_date')}
+                    className={inputClassName(!!errors.contribution_start_date)}
+                  />
+                  {errors.contribution_start_date && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.contribution_start_date}
+                    </span>
+                  )}
+                </div>
+
+                <div className="md:col-span-2">
+                  <label htmlFor="contribution_note" className={labelClassName}>
+                    12. Opmerking/Açıklama
+                  </label>
+                  <textarea
+                    id="contribution_note"
+                    rows={4}
+                    value={values.contribution_note}
+                    onChange={handleChange('contribution_note')}
+                    className={inputClassName(!!errors.contribution_note)}
+                    placeholder="Voer uw antwoord in"
+                  />
+                  {errors.contribution_note && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.contribution_note}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  13. SEPA Machtiging
+                </h3>
+                <div className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+                  <div>
+                    <p className="mb-2">
+                      Door ondertekening van dit formulier geeft u toestemming aan {organisationName} om doorlopende incasso-opdrachten te sturen naar uw bank om een
+                      bedrag van uw rekening af te schrijven wegens contributie bijdrage en uw bank om
+                      doorlopend een bedrag van uw rekening af te schrijven overeenkomstig de opdracht
+                      van {organisationName}. Als u het niet eens bent met deze
+                      afschrijving kunt u deze laten terugboeken. Neem hiervoor binnen acht weken na
+                      afschrijving contact op met uw bank. Vraag uw bank naar de voorwaarden. Door op
+                      'Akkoord' te klikken, bevestigt u uitdrukkelijk dat u instemt met de inhoud
+                      van dit document en dat deze handeling wordt beschouwd als een rechtsgeldige
+                      digitale handtekening in de zin van de toepasselijke wet- en regelgeving.
+                    </p>
+                    <p>
+                      Bu formu imzalayarak, {organisationName}'in bankanıza düzenli ödeme
+                      talimatları göndermesine ve aidat ödemesi kapsamında hesabınızdan tutar
+                      çekilmesine; bankanızın ise {organisationName}'in talimatına uygun
+                      olarak hesabınızdan düzenli olarak ödeme çekmesine izin vermiş olursunuz. Bu
+                      ödemeye itiraz etmeniz halinde, söz konusu tutarı geri alma hakkınız
+                      bulunmaktadır. Bunun için, kesintiden itibaren sekiz hafta içinde bankanızla
+                      iletişime geçiniz. Şartlar hakkında bankanızdan bilgi alınız. 'Kabul Ediyorum'
+                      butonuna tıklayarak, bu belgenin içeriğini açıkça onayladığınızı ve bu işlemin
+                      yürürlükteki mevzuat kapsamında geçerli bir dijital imza olarak kabul edildiğini
+                      beyan edersiniz.
+                    </p>
+                  </div>
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={values.sepa_consent}
+                      onChange={handleChange('sepa_consent')}
+                      className="mt-1 text-aidatim-blue focus:ring-aidatim-blue"
+                    />
+                    <span>
+                      <strong>Akkoord/Kabul ediyorum</strong>
+                    </span>
+                  </label>
+                  {errors.sepa_consent && (
+                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
+                      {errors.sepa_consent}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Bezig met verzenden...' : 'Verzenden'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-aidatim-blue mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Organisatie gegevens ophalen...</p>
             </div>
-          </form>
+          )}
         </div>
       </div>
     </div>
