@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { apiClient } from '../api/axios'
 import { Button } from '../components/ui/Button'
@@ -30,31 +30,53 @@ const PublicMemberRegistrationPage: React.FC = () => {
   const isAdmin = user && roles.includes('org_admin')
   
   const [organisationName, setOrganisationName] = useState<string | null>(null)
+  const [isLoadingOrg, setIsLoadingOrg] = useState(true)
+  const [orgError, setOrgError] = useState<string | null>(null)
   
+  // Extract name to avoid object dependency loop in useEffect
+  const adminOrgName = adminOrganisation?.name
+
   useEffect(() => {
-    // Als admin ingelogd is, gebruik de organisatie uit de context
-    if (isAdmin && adminOrganisation) {
-      setOrganisationName(adminOrganisation.name)
-      return
-    }
-    
-    // Anders haal publieke organisatie info op
-    const fetchOrgInfo = async () => {
+    let mounted = true
+
+    const loadOrg = async () => {
+      // Als admin ingelogd is, gebruik de organisatie uit de context
+      if (isAdmin && adminOrgName) {
+        if (mounted) {
+          setOrganisationName(adminOrgName)
+          setIsLoadingOrg(false)
+        }
+        return
+      }
+
       try {
         const params: Record<string, string> = {}
         if (orgId) params.org_id = orgId
         
         const { data } = await apiClient.get('/api/public/organisation-info', { params })
-        if (data.name) {
-          setOrganisationName(data.name)
+        
+        if (mounted) {
+          if (data.name) {
+            setOrganisationName(data.name)
+            setIsLoadingOrg(false)
+          } else {
+            setOrgError('Organisatie gegevens niet gevonden.')
+            setIsLoadingOrg(false)
+          }
         }
       } catch (err) {
         console.error('Kon organisatie info niet ophalen', err)
+        if (mounted) {
+          setOrgError('Kon organisatie gegevens niet ophalen. Controleer de link of neem contact op met de beheerder.')
+          setIsLoadingOrg(false)
+        }
       }
     }
     
-    fetchOrgInfo()
-  }, [isAdmin, adminOrganisation, orgId])
+    loadOrg()
+
+    return () => { mounted = false }
+  }, [isAdmin, adminOrgName, orgId])
 
   const [values, setValues] = useState<FormValues>({
     first_name: '',
@@ -172,10 +194,10 @@ const PublicMemberRegistrationPage: React.FC = () => {
             {organisationName} / Üyelik ve Aidat Talimat Formu
           </h2>
 
-          {isAdmin && organisation && (
+          {isAdmin && adminOrganisation && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-400 px-4 py-3 rounded-lg mb-6">
               <p className="font-medium">
-                U bent ingelogd als beheerder voor {organisation.name}. Het nieuwe lid wordt direct
+                U bent ingelogd als beheerder voor {adminOrganisation.name}. Het nieuwe lid wordt direct
                 toegevoegd aan uw organisatie.
               </p>
             </div>
@@ -192,9 +214,18 @@ const PublicMemberRegistrationPage: React.FC = () => {
             </div>
           )}
           
-          {organisationName ? (
+          {isLoadingOrg ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-aidatim-blue mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Organisatie gegevens ophalen...</p>
+            </div>
+          ) : orgError ? (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg mb-6 text-center">
+              <p className="font-bold mb-2">Fout</p>
+              <p>{orgError}</p>
+            </div>
+          ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Form content */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="first_name" className={labelClassName}>
@@ -500,11 +531,6 @@ const PublicMemberRegistrationPage: React.FC = () => {
                 </Button>
               </div>
             </form>
-          ) : (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-aidatim-blue mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Organisatie gegevens ophalen...</p>
-            </div>
           )}
         </div>
       </div>
