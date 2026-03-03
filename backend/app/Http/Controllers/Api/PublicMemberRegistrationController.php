@@ -21,6 +21,32 @@ class PublicMemberRegistrationController extends Controller
     ) {
     }
 
+    public function getOrganisationInfo(PublicMemberRegistrationRequest $request): JsonResponse
+    {
+        $organisation = $this->resolveOrganisation($request);
+
+        if (! $organisation) {
+            // Debug logging to see why it fails
+            Log::warning('Organisation not found for public info request', [
+                'url' => $request->fullUrl(),
+                'headers' => $request->headers->all(),
+                'subdomain_header' => $request->header('X-Organisation-Subdomain'),
+                'origin' => $request->header('Origin'),
+                'host' => $request->header('Host'),
+            ]);
+
+            return response()->json([
+                'message' => 'Organisatie niet gevonden.',
+            ], 404);
+        }
+
+        return response()->json([
+            'id' => $organisation->id,
+            'name' => $organisation->name,
+            'city' => $organisation->city,
+        ]);
+    }
+
     public function store(PublicMemberRegistrationRequest $request): JsonResponse
     {
         $validated = $request->validated();

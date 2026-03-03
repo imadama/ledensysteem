@@ -36,6 +36,13 @@ class PublicMemberRegistrationRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Voor GET requests (organisatie info ophalen), alleen org_id validatie
+        if ($this->isMethod('get')) {
+            return [
+                'org_id' => ['nullable', 'integer', 'exists:organisations,id'],
+            ];
+        }
+
         return [
             'org_id' => ['nullable', 'integer', 'exists:organisations,id'],
             'first_name' => ['required', 'string', 'max:255'],

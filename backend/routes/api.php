@@ -31,6 +31,7 @@ Route::get('plans', [PlanController::class, 'index']);
 // Publieke routes (geen authenticatie vereist)
 Route::prefix('public')->group(function (): void {
     Route::post('member-registration', [PublicMemberRegistrationController::class, 'store']);
+    Route::get('organisation-info', [PublicMemberRegistrationController::class, 'getOrganisationInfo']);
 });
 
 Route::prefix('auth')->group(function (): void {
