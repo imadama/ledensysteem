@@ -12,9 +12,14 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\Stripe\StripeClient::class, function () {
-            return new \Stripe\StripeClient(
-                config('stripe.secret') ?: 'sk_dummy_not_set_in_env'
-            );
+            $secret = config('stripe.secret');
+            // Zorg ervoor dat het een string is en haal witruimtes weg. 
+            // Als het leeg is, gebruik de dummy key.
+            if (!is_string($secret) || trim($secret) === '') {
+                $secret = 'sk_dummy_not_set_in_env';
+            }
+            
+            return new \Stripe\StripeClient($secret);
         });
     }
 
