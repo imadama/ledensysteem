@@ -13,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(\Stripe\StripeClient::class, function () {
             return new \Stripe\StripeClient(
-                config('stripe.secret')
+                config('stripe.secret') ?: 'sk_dummy_not_set_in_env'
             );
         });
     }
