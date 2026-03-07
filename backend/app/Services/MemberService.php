@@ -53,7 +53,41 @@ class MemberService
         $payload = $this->preparePayload($data);
         $payload['organisation_id'] = $organisationId;
 
+        if (empty($payload['member_number'])) {
+            $payload['member_number'] = $this->generateUniqueMemberNumber($organisationId);
+        }
+
         return Member::create($payload);
+    }
+
+    private function generateUniqueMemberNumber(int $organisationId): string
+    {
+        $year = date('Y');
+        
+        // Haal het laatste lidnummer op voor deze organisatie dat begint met het jaartal
+        $lastMember = Member::where('organisation_id', $organisationId)
+            ->where('member_number', 'like', "{$year}-%")
+            ->orderByRaw('LENGTH(member_number) DESC') // Sorteer eerst op lengte (anders komt -10 na -2)
+            ->orderBy('member_number', 'desc')
+            ->first();
+
+        if (!$lastMember) {
+            return "{$year}-001";
+        }
+
+        // Probeer het volgnummer uit het laatste nummer te halen
+        if (preg_match('/^' . $year . '-(\d+)$/', $lastMember->member_number, $matches)) {
+            $lastSequence = intval($matches[1]);
+            $newSequence = $lastSequence + 1;
+            return sprintf("%s-%03d", $year, $newSequence);
+        }
+
+        // Als fallback of ander formaat: genereer random uniek nummer
+        do {
+            $number = $year . '-' . mt_rand(1000, 9999);
+        } while (Member::where('organisation_id', $organisationId)->where('member_number', $number)->exists());
+
+        return $number;
     }
 
     /**

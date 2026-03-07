@@ -47,6 +47,34 @@ class PublicMemberRegistrationController extends Controller
         ]);
     }
 
+    private function generateUniqueMemberNumber(int $organisationId): string
+    {
+        $year = date('Y');
+        
+        // Haal het laatste lidnummer op voor deze organisatie dat begint met het jaartal
+        $lastMember = Member::where('organisation_id', $organisationId)
+            ->where('member_number', 'like', "{$year}-%")
+            ->orderByRaw('LENGTH(member_number) DESC')
+            ->orderBy('member_number', 'desc')
+            ->first();
+
+        if (!$lastMember) {
+            return "{$year}-001";
+        }
+
+        if (preg_match('/^' . $year . '-(\d+)$/', $lastMember->member_number, $matches)) {
+            $lastSequence = intval($matches[1]);
+            $newSequence = $lastSequence + 1;
+            return sprintf("%s-%03d", $year, $newSequence);
+        }
+
+        do {
+            $number = $year . '-' . mt_rand(1000, 9999);
+        } while (Member::where('organisation_id', $organisationId)->where('member_number', $number)->exists());
+
+        return $number;
+    }
+
     public function store(PublicMemberRegistrationRequest $request): JsonResponse
     {
         $validated = $request->validated();
@@ -65,6 +93,7 @@ class PublicMemberRegistrationController extends Controller
                 // Maak lid aan
                 $member = Member::create([
                     'organisation_id' => $organisation->id,
+                    'member_number' => $this->generateUniqueMemberNumber($organisation->id),
                     'first_name' => $validated['first_name'],
                     'last_name' => $validated['last_name'],
                     'gender' => $validated['gender'],
