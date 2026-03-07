@@ -645,8 +645,12 @@ const OrganisationMemberDetailPage: React.FC = () => {
           </Card>
 
           {/* SEPA Subscription Section */}
-          {id && (
-            <MemberSepaSubscriptionSection memberId={Number(id)} memberIban={initialValues.iban || null} />
+          {id && initialValues && (
+            <MemberSepaSubscriptionSection 
+              memberId={Number(id)} 
+              memberIban={initialValues.iban || null}
+              memberContributionAmount={initialValues.contribution_amount ? Number(initialValues.contribution_amount) : undefined}
+            />
           )}
         </div>
       ) : (

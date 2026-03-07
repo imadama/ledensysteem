@@ -29,11 +29,13 @@ type SepaSubscriptionData = {
 type MemberSepaSubscriptionSectionProps = {
   memberId: number
   memberIban: string | null
+  memberContributionAmount?: number
 }
 
 const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps> = ({
   memberId,
   memberIban,
+  memberContributionAmount,
 }) => {
   const [data, setData] = useState<SepaSubscriptionData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -59,13 +61,21 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
         `/api/organisation/members/${memberId}/sepa-subscription`
       )
       setData(responseData)
+      
+      if (memberIban) {
+        setFormIban(memberIban)
+      }
+      
+      if (memberContributionAmount) {
+        setFormAmount(String(memberContributionAmount))
+      }
     } catch (err: any) {
       console.error('SEPA incasso ophalen mislukt', err)
       setError(err.response?.data?.message ?? 'Kon SEPA incasso informatie niet ophalen.')
     } finally {
       setLoading(false)
     }
-  }, [memberId])
+  }, [memberId, memberIban, memberContributionAmount])
 
   useEffect(() => {
     void loadSepaSubscription()
