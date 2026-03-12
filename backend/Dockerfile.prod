@@ -26,7 +26,7 @@ RUN composer install --prefer-dist --no-progress --no-interaction --no-scripts -
 COPY . .
 
 # Run composer scripts and optimize
-RUN composer dump-autoload --optimize
+RUN composer dump-autoload --optimize --no-scripts
 
 # Set permissions (only on specific directories, not entire /var/www/html to speed up build)
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
