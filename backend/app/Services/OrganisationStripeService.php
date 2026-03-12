@@ -46,7 +46,7 @@ class OrganisationStripeService
                 
                 // Als account geblokkeerd is, gooi een exception met duidelijke melding
                 if ($connection->status === 'blocked') {
-                    throw new ApiErrorException(
+                    throw new \RuntimeException(
                         $connection->last_error ?? 'Stripe account is geblokkeerd. Neem contact op met Stripe support.'
                     );
                 }
