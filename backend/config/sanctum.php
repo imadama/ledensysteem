@@ -15,13 +15,17 @@ return [
     |
     */
 
-    'stateful' => array_values(array_filter(explode(',', implode(',', array_filter([
-        env('SANCTUM_STATEFUL_DOMAINS'),
-        'localhost,localhost:5173,127.0.0.1,127.0.0.1:5173,::1',
-        'app.aidatim.nl',
-        'portal.aidatim.nl',
-        // Dynamisch subdomeinen worden toegevoegd in AppServiceProvider.php
-    ]))))),
+    'stateful' => array_merge(
+        array_filter(explode(',', env('SANCTUM_STATEFUL_DOMAINS', ''))),
+        [
+            'localhost',
+            'localhost:5173',
+            '127.0.0.1',
+            '127.0.0.1:5173',
+            '::1',
+            '*.aidatim.nl',
+        ]
+    ),
 
     /*
     |--------------------------------------------------------------------------
