@@ -25,6 +25,9 @@ RUN composer install --prefer-dist --no-progress --no-interaction --no-scripts -
 # Copy application files
 COPY . .
 
+# Remove stale bootstrap cache (may reference dev-only providers not installed with --no-dev)
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+
 # Run composer scripts and optimize
 RUN composer dump-autoload --optimize --no-scripts
 
