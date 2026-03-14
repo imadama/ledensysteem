@@ -25,8 +25,12 @@ RUN composer install --prefer-dist --no-progress --no-interaction --no-scripts -
 # Copy application files
 COPY . .
 
-# Run composer scripts and optimize (runs package:discover at build time)
-RUN composer dump-autoload --optimize
+# Remove stale bootstrap cache (contains dev-only providers not installed with --no-dev)
+# Laravel will auto-regenerate packages.php on first request
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php
+
+# Optimize autoloader (no scripts - artisan is not available at build time)
+RUN composer dump-autoload --optimize --no-scripts
 
 # Set permissions (only on specific directories, not entire /var/www/html to speed up build)
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
