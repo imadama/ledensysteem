@@ -52,11 +52,6 @@ mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Run package discover and clear caches at runtime (when real env vars are present)
-php artisan package:discover --ansi || true
-php artisan config:clear || true
-php artisan route:clear || true
-
 # Execute the main command
 exec "$@"
 
