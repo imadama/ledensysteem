@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Organisation\MemberController;
 use App\Http\Controllers\Api\Organisation\MemberSepaSubscriptionController;
 use App\Http\Controllers\Api\Organisation\MonitorController;
 use App\Http\Controllers\Api\Organisation\PaymentConnectionController;
+use App\Http\Controllers\Api\OrganisationProfileController;
 use App\Http\Controllers\Api\OrganisationUserController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
 use App\Http\Controllers\Api\PlatformPlanController;
@@ -55,6 +56,9 @@ Route::middleware([
     ])
     ->prefix('organisation')
     ->group(function (): void {
+        Route::get('profile', [OrganisationProfileController::class, 'show']);
+        Route::put('profile', [OrganisationProfileController::class, 'update']);
+
         Route::get('users', [OrganisationUserController::class, 'index']);
         Route::post('users', [OrganisationUserController::class, 'store']);
         Route::patch('users/{id}/block', [OrganisationUserController::class, 'block']);

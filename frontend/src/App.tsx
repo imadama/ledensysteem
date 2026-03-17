@@ -20,6 +20,7 @@ import PlatformSettingsPage from './pages/PlatformSettingsPage'
 import OrganisationMembersListPage from './pages/OrganisationMembersListPage'
 import OrganisationMemberDetailPage from './pages/OrganisationMemberDetailPage'
 import OrganisationMembersImportPage from './pages/OrganisationMembersImportPage'
+import OrganisationProfilePage from './pages/OrganisationProfilePage'
 import OrganisationPaymentsSettingsPage from './pages/OrganisationPaymentsSettingsPage'
 import OrganisationContributionsOverviewPage from './pages/OrganisationContributionsOverviewPage'
 import OrganisationSubscriptionPage from './pages/OrganisationSubscriptionPage'
@@ -82,6 +83,10 @@ function App() {
         <Route
           path="/organisation/users"
           element={<ProtectedRoute component={OrganisationUsersPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/profile"
+          element={<ProtectedRoute component={OrganisationProfilePage} roles={['org_admin']} />}
         />
         <Route
           path="/organisation/members"
