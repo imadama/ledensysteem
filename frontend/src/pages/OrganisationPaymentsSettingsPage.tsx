@@ -200,7 +200,19 @@ const OrganisationPaymentsSettingsPage: React.FC = () => {
               </div>
             )}
 
-            {connection?.status === 'pending' && (
+            {connection?.status === 'pending' && connection.last_error?.startsWith('requirements.') && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <strong className="block text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-2">Actie vereist: ontbrekende informatie</strong>
+                <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-2">
+                  Stripe heeft aanvullende informatie nodig voordat je account geactiveerd kan worden.
+                  Klik op <strong>"Stripe-account koppelen"</strong> om de ontbrekende gegevens in te vullen.
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-500 font-mono bg-yellow-100 dark:bg-yellow-900/40 p-2 rounded">
+                  {connection.last_error}
+                </p>
+              </div>
+            )}
+            {connection?.status === 'pending' && !connection.last_error?.startsWith('requirements.') && (
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                 <strong className="block text-sm font-semibold text-yellow-900 dark:text-yellow-300 mb-2">Koppeling in behandeling</strong>
                 <p className="text-sm text-yellow-800 dark:text-yellow-400">

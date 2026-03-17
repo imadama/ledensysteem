@@ -167,6 +167,16 @@ class OrganisationStripeService
         $disabledReason = data_get($account, 'requirements.disabled_reason');
 
         if ($disabledReason) {
+            // requirements.past_due / requirements.pending_verification betekent dat het account
+            // aanvullende informatie nodig heeft — de organisatie kan dit oplossen via onboarding.
+            // Alleen rejected.* en listed zijn echt geblokkeerd (niet op te lossen via onboarding).
+            if (str_starts_with($disabledReason, 'requirements.')) {
+                $connection->status = 'pending';
+                $connection->last_error = $disabledReason;
+
+                return;
+            }
+
             $connection->status = 'blocked';
             $connection->last_error = $disabledReason;
 
