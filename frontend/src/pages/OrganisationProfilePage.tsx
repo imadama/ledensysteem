@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -23,7 +24,6 @@ const OrganisationProfilePage: React.FC = () => {
   })
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
@@ -54,18 +54,16 @@ const OrganisationProfilePage: React.FC = () => {
   const handleChange = (field: keyof OrganisationProfile) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }))
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
-    setSuccessMessage(null)
   }
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setIsSubmitting(true)
     setError(null)
-    setSuccessMessage(null)
     setFieldErrors({})
     try {
       await apiClient.put('/api/organisation/profile', form)
-      setSuccessMessage('Profiel opgeslagen.')
+      toast.success('Profiel opgeslagen.')
     } catch (err: unknown) {
       console.error(err)
       const response = (err as { response?: { data?: { errors?: FieldErrors; message?: string } } })?.response?.data
@@ -98,12 +96,6 @@ const OrganisationProfilePage: React.FC = () => {
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
           {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 px-4 py-3 rounded-lg">
-          {successMessage}
         </div>
       )}
 

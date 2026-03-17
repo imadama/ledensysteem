@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { UserPlus, X, Ban, CheckCircle2, Trash2 } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
@@ -17,7 +18,6 @@ type OrgUser = {
 const OrganisationUsersPage: React.FC = () => {
   const [users, setUsers] = useState<OrgUser[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     first_name: '',
@@ -30,13 +30,12 @@ const OrganisationUsersPage: React.FC = () => {
 
   const loadUsers = async () => {
     setLoading(true)
-    setError(null)
     try {
       const { data } = await apiClient.get<{ data: OrgUser[] }>('/api/organisation/users')
       setUsers(data.data)
     } catch (err) {
       console.error(err)
-      setError('Gebruikers konden niet worden geladen.')
+      toast.error('Gebruikers konden niet worden geladen.')
     } finally {
       setLoading(false)
     }
@@ -49,7 +48,6 @@ const OrganisationUsersPage: React.FC = () => {
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault()
     setIsSubmitting(true)
-    setError(null)
     try {
       const { data } = await apiClient.post<OrgUser>('/api/organisation/users', form)
       setUsers((prev) => [...prev, data])
@@ -57,7 +55,7 @@ const OrganisationUsersPage: React.FC = () => {
       setShowForm(false)
     } catch (err) {
       console.error(err)
-      setError('Gebruiker kon niet worden aangemaakt.')
+      toast.error('Gebruiker kon niet worden aangemaakt.')
     } finally {
       setIsSubmitting(false)
     }
@@ -69,7 +67,7 @@ const OrganisationUsersPage: React.FC = () => {
       setUsers((prev) => prev.map((user) => (user.id === userId ? data : user)))
     } catch (err) {
       console.error(err)
-      setError('Gebruiker blokkeren mislukt.')
+      toast.error('Gebruiker blokkeren mislukt.')
     }
   }
 
@@ -79,7 +77,7 @@ const OrganisationUsersPage: React.FC = () => {
       setUsers((prev) => prev.map((user) => (user.id === userId ? data : user)))
     } catch (err) {
       console.error(err)
-      setError('Gebruiker deblokkeren mislukt.')
+      toast.error('Gebruiker deblokkeren mislukt.')
     }
   }
 
@@ -92,7 +90,7 @@ const OrganisationUsersPage: React.FC = () => {
       setUsers((prev) => prev.filter((user) => user.id !== userId))
     } catch (err) {
       console.error(err)
-      setError('Gebruiker verwijderen mislukt.')
+      toast.error('Gebruiker verwijderen mislukt.')
     }
   }
 
@@ -117,12 +115,6 @@ const OrganisationUsersPage: React.FC = () => {
           )}
         </Button>
       </div>
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
 
       {showForm && (
         <Card className="p-6">

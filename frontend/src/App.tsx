@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import './App.css'
 import { AuthProvider } from './context/AuthContext'
 import { MemberAuthProvider } from './context/MemberAuthContext'
@@ -150,6 +151,7 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+        <Toaster position="bottom-right" richColors />
       </MemberAuthProvider>
     </AuthProvider>
   )

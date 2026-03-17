@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Link } from 'react-router-dom'
 import { Search, UserPlus, Upload, Eye, ChevronUp, ChevronDown, Mail, Ban, CheckCircle2, Download } from 'lucide-react'
 import { apiClient } from '../api/axios'
@@ -32,8 +33,6 @@ const OrganisationMembersListPage: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([])
   const [meta, setMeta] = useState<Meta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [rowLoading, setRowLoading] = useState<Record<number, boolean>>({})
 
   const [isExporting, setIsExporting] = useState(false)
@@ -51,7 +50,6 @@ const OrganisationMembersListPage: React.FC = () => {
 
     const fetchMembers = async () => {
       setIsLoading(true)
-      setError(null)
 
       try {
         const params: Record<string, string | number | undefined> = {
@@ -82,13 +80,12 @@ const OrganisationMembersListPage: React.FC = () => {
 
         setMembers(data.data)
         setMeta(data.meta)
-        setSuccessMessage(null)
       } catch (err) {
         if (!isMounted || controller.signal.aborted) {
           return
         }
         console.error('Leden ophalen mislukt', err)
-        setError('Kon leden niet ophalen. Probeer het later opnieuw.')
+        toast.error('Kon leden niet ophalen. Probeer het later opnieuw.')
       } finally {
         if (isMounted) {
           setIsLoading(false)
@@ -167,7 +164,7 @@ const OrganisationMembersListPage: React.FC = () => {
       )
     } catch (err) {
       console.error('Status bijwerken mislukt', err)
-      setError('Kon de status niet bijwerken. Probeer het later opnieuw.')
+      toast.error('Kon de status niet bijwerken. Probeer het later opnieuw.')
     }
   }
 
@@ -227,8 +224,6 @@ const OrganisationMembersListPage: React.FC = () => {
       return
     }
 
-    setError(null)
-    setSuccessMessage(null)
     setRowLoadingState(member.id, true)
 
     try {
@@ -240,7 +235,7 @@ const OrganisationMembersListPage: React.FC = () => {
         account_status: 'invited',
         last_invitation_sent_at: data.data.created_at ?? new Date().toISOString(),
       })
-      setSuccessMessage('Uitnodiging succesvol verstuurd.')
+      toast.success('Uitnodiging succesvol verstuurd.')
     } catch (err: any) {
       console.error('Uitnodiging versturen mislukt', err)
       const message =
@@ -248,7 +243,7 @@ const OrganisationMembersListPage: React.FC = () => {
         (err.response?.status === 422
           ? 'Uitnodiging kon niet worden verstuurd.'
           : 'Kon uitnodiging niet versturen. Probeer het later opnieuw.')
-      setError(message)
+      toast.error(message)
     } finally {
       setRowLoadingState(member.id, false)
     }
@@ -259,8 +254,6 @@ const OrganisationMembersListPage: React.FC = () => {
       return
     }
 
-    setError(null)
-    setSuccessMessage(null)
     setRowLoadingState(member.id, true)
 
     try {
@@ -273,12 +266,12 @@ const OrganisationMembersListPage: React.FC = () => {
         account_email: data.data.account_email,
         last_invitation_sent_at: data.data.last_invitation_sent_at,
       })
-      setSuccessMessage('Accounttoegang geblokkeerd.')
+      toast.success('Accounttoegang geblokkeerd.')
     } catch (err: any) {
       console.error('Blokkeren mislukt', err)
       const message =
         err.response?.data?.message ?? 'Kon account niet blokkeren. Probeer het later opnieuw.'
-      setError(message)
+      toast.error(message)
     } finally {
       setRowLoadingState(member.id, false)
     }
@@ -289,8 +282,6 @@ const OrganisationMembersListPage: React.FC = () => {
       return
     }
 
-    setError(null)
-    setSuccessMessage(null)
     setRowLoadingState(member.id, true)
 
     try {
@@ -303,12 +294,12 @@ const OrganisationMembersListPage: React.FC = () => {
         account_email: data.data.account_email,
         last_invitation_sent_at: data.data.last_invitation_sent_at,
       })
-      setSuccessMessage('Accounttoegang gedeblokkeerd.')
+      toast.success('Accounttoegang gedeblokkeerd.')
     } catch (err: any) {
       console.error('Deblokkeren mislukt', err)
       const message =
         err.response?.data?.message ?? 'Kon account niet deblokkeren. Probeer het later opnieuw.'
-      setError(message)
+      toast.error(message)
     } finally {
       setRowLoadingState(member.id, false)
     }
@@ -396,17 +387,6 @@ const OrganisationMembersListPage: React.FC = () => {
           </Button>
         </form>
       </Card>
-
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-      {successMessage && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-400 px-4 py-3 rounded-lg">
-          {successMessage}
-        </div>
-      )}
 
       {isLoading && (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
