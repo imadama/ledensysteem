@@ -47,11 +47,20 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
   const [showSetupForm, setShowSetupForm] = useState(false)
   const [showUpdateAmountForm, setShowUpdateAmountForm] = useState(false)
 
-  const [formAmount, setFormAmount] = useState('')
-  const [formIban, setFormIban] = useState('')
+  const [formAmount, setFormAmount] = useState(() =>
+    memberContributionAmount != null && memberContributionAmount > 0 ? String(memberContributionAmount) : ''
+  )
+  const [formIban, setFormIban] = useState(memberIban ?? '')
   const [formDescription, setFormDescription] = useState('')
   const [formNotes, setFormNotes] = useState('')
   const [updateAmountValue, setUpdateAmountValue] = useState('')
+
+  const resetSetupForm = useCallback(() => {
+    setFormAmount(memberContributionAmount != null && memberContributionAmount > 0 ? String(memberContributionAmount) : '')
+    setFormIban(memberIban ?? '')
+    setFormDescription('')
+    setFormNotes('')
+  }, [memberContributionAmount, memberIban])
 
   const loadSepaSubscription = useCallback(async () => {
     setLoading(true)
@@ -61,21 +70,13 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
         `/api/organisation/members/${memberId}/sepa-subscription`
       )
       setData(responseData)
-      
-      if (memberIban) {
-        setFormIban(memberIban)
-      }
-      
-      if (memberContributionAmount) {
-        setFormAmount(String(memberContributionAmount))
-      }
     } catch (err: any) {
       console.error('SEPA incasso ophalen mislukt', err)
       setError(err.response?.data?.message ?? 'Kon SEPA incasso informatie niet ophalen.')
     } finally {
       setLoading(false)
     }
-  }, [memberId, memberIban, memberContributionAmount])
+  }, [memberId])
 
   useEffect(() => {
     void loadSepaSubscription()
@@ -96,10 +97,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
       })
       setSuccessMessage('Automatische SEPA incasso succesvol opgezet.')
       setShowSetupForm(false)
-      setFormAmount('')
-      setFormIban('')
-      setFormDescription('')
-      setFormNotes('')
+      resetSetupForm()
       await loadSepaSubscription()
     } catch (err: any) {
       console.error('SEPA incasso opzetten mislukt', err)
@@ -297,10 +295,7 @@ const MemberSepaSubscriptionSection: React.FC<MemberSepaSubscriptionSectionProps
                   variant="secondary"
                   onClick={() => {
                     setShowSetupForm(false)
-                    setFormAmount('')
-                    setFormIban('')
-                    setFormDescription('')
-                    setFormNotes('')
+                    resetSetupForm()
                   }}
                   disabled={isSettingUp}
                 >
