@@ -20,8 +20,19 @@ class Organisation extends Model
         'status',
         'billing_status',
         'billing_note',
+        'billing_warning_sent_at',
         'subdomain',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'billing_warning_sent_at' => 'datetime',
+        ];
+    }
 
     public function users(): HasMany
     {

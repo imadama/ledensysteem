@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 
+use App\Mail\OrganisationWelcomeMailable;
 use App\Models\Organisation;
 use App\Models\OrganisationSubscription;
 use App\Models\User;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -72,6 +74,8 @@ class AuthController extends Controller
 
             return [$organisation, $user];
         });
+
+        Mail::to($user)->send(new OrganisationWelcomeMailable($organisation, $user));
 
         $user->refresh()->load('roles', 'organisation.currentSubscription.plan');
 

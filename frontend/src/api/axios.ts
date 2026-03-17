@@ -206,6 +206,14 @@ apiClient.interceptors.response.use(
       authManager.clearAuth()
     }
 
+    if (
+      status === 402 &&
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/organisation/subscription'
+    ) {
+      window.location.href = '/organisation/subscription?payment_required=true'
+    }
+
     return Promise.reject(error)
   },
 )

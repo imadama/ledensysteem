@@ -13,3 +13,6 @@ Schedule::command('subscriptions:check-incomplete --hours=1')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Controleer grace periods voor organisatie-abonnementen dagelijks
+Schedule::command('org:check-grace-period')->daily();
