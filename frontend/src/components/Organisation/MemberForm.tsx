@@ -83,7 +83,7 @@ const MemberForm: React.FC<MemberFormProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="member_number" className={labelClassName}>
-            Lidnummer
+            Lidnummer <span className="text-gray-400 font-normal">(optioneel)</span>
           </label>
           <input
             id="member_number"
@@ -91,6 +91,7 @@ const MemberForm: React.FC<MemberFormProps> = ({
             value={values.member_number}
             onChange={handleChange('member_number')}
             className={inputClassName(!!errors.member_number)}
+            placeholder="Wordt automatisch aangemaakt"
           />
           {errors.member_number && (
             <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">{errors.member_number}</span>
