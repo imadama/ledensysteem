@@ -21,6 +21,7 @@ class Organisation extends Model
         'billing_status',
         'billing_note',
         'billing_warning_sent_at',
+        'payment_reminder_sent_at',
         'subdomain',
     ];
 
@@ -30,7 +31,8 @@ class Organisation extends Model
     protected function casts(): array
     {
         return [
-            'billing_warning_sent_at' => 'datetime',
+            'billing_warning_sent_at'    => 'datetime',
+            'payment_reminder_sent_at'   => 'datetime',
         ];
     }
 

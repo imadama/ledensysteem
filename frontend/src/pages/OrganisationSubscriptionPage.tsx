@@ -106,14 +106,18 @@ const OrganisationSubscriptionPage: React.FC = () => {
     if (cancelled) {
       setStatusMessage('Betaling geannuleerd of onderbroken.')
     } else {
-    setStatusMessage('Betaling wordt gecontroleerd...')
+      setStatusMessage('Betaling wordt gecontroleerd...')
     }
 
     void (async () => {
       await loadOrganisationInfo()
       await refreshMe()
-      setStatusMessage('Status bijgewerkt.')
-      navigate(location.pathname, { replace: true })
+      if (!cancelled) {
+        navigate('/organisation/onboarding', { replace: true })
+      } else {
+        setStatusMessage('Status bijgewerkt.')
+        navigate(location.pathname, { replace: true })
+      }
     })()
   }, [location.pathname, location.search, loadOrganisationInfo, navigate, refreshMe])
 
