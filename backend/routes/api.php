@@ -72,6 +72,7 @@ Route::middleware([
         Route::post('members', [MemberController::class, 'store']);
         Route::post('members/invite-bulk', [MemberController::class, 'inviteBulk']);
         Route::post('members/{id}/invite', [MemberController::class, 'invite']);
+        Route::get('members/export', [MemberController::class, 'export']);
         Route::get('members/{id}', [MemberController::class, 'show']);
         Route::put('members/{id}', [MemberController::class, 'update']);
         Route::patch('members/{id}/status', [MemberController::class, 'updateStatus']);

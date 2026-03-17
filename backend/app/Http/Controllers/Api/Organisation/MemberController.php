@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberController extends Controller
 {
@@ -55,6 +56,84 @@ class MemberController extends Controller
     public function downloadTemplate(): BinaryFileResponse
     {
         return Excel::download(new MemberTemplateExport(), 'leden_template.xlsx');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $organisation = $request->user()->organisation;
+
+        $members = $organisation->members()
+            ->orderBy('member_number', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
+
+        $filename = 'leden_export_' . now()->format('Y-m-d') . '.csv';
+
+        return response()->stream(function () use ($members): void {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM for Excel compatibility
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            // Dutch headers
+            fputcsv($handle, [
+                'Lidnummer',
+                'Voornaam',
+                'Achternaam',
+                'Geslacht',
+                'Geboortedatum',
+                'E-mail',
+                'Telefoonnummer',
+                'Adres',
+                'Postcode',
+                'Stad',
+                'IBAN',
+                'Contributiebedrag',
+                'Contributiefrequentie',
+                'Startdatum contributie',
+                'Status',
+                'Aangemaakt op',
+            ], ';');
+
+            foreach ($members as $member) {
+                $gender = match ($member->gender) {
+                    'm' => 'Man',
+                    'f' => 'Vrouw',
+                    default => $member->gender ?? '',
+                };
+
+                $frequency = match ($member->contribution_frequency) {
+                    'monthly' => 'Maandelijks',
+                    'yearly'  => 'Jaarlijks',
+                    'none'    => 'Geen',
+                    default   => $member->contribution_frequency ?? '',
+                };
+
+                fputcsv($handle, [
+                    $member->member_number ?? '',
+                    $member->first_name ?? '',
+                    $member->last_name ?? '',
+                    $gender,
+                    $member->birth_date?->toDateString() ?? '',
+                    $member->email ?? '',
+                    $member->phone ?? '',
+                    $member->street_address ?? '',
+                    $member->postal_code ?? '',
+                    $member->city ?? '',
+                    $member->iban ?? '',
+                    $member->contribution_amount ?? '',
+                    $frequency,
+                    $member->contribution_start_date?->toDateString() ?? '',
+                    $member->status ?? '',
+                    $member->created_at?->toDateString() ?? '',
+                ], ';');
+            }
+
+            fclose($handle);
+        }, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function index(Request $request): JsonResponse

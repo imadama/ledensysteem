@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, UserPlus, Upload, Eye, ChevronUp, ChevronDown, Mail, Ban, CheckCircle2 } from 'lucide-react'
+import { Search, UserPlus, Upload, Eye, ChevronUp, ChevronDown, Mail, Ban, CheckCircle2, Download } from 'lucide-react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -35,6 +35,8 @@ const OrganisationMembersListPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [rowLoading, setRowLoading] = useState<Record<number, boolean>>({})
+
+  const [isExporting, setIsExporting] = useState(false)
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -101,6 +103,27 @@ const OrganisationMembersListPage: React.FC = () => {
       controller.abort()
     }
   }, [page, search, sortBy, sortDirection, statusFilter])
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const { data } = await apiClient.get('/api/organisation/members/export', {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(new Blob([data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'leden_export.csv'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Exporteren mislukt', err)
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -340,6 +363,10 @@ const OrganisationMembersListPage: React.FC = () => {
               Bulk upload
             </Button>
           </Link>
+          <Button variant="outline" onClick={() => void handleExport()} disabled={isExporting}>
+            <Download size={16} />
+            {isExporting ? 'Bezig...' : 'Exporteren'}
+          </Button>
         </div>
       </div>
 
