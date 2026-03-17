@@ -2,7 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\MemberContributionRecord;
+use App\Models\MemberSubscription;
 use App\Models\OrganisationSubscription;
+use App\Models\PaymentTransaction;
 use App\Services\SubscriptionAuditService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -36,6 +39,7 @@ class CheckIncompleteSubscriptions extends Command
             $this->info("Controleren incomplete subscriptions ouder dan {$hours} uur...");
         }
 
+        // --- Deel 1: OrganisationSubscriptions (checkout session flow) ---
         $query = OrganisationSubscription::query()
             ->where('status', 'incomplete')
             ->with(['organisation', 'plan']);
@@ -49,38 +53,84 @@ class CheckIncompleteSubscriptions extends Command
         $incompleteSubscriptions = $query->get();
 
         if ($incompleteSubscriptions->isEmpty()) {
-            $this->info('Geen incomplete subscriptions gevonden die gecontroleerd moeten worden.');
+            $this->info('Geen incomplete organisatie subscriptions gevonden die gecontroleerd moeten worden.');
+        } else {
+            $this->info("Gevonden: {$incompleteSubscriptions->count()} incomplete subscription(s)");
+
+            $updated = 0;
+            $expired = 0;
+            $stillIncomplete = 0;
+            $errors = 0;
+
+            foreach ($incompleteSubscriptions as $subscription) {
+                try {
+                    $result = $this->checkSubscription($subscription);
+
+                    match ($result) {
+                        'expired' => $expired++,
+                        'updated' => $updated++,
+                        'still_incomplete' => $stillIncomplete++,
+                        default => $errors++,
+                    };
+                } catch (\Exception $e) {
+                    $this->error("Fout bij controleren subscription {$subscription->id}: {$e->getMessage()}");
+                    $errors++;
+                }
+            }
+
+            $this->info("Resultaat:");
+            $this->info("  - Expired/geannuleerd: {$expired}");
+            $this->info("  - Bijgewerkt naar actief: {$updated}");
+            $this->info("  - Nog incomplete: {$stillIncomplete}");
+            $this->info("  - Fouten: {$errors}");
+        }
+
+        // --- Deel 2: MemberSubscriptions zonder checkout session (SEPA admin flow) ---
+        // SEPA subscriptions aangemaakt via de admin (MemberSepaSubscriptionService) krijgen
+        // een stripe_subscription_id direct, zonder checkout session. Daardoor worden ze
+        // nooit opgepikt door de bovenstaande loop.
+        $this->info("\nControleren incomplete SEPA member subscriptions (zonder checkout session)...");
+
+        $memberSubQuery = MemberSubscription::query()
+            ->where('status', 'incomplete')
+            ->whereNotNull('stripe_subscription_id')
+            ->whereNull('latest_checkout_session_id')
+            ->where('created_at', '<', Carbon::now()->subMinutes(5))
+            ->with('member.organisation.stripeConnection');
+
+        if ($organisationId) {
+            $memberSubQuery->whereHas('member', function ($q) use ($organisationId): void {
+                $q->where('organisation_id', $organisationId);
+            });
+        }
+
+        $incompleteMemberSubscriptions = $memberSubQuery->get();
+
+        if ($incompleteMemberSubscriptions->isEmpty()) {
+            $this->info('Geen incomplete SEPA member subscriptions gevonden.');
             return Command::SUCCESS;
         }
 
-        $this->info("Gevonden: {$incompleteSubscriptions->count()} incomplete subscription(s)");
+        $this->info("Gevonden: {$incompleteMemberSubscriptions->count()} incomplete SEPA member subscription(s)");
 
-        $updated = 0;
-        $expired = 0;
-        $stillIncomplete = 0;
-        $errors = 0;
+        $memberUpdated = 0;
+        $memberErrors = 0;
 
-        foreach ($incompleteSubscriptions as $subscription) {
+        foreach ($incompleteMemberSubscriptions as $memberSubscription) {
             try {
-                $result = $this->checkSubscription($subscription);
-                
-                match ($result) {
-                    'expired' => $expired++,
-                    'updated' => $updated++,
-                    'still_incomplete' => $stillIncomplete++,
-                    default => $errors++,
-                };
+                $synced = $this->syncSepaSubscription($memberSubscription);
+                if ($synced) {
+                    $memberUpdated++;
+                }
             } catch (\Exception $e) {
-                $this->error("Fout bij controleren subscription {$subscription->id}: {$e->getMessage()}");
-                $errors++;
+                $this->error("Fout bij synchroniseren SEPA member subscription {$memberSubscription->id}: {$e->getMessage()}");
+                $memberErrors++;
             }
         }
 
-        $this->info("Resultaat:");
-        $this->info("  - Expired/geannuleerd: {$expired}");
-        $this->info("  - Bijgewerkt naar actief: {$updated}");
-        $this->info("  - Nog incomplete: {$stillIncomplete}");
-        $this->info("  - Fouten: {$errors}");
+        $this->info("SEPA resultaat:");
+        $this->info("  - Bijgewerkt: {$memberUpdated}");
+        $this->info("  - Fouten: {$memberErrors}");
 
         return Command::SUCCESS;
     }
@@ -282,6 +332,148 @@ class CheckIncompleteSubscriptions extends Command
             }
 
             throw $e;
+        }
+    }
+
+    private function syncSepaSubscription(MemberSubscription $memberSubscription): bool
+    {
+        $organisation = $memberSubscription->member->organisation;
+        $connection = $organisation?->stripeConnection;
+
+        if (! $connection || $connection->status !== 'active' || ! $connection->stripe_account_id) {
+            $this->warn("  MemberSubscription {$memberSubscription->id}: Geen actieve Stripe Connect account voor organisatie");
+            return false;
+        }
+
+        $this->line("  MemberSubscription {$memberSubscription->id}: Ophalen Stripe subscription {$memberSubscription->stripe_subscription_id}...");
+
+        try {
+            $stripeSubscription = $this->stripe->subscriptions->retrieve(
+                $memberSubscription->stripe_subscription_id,
+                [],
+                ['stripe_account' => $connection->stripe_account_id]
+            );
+        } catch (ApiErrorException $e) {
+            if ($e->getStripeCode() === 'resource_missing') {
+                $this->warn("  MemberSubscription {$memberSubscription->id}: Stripe subscription bestaat niet meer, status ongewijzigd");
+                return false;
+            }
+            throw $e;
+        }
+
+        $statusMap = [
+            'active' => 'active',
+            'trialing' => 'trial',
+            'past_due' => 'past_due',
+            'canceled' => 'canceled',
+            'unpaid' => 'unpaid',
+            'incomplete' => 'incomplete',
+            'incomplete_expired' => 'incomplete_expired',
+        ];
+
+        $newStatus = $statusMap[$stripeSubscription->status] ?? $stripeSubscription->status;
+        $this->line("  MemberSubscription {$memberSubscription->id}: Stripe status = {$stripeSubscription->status} → lokale status = {$newStatus}");
+
+        $oldStatus = $memberSubscription->status;
+        $memberSubscription->status = $newStatus;
+
+        $periodStart = data_get($stripeSubscription, 'current_period_start');
+        $periodEnd = data_get($stripeSubscription, 'current_period_end');
+
+        if ($periodStart) {
+            $memberSubscription->current_period_start = Carbon::createFromTimestamp($periodStart);
+        }
+        if ($periodEnd) {
+            $memberSubscription->current_period_end = Carbon::createFromTimestamp($periodEnd);
+        }
+
+        $memberSubscription->save();
+
+        $this->info("  MemberSubscription {$memberSubscription->id}: Status bijgewerkt van '{$oldStatus}' naar '{$newStatus}'");
+
+        // Als de subscription actief is geworden, controleer of we contribution records moeten aanmaken
+        if ($newStatus === 'active') {
+            $this->syncSepaSubscriptionInvoices($memberSubscription, $stripeSubscription, $connection->stripe_account_id);
+        }
+
+        return true;
+    }
+
+    private function syncSepaSubscriptionInvoices(MemberSubscription $memberSubscription, \Stripe\Subscription $stripeSubscription, string $stripeAccountId): void
+    {
+        try {
+            $invoices = $this->stripe->invoices->all([
+                'subscription' => $stripeSubscription->id,
+                'limit' => 10,
+            ], ['stripe_account' => $stripeAccountId]);
+
+            foreach ($invoices->data as $invoice) {
+                if ($invoice->status !== 'paid' || $invoice->amount_paid <= 0) {
+                    continue;
+                }
+
+                $fullInvoice = $this->stripe->invoices->retrieve(
+                    $invoice->id,
+                    [],
+                    ['stripe_account' => $stripeAccountId]
+                );
+                $paymentIntentId = data_get($fullInvoice, 'payment_intent');
+
+                // Check of er al een transaction bestaat voor deze invoice
+                $existingTransaction = null;
+                if ($paymentIntentId) {
+                    $existingTransaction = PaymentTransaction::query()
+                        ->where('stripe_payment_intent_id', $paymentIntentId)
+                        ->first();
+                }
+                if (! $existingTransaction) {
+                    $existingTransaction = PaymentTransaction::query()
+                        ->whereJsonContains('metadata->stripe_invoice_id', $fullInvoice->id)
+                        ->first();
+                }
+
+                if ($existingTransaction) {
+                    $this->line("    → Contribution record bestaat al voor invoice {$fullInvoice->id}");
+                    continue;
+                }
+
+                $invoicePeriodStart = data_get($fullInvoice, 'lines.data.0.period.start')
+                    ? Carbon::createFromTimestamp(data_get($fullInvoice, 'lines.data.0.period.start'))->startOfMonth()
+                    : now()->startOfMonth();
+
+                $contribution = MemberContributionRecord::create([
+                    'member_id' => $memberSubscription->member_id,
+                    'amount' => round($fullInvoice->amount_paid / 100, 2),
+                    'status' => 'paid',
+                    'period' => $invoicePeriodStart,
+                    'note' => 'Automatische incasso via SEPA subscription',
+                ]);
+
+                $transaction = PaymentTransaction::create([
+                    'organisation_id' => $memberSubscription->member->organisation_id,
+                    'member_id' => $memberSubscription->member_id,
+                    'type' => 'contribution',
+                    'amount' => round($fullInvoice->amount_paid / 100, 2),
+                    'currency' => strtoupper($fullInvoice->currency),
+                    'status' => 'succeeded',
+                    'stripe_payment_intent_id' => $paymentIntentId,
+                    'metadata' => [
+                        'stripe_invoice_id' => $fullInvoice->id,
+                        'stripe_invoice_number' => $fullInvoice->number,
+                        'member_subscription_id' => (string) $memberSubscription->id,
+                        'member_contribution_id' => (string) $contribution->id,
+                    ],
+                    'occurred_at' => data_get($fullInvoice, 'status_transitions.paid_at')
+                        ? Carbon::createFromTimestamp(data_get($fullInvoice, 'status_transitions.paid_at'))
+                        : now(),
+                ]);
+
+                $contribution->update(['payment_transaction_id' => $transaction->id]);
+
+                $this->line("    → Contribution record aangemaakt: €{$contribution->amount} (invoice {$fullInvoice->id})");
+            }
+        } catch (ApiErrorException $e) {
+            $this->warn("  MemberSubscription {$memberSubscription->id}: Fout bij ophalen invoices: {$e->getMessage()}");
         }
     }
 

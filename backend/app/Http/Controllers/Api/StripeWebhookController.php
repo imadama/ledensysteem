@@ -149,6 +149,18 @@ class StripeWebhookController extends Controller
 
         if (in_array($type, ['invoice.payment_succeeded', 'invoice.payment_failed'], true)) {
             $this->handleInvoiceEvent($type, $object);
+
+            return;
+        }
+
+        if ($type === 'charge.dispute.created') {
+            $this->handleChargeDisputeCreated($event);
+
+            return;
+        }
+
+        if ($type === 'charge.dispute.closed') {
+            $this->handleChargeDisputeClosed($event);
         }
     }
 
@@ -415,6 +427,24 @@ class StripeWebhookController extends Controller
         $subscription->metadata = $metadata;
 
         $subscription->save();
+
+        // Auto-disable SEPA when the subscription becomes uncollectable
+        if (in_array($stripeStatus, ['incomplete_expired', 'unpaid'], true)) {
+            $subscription->status = 'canceled';
+            $subscription->save();
+
+            $member = $subscription->member;
+            if ($member && $member->sepa_subscription_enabled) {
+                $member->sepa_subscription_enabled = false;
+                $member->save();
+
+                \Log::info('Stripe webhook: SEPA automatisch uitgeschakeld wegens onbetaalde/vervallen subscription', [
+                    'member_id' => $member->id,
+                    'member_subscription_id' => $subscription->id,
+                    'stripe_status' => $stripeStatus,
+                ]);
+            }
+        }
     }
 
     private function handleInvoiceEvent(string $type, $object): void
@@ -747,6 +777,164 @@ class StripeWebhookController extends Controller
         $contribution->update([
             'payment_transaction_id' => $transaction->id,
         ]);
+    }
+
+    private function handleChargeDisputeCreated(StripeEventObject $event): void
+    {
+        $dispute = $event->data->object;
+        $paymentIntentId = $dispute->payment_intent ?? null;
+
+        if (! $paymentIntentId) {
+            \Log::warning('Stripe webhook: charge.dispute.created zonder payment_intent', [
+                'dispute_id' => $dispute->id ?? null,
+            ]);
+
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($dispute, $paymentIntentId): void {
+                $transaction = PaymentTransaction::query()
+                    ->where('stripe_payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $transaction) {
+                    \Log::warning('Stripe webhook: charge.dispute.created maar geen transaction gevonden', [
+                        'dispute_id' => $dispute->id ?? null,
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+
+                    return;
+                }
+
+                $transaction->status = 'disputed';
+                $transaction->failure_reason = 'Terugboeking ingediend door lid';
+                $transaction->failure_metadata = array_merge($transaction->failure_metadata ?? [], [
+                    'dispute_id' => $dispute->id ?? null,
+                    'dispute_reason' => $dispute->reason ?? null,
+                    'disputed_at' => now()->toIso8601String(),
+                ]);
+                $transaction->save();
+
+                MemberContributionRecord::query()
+                    ->where('payment_transaction_id', $transaction->id)
+                    ->update(['status' => 'failed']);
+
+                if ($transaction->organisation_id && $transaction->organisation) {
+                    $this->auditService->logPaymentEvent(
+                        $transaction->organisation,
+                        null,
+                        'disputed',
+                        [
+                            'amount' => (float) $transaction->amount,
+                            'currency' => $transaction->currency,
+                            'payment_intent_id' => $paymentIntentId,
+                            'dispute_id' => $dispute->id ?? null,
+                            'dispute_reason' => $dispute->reason ?? null,
+                        ],
+                        'Terugboeking (chargeback) ingediend voor betaling',
+                        ['transaction_id' => $transaction->id, 'dispute_id' => $dispute->id ?? null]
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            \Log::error('Stripe webhook: fout bij verwerken charge.dispute.created', [
+                'dispute_id' => $dispute->id ?? null,
+                'payment_intent_id' => $paymentIntentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    private function handleChargeDisputeClosed(StripeEventObject $event): void
+    {
+        $dispute = $event->data->object;
+        $paymentIntentId = $dispute->payment_intent ?? null;
+
+        if (! $paymentIntentId) {
+            \Log::warning('Stripe webhook: charge.dispute.closed zonder payment_intent', [
+                'dispute_id' => $dispute->id ?? null,
+            ]);
+
+            return;
+        }
+
+        $disputeStatus = $dispute->status ?? null;
+
+        try {
+            DB::transaction(function () use ($dispute, $paymentIntentId, $disputeStatus): void {
+                $transaction = PaymentTransaction::query()
+                    ->where('stripe_payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $transaction) {
+                    \Log::warning('Stripe webhook: charge.dispute.closed maar geen transaction gevonden', [
+                        'dispute_id' => $dispute->id ?? null,
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+
+                    return;
+                }
+
+                if ($disputeStatus === 'won') {
+                    $transaction->status = 'succeeded';
+                    $transaction->failure_reason = null;
+                    $transaction->failure_metadata = array_merge($transaction->failure_metadata ?? [], [
+                        'dispute_won_at' => now()->toIso8601String(),
+                        'dispute_id' => $dispute->id ?? null,
+                    ]);
+                    $transaction->save();
+
+                    MemberContributionRecord::query()
+                        ->where('payment_transaction_id', $transaction->id)
+                        ->update(['status' => 'paid']);
+                } else {
+                    // lost or otherwise closed unfavorably
+                    $transaction->status = 'disputed';
+                    $transaction->failure_reason = 'Terugboeking verloren';
+                    $transaction->failure_metadata = array_merge($transaction->failure_metadata ?? [], [
+                        'dispute_lost_at' => now()->toIso8601String(),
+                        'dispute_id' => $dispute->id ?? null,
+                        'dispute_status' => $disputeStatus,
+                    ]);
+                    $transaction->save();
+                }
+
+                if ($transaction->organisation_id && $transaction->organisation) {
+                    $eventType = $disputeStatus === 'won' ? 'succeeded' : 'failed';
+                    $description = $disputeStatus === 'won'
+                        ? 'Terugboeking (chargeback) gewonnen – betaling hersteld'
+                        : 'Terugboeking (chargeback) verloren';
+
+                    $this->auditService->logPaymentEvent(
+                        $transaction->organisation,
+                        null,
+                        $eventType,
+                        [
+                            'amount' => (float) $transaction->amount,
+                            'currency' => $transaction->currency,
+                            'payment_intent_id' => $paymentIntentId,
+                            'dispute_id' => $dispute->id ?? null,
+                            'dispute_status' => $disputeStatus,
+                        ],
+                        $description,
+                        ['transaction_id' => $transaction->id, 'dispute_id' => $dispute->id ?? null]
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            \Log::error('Stripe webhook: fout bij verwerken charge.dispute.closed', [
+                'dispute_id' => $dispute->id ?? null,
+                'payment_intent_id' => $paymentIntentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
     }
 
     private function locateTransaction($clientReferenceId, ?string $sessionId, ?string $paymentIntentId): ?PaymentTransaction

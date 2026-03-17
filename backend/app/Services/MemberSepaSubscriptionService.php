@@ -75,6 +75,14 @@ class MemberSepaSubscriptionService
 
         $stripeAccountId = $connection->stripe_account_id;
 
+        // Fix 2: Prevent duplicate active subscriptions from any source
+        $activeSubscription = MemberSubscription::where('member_id', $member->id)
+            ->whereIn('status', ['active', 'incomplete', 'past_due', 'trial'])
+            ->first();
+        if ($activeSubscription) {
+            throw new \RuntimeException('Dit lid heeft al een actieve incasso. Schakel de bestaande incasso eerst uit.');
+        }
+
         return DB::transaction(function () use (
             $admin,
             $member,
@@ -85,21 +93,48 @@ class MemberSepaSubscriptionService
             $notes,
             $stripeAccountId
         ) {
-            // 1. Maak Stripe customer aan op connected account
+            // 1. Maak Stripe customer aan op connected account (of hergebruik bestaande)
             $customerEmail = $member->email;
             if (empty($customerEmail)) {
                 // Gebruik generieke email als lid geen email heeft
                 $customerEmail = "member-{$member->id}@organisation-{$organisation->id}.local";
             }
 
-            $customer = $this->stripe->customers->create([
-                'email' => $customerEmail,
-                'name' => $member->full_name,
-                'metadata' => [
-                    'member_id' => (string) $member->id,
-                    'organisation_id' => (string) $organisation->id,
-                ],
-            ], ['stripe_account' => $stripeAccountId]);
+            // Fix 1: Reuse existing Stripe customer if available
+            $customer = null;
+            $existingSubscriptionWithCustomer = MemberSubscription::where('member_id', $member->id)
+                ->whereNotNull('stripe_customer_id')
+                ->latest()
+                ->first();
+
+            if ($existingSubscriptionWithCustomer) {
+                $existingCustomerId = $existingSubscriptionWithCustomer->stripe_customer_id;
+                try {
+                    $customer = $this->stripe->customers->retrieve(
+                        $existingCustomerId,
+                        [],
+                        ['stripe_account' => $stripeAccountId]
+                    );
+                    // If customer is deleted in Stripe, treat it as not found
+                    if (isset($customer->deleted) && $customer->deleted) {
+                        $customer = null;
+                    }
+                } catch (\Exception $e) {
+                    // Customer not found in Stripe, create a new one
+                    $customer = null;
+                }
+            }
+
+            if (! $customer) {
+                $customer = $this->stripe->customers->create([
+                    'email' => $customerEmail,
+                    'name' => $member->full_name,
+                    'metadata' => [
+                        'member_id' => (string) $member->id,
+                        'organisation_id' => (string) $organisation->id,
+                    ],
+                ], ['stripe_account' => $stripeAccountId]);
+            }
 
             // 2. Maak SEPA payment method aan
             $paymentMethod = $this->stripe->paymentMethods->create([
@@ -354,14 +389,16 @@ class MemberSepaSubscriptionService
         ], ['stripe_account' => $connection->stripe_account_id]);
 
         // Update Stripe subscription met nieuwe price
+        // proration_behavior 'none' zodat het nieuwe bedrag pas ingaat bij de volgende factuurperiode
         $this->stripe->subscriptions->update(
             $subscription->stripe_subscription_id,
             [
                 'items' => [[
                     'id' => $subscriptionItemId,
                     'price' => $newPrice->id,
+                    'proration_behavior' => 'none',
                 ]],
-                'proration_behavior' => 'always_invoice',
+                'proration_behavior' => 'none',
             ],
             ['stripe_account' => $connection->stripe_account_id]
         );
