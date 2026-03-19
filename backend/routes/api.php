@@ -135,6 +135,7 @@ Route::middleware([
         Route::get('contribution', [SelfServiceController::class, 'contribution']);
         Route::get('contribution-history', [SelfServiceController::class, 'contributionHistory']);
         Route::get('subscription', [SelfServiceController::class, 'subscription']);
+        Route::post('sepa/setup', [SelfServiceController::class, 'setupSepa']);
         Route::get('contribution-open', [ContributionPaymentController::class, 'index']);
         Route::post('contribution-pay', [ContributionPaymentController::class, 'store']);
         Route::post('contribution-pay-manual', [ContributionPaymentController::class, 'payManual']);

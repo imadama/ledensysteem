@@ -6,11 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Member\UpdateProfileRequest;
 use App\Models\MemberContributionRecord;
 use App\Models\MemberSubscription;
+use App\Services\MemberSepaSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Stripe\Exception\ApiErrorException;
+use Symfony\Component\HttpFoundation\Response;
 
 class SelfServiceController extends Controller
 {
+    public function __construct(
+        private readonly MemberSepaSubscriptionService $sepaSubscriptionService
+    ) {
+    }
+
     public function profile(Request $request): JsonResponse
     {
         [$user, $member] = $this->resolveContext($request);
@@ -139,6 +148,50 @@ class SelfServiceController extends Controller
                 'status' => $subscription->status,
             ],
         ]);
+    }
+
+    public function setupSepa(Request $request): JsonResponse
+    {
+        [$user, $member] = $this->resolveContext($request);
+
+        $validated = $request->validate([
+            'iban' => ['required', 'string', 'max:34'],
+        ]);
+
+        try {
+            $subscription = $this->sepaSubscriptionService->setupSepaSubscription(
+                user: $user,
+                member: $member,
+                amount: (float) ($member->contribution_amount ?? 0),
+                iban: $validated['iban'],
+                mandateType: 'online',
+                ipAddress: $request->ip(),
+                userAgent: $request->userAgent(),
+            );
+
+            return response()->json([
+                'message' => __('Automatische SEPA incasso succesvol opgezet.'),
+                'subscription' => [
+                    'id' => $subscription->id,
+                    'amount' => (float) $subscription->amount,
+                    'status' => $subscription->status,
+                ],
+            ], Response::HTTP_CREATED);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => __('Kon automatische incasso niet opzetten.'),
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (ApiErrorException $e) {
+            \Illuminate\Support\Facades\Log::error('Member self-service SEPA setup failed', [
+                'member_id' => $member->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => __('Kon automatische incasso niet opzetten. Probeer het later opnieuw.'),
+            ], Response::HTTP_BAD_GATEWAY);
+        }
     }
 
     /**

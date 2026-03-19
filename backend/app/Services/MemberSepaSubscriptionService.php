@@ -32,7 +32,10 @@ class MemberSepaSubscriptionService
         float $amount,
         ?string $iban = null,
         ?string $description = null,
-        ?string $notes = null
+        ?string $notes = null,
+        string $mandateType = 'offline',
+        ?string $ipAddress = null,
+        ?string $userAgent = null
     ): MemberSubscription {
         $organisation = $member->organisation;
 
@@ -91,7 +94,10 @@ class MemberSepaSubscriptionService
             $memberIban,
             $description,
             $notes,
-            $stripeAccountId
+            $stripeAccountId,
+            $mandateType,
+            $ipAddress,
+            $userAgent
         ) {
             // 1. Maak Stripe customer aan op connected account (of hergebruik bestaande)
             $customerEmail = $member->email;
@@ -156,18 +162,26 @@ class MemberSepaSubscriptionService
             );
 
             // 4. Maak Setup Intent aan om SEPA mandate te bevestigen
-            // Voor SEPA moet de mandate bevestigd zijn voordat we een subscription kunnen aanmaken
-            // We hebben een collectieve machtiging, dus we kunnen de mandate direct bevestigen
+            $customerAcceptance = $mandateType === 'online'
+                ? [
+                    'type' => 'online',
+                    'online' => [
+                        'ip_address' => $ipAddress,
+                        'user_agent' => $userAgent,
+                    ],
+                ]
+                : [
+                    'type' => 'offline',
+                ];
+
             $setupIntent = $this->stripe->setupIntents->create([
                 'customer' => $customer->id,
                 'payment_method' => $paymentMethod->id,
                 'payment_method_types' => ['sepa_debit'],
                 'usage' => 'off_session',
-                'confirm' => true, // Bevestig direct (we hebben collectieve machtiging)
+                'confirm' => true,
                 'mandate_data' => [
-                    'customer_acceptance' => [
-                        'type' => 'offline', // Offline omdat we collectieve machtiging hebben
-                    ],
+                    'customer_acceptance' => $customerAcceptance,
                 ],
             ], ['stripe_account' => $stripeAccountId]);
 
