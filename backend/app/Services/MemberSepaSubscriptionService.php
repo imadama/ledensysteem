@@ -212,7 +212,14 @@ class MemberSepaSubscriptionService
             ], ['stripe_account' => $stripeAccountId]);
 
             // 7. Maak een price aan voor het product
-            $stripeAmount = (int) round($amount * 100); // Convert to cents
+            // Bereken bruto bedrag als organisatie de Stripe fee doorberekent aan het lid
+            // Stripe SEPA fee: 0.35% + €0.25 (max €5)
+            $billingAmount = $amount;
+            if ($organisation->pass_stripe_fee_to_member) {
+                $billingAmount = min(($amount + 0.25) / (1 - 0.0035), $amount + 5.00 + 0.25);
+                $billingAmount = round($billingAmount, 2);
+            }
+            $stripeAmount = (int) round($billingAmount * 100); // Convert to cents
 
             $price = $this->stripe->prices->create([
                 'currency' => 'eur',
@@ -241,7 +248,7 @@ class MemberSepaSubscriptionService
             // 9. Maak MemberSubscription aan
             $memberSubscription = MemberSubscription::create([
                 'member_id' => $member->id,
-                'amount' => $amount,
+                'amount' => $billingAmount,
                 'currency' => 'EUR',
                 'stripe_customer_id' => $customer->id,
                 'stripe_subscription_id' => $stripeSubscription->id,

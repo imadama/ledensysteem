@@ -20,6 +20,7 @@ class Organisation extends Model
         'status',
         'billing_status',
         'billing_note',
+        'pass_stripe_fee_to_member',
         'billing_warning_sent_at',
         'payment_reminder_sent_at',
         'subdomain',
@@ -31,8 +32,9 @@ class Organisation extends Model
     protected function casts(): array
     {
         return [
-            'billing_warning_sent_at'    => 'datetime',
-            'payment_reminder_sent_at'   => 'datetime',
+            'billing_warning_sent_at'      => 'datetime',
+            'payment_reminder_sent_at'     => 'datetime',
+            'pass_stripe_fee_to_member'    => 'boolean',
         ];
     }
 

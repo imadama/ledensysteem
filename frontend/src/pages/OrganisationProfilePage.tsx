@@ -10,6 +10,7 @@ type OrganisationProfile = {
   city: string
   country: string
   contact_email: string
+  pass_stripe_fee_to_member: boolean
 }
 
 type FieldErrors = Partial<Record<keyof OrganisationProfile, string[]>>
@@ -21,6 +22,7 @@ const OrganisationProfilePage: React.FC = () => {
     city: '',
     country: 'Nederland',
     contact_email: '',
+    pass_stripe_fee_to_member: false,
   })
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -39,6 +41,7 @@ const OrganisationProfilePage: React.FC = () => {
           city: data.city ?? '',
           country: data.country ?? 'Nederland',
           contact_email: data.contact_email ?? '',
+          pass_stripe_fee_to_member: data.pass_stripe_fee_to_member ?? false,
         })
       } catch (err) {
         console.error(err)
@@ -54,6 +57,10 @@ const OrganisationProfilePage: React.FC = () => {
   const handleChange = (field: keyof OrganisationProfile) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: event.target.value }))
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const handleToggle = (field: keyof OrganisationProfile) => () => {
+    setForm((prev) => ({ ...prev, [field]: !prev[field] }))
   }
 
   const handleSubmit = async (event: FormEvent) => {
@@ -181,6 +188,35 @@ const OrganisationProfilePage: React.FC = () => {
             {fieldErrors.contact_email && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.contact_email.join(' ')}</p>
             )}
+          </div>
+
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Betaalinstellingen</h3>
+            <label className="flex items-start gap-3 cursor-pointer" htmlFor="pass-stripe-fee">
+              <div className="relative mt-0.5">
+                <input
+                  id="pass-stripe-fee"
+                  type="checkbox"
+                  className="sr-only"
+                  checked={form.pass_stripe_fee_to_member}
+                  onChange={handleToggle('pass_stripe_fee_to_member')}
+                />
+                <div
+                  className={`w-10 h-6 rounded-full transition-colors ${form.pass_stripe_fee_to_member ? 'bg-aidatim-blue' : 'bg-gray-300 dark:bg-gray-600'}`}
+                />
+                <div
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.pass_stripe_fee_to_member ? 'translate-x-4' : 'translate-x-0'}`}
+                />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  Stripe transactiekosten doorberekenen aan leden
+                </span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Stripe rekent 0,35% + €0,25 per incasso. Als dit aan staat, wordt het contributiebedrag verhoogd zodat de organisatie het volledige bedrag ontvangt.
+                </p>
+              </div>
+            </label>
           </div>
 
           <div className="pt-2">
