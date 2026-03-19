@@ -34,22 +34,37 @@ class StripeWebhookController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        $secret = config('stripe.webhook_secret');
+        $payload = $request->getContent();
+        $signature = (string) $request->headers->get('Stripe-Signature', '');
 
-        if (! $secret) {
+        $secrets = array_filter([
+            config('stripe.webhook_secret'),
+            config('stripe.connect_webhook_secret'),
+        ]);
+
+        if (empty($secrets)) {
             return response()->json([
                 'message' => __('Stripe webhook secret ontbreekt in de configuratie.'),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        $payload = $request->getContent();
-        $signature = (string) $request->headers->get('Stripe-Signature', '');
+        $event = null;
+        foreach ($secrets as $secret) {
+            try {
+                $event = Webhook::constructEvent($payload, $signature, $secret);
+                break;
+            } catch (SignatureVerificationException) {
+                continue;
+            } catch (UnexpectedValueException $exception) {
+                report($exception);
 
-        try {
-            $event = Webhook::constructEvent($payload, $signature, $secret);
-        } catch (UnexpectedValueException|SignatureVerificationException $exception) {
-            report($exception);
+                return response()->json([
+                    'message' => __('Ongeldige Stripe webhook payload.'),
+                ], Response::HTTP_BAD_REQUEST);
+            }
+        }
 
+        if (! $event) {
             return response()->json([
                 'message' => __('Ongeldige Stripe webhook-handtekening.'),
             ], Response::HTTP_BAD_REQUEST);

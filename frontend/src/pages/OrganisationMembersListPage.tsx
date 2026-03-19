@@ -392,7 +392,7 @@ const OrganisationMembersListPage: React.FC = () => {
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">Bezig met laden...</div>
       )}
 
-      {!isLoading && members.length === 0 && !error && (
+      {!isLoading && members.length === 0 && (
         <Card className="p-6">
           <div className="text-center text-gray-500 dark:text-gray-400">
             Geen leden gevonden voor deze filters.
