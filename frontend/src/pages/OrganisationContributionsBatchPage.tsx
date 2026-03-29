@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiClient } from '../api/axios'
 import { Card } from '../components/ui/Card'
 import { AlertTriangle, CheckCircle, Clock, RefreshCw } from 'lucide-react'
@@ -68,6 +68,13 @@ const OrganisationContributionsBatchPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [batch, setBatch] = useState<BatchResponse | null>(null)
   const [profile, setProfile] = useState<OrganisationProfile | null>(null)
+  const [now, setNow] = useState(() => new Date())
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    tickRef.current = setInterval(() => setNow(new Date()), 1000)
+    return () => { if (tickRef.current) clearInterval(tickRef.current) }
+  }, [])
 
   const fetchBatch = useCallback(async () => {
     setLoading(true)
@@ -93,34 +100,74 @@ const OrganisationContributionsBatchPage: React.FC = () => {
 
   const cycleDay = profile?.billing_cycle_day ?? batch?.billing_cycle_day ?? 1
   const cycleTime = profile?.billing_cycle_time ?? '00:00'
-  const nextBatchLabel = (() => {
-    const now = new Date()
+
+  const nextBatchDate = (() => {
     const [h, m] = cycleTime.split(':').map(Number)
-    const candidateThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), cycleDay, h, m, 0))
-    const target = candidateThisMonth > now
-      ? candidateThisMonth
+    const candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), cycleDay, h, m, 0))
+    return candidate > now
+      ? candidate
       : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, cycleDay, h, m, 0))
-    return target.toLocaleString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC'
+  })()
+
+  const nextBatchLabel = nextBatchDate.toLocaleString('nl-NL', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+  }) + ' UTC'
+
+  const nowUtcLabel = now.toLocaleString('nl-NL', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC',
+  }) + ' UTC'
+
+  const countdown = (() => {
+    const diff = Math.max(0, Math.floor((nextBatchDate.getTime() - now.getTime()) / 1000))
+    const d = Math.floor(diff / 86400)
+    const h = Math.floor((diff % 86400) / 3600)
+    const m = Math.floor((diff % 3600) / 60)
+    const s = diff % 60
+    if (d > 0) return `${d}d ${h}u ${m}m`
+    if (h > 0) return `${h}u ${m}m ${s}s`
+    if (m > 0) return `${m}m ${s}s`
+    return `${s}s`
   })()
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Maandelijkse incasso-batch</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Leden worden geïncasseerd op dag <strong>{cycleDay}</strong> van elke maand — volgende batch: <strong>{nextBatchLabel}</strong>
+            Incassodag: <strong>{cycleDay}</strong> van de maand om <strong>{cycleTime}</strong> UTC
           </p>
         </div>
-        <button
-          onClick={fetchBatch}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          Vernieuwen
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-right">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Huidige tijd (UTC)</p>
+            <p className="font-mono text-sm font-semibold text-gray-900 dark:text-white tabular-nums">{nowUtcLabel}</p>
+          </div>
+          <button
+            onClick={fetchBatch}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Vernieuwen
+          </button>
+        </div>
       </div>
+
+      <Card className="p-5 border-l-4 border-l-aidatim-blue">
+        <div className="flex flex-wrap gap-6">
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Volgende batch</p>
+            <p className="text-base font-semibold text-gray-900 dark:text-white mt-0.5">{nextBatchLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Aftellen</p>
+            <p className="font-mono text-base font-semibold text-aidatim-blue tabular-nums mt-0.5">{countdown}</p>
+          </div>
+        </div>
+      </Card>
 
       {error && (
         <div className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 p-3 rounded-lg text-sm">
