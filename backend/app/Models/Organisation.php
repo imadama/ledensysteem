@@ -21,6 +21,7 @@ class Organisation extends Model
         'billing_status',
         'billing_note',
         'pass_stripe_fee_to_member',
+        'billing_cycle_day',
         'billing_warning_sent_at',
         'payment_reminder_sent_at',
         'subdomain',
@@ -35,6 +36,7 @@ class Organisation extends Model
             'billing_warning_sent_at'      => 'datetime',
             'payment_reminder_sent_at'     => 'datetime',
             'pass_stripe_fee_to_member'    => 'boolean',
+            'billing_cycle_day'            => 'integer',
         ];
     }
 

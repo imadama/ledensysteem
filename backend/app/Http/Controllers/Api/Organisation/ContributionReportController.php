@@ -209,7 +209,11 @@ class ContributionReportController extends Controller
             ];
         })->sortBy('name')->values();
 
+        $admin->loadMissing('organisation');
+        $billingCycleDay = (int) ($admin->organisation?->billing_cycle_day ?? 1);
+
         return response()->json([
+            'billing_cycle_day' => $billingCycleDay,
             'total_amount' => round($data->sum('amount'), 2),
             'total_members' => $data->count(),
             'subscriptions' => $data,

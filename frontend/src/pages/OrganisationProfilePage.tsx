@@ -11,6 +11,7 @@ type OrganisationProfile = {
   country: string
   contact_email: string
   pass_stripe_fee_to_member: boolean
+  billing_cycle_day: number
 }
 
 type FieldErrors = Partial<Record<keyof OrganisationProfile, string[]>>
@@ -23,6 +24,7 @@ const OrganisationProfilePage: React.FC = () => {
     country: 'Nederland',
     contact_email: '',
     pass_stripe_fee_to_member: false,
+    billing_cycle_day: 1,
   })
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -42,6 +44,7 @@ const OrganisationProfilePage: React.FC = () => {
           country: data.country ?? 'Nederland',
           contact_email: data.contact_email ?? '',
           pass_stripe_fee_to_member: data.pass_stripe_fee_to_member ?? false,
+          billing_cycle_day: data.billing_cycle_day ?? 1,
         })
       } catch (err) {
         console.error(err)
@@ -192,6 +195,33 @@ const OrganisationProfilePage: React.FC = () => {
 
           <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Betaalinstellingen</h3>
+
+            <div className="mb-4">
+              <label htmlFor="billing-cycle-day" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Incassodag
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Dag</span>
+                <select
+                  id="billing-cycle-day"
+                  className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-aidatim-blue text-sm"
+                  value={form.billing_cycle_day}
+                  onChange={(e) => setForm((prev) => ({ ...prev, billing_cycle_day: Number(e.target.value) }))}
+                >
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>{day}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-600 dark:text-gray-400">van de maand</span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Nieuwe SEPA-incasso's worden automatisch verankerd op deze dag. Bestaande incasso's wijzigen niet mee.
+              </p>
+              {fieldErrors.billing_cycle_day && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.billing_cycle_day.join(' ')}</p>
+              )}
+            </div>
+
             <label className="flex items-start gap-3 cursor-pointer" htmlFor="pass-stripe-fee">
               <div className="relative mt-0.5">
                 <input

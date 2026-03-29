@@ -31,6 +31,7 @@ class OrganisationProfileController extends Controller
             'country'                   => ['nullable', 'string', 'max:100'],
             'contact_email'             => ['nullable', 'email', 'max:255'],
             'pass_stripe_fee_to_member' => ['sometimes', 'boolean'],
+            'billing_cycle_day'         => ['sometimes', 'integer', 'between:1,28'],
         ]);
 
         $organisation->update($data);
@@ -49,6 +50,7 @@ class OrganisationProfileController extends Controller
             'country'                   => $organisation->country,
             'contact_email'             => $organisation->contact_email,
             'pass_stripe_fee_to_member' => (bool) $organisation->pass_stripe_fee_to_member,
+            'billing_cycle_day'         => (int) ($organisation->billing_cycle_day ?? 1),
         ];
     }
 }

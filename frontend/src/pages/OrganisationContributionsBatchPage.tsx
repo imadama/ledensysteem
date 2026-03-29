@@ -15,6 +15,7 @@ type BatchSubscription = {
 }
 
 type BatchResponse = {
+  billing_cycle_day: number
   total_amount: number
   total_members: number
   subscriptions: BatchSubscription[]
@@ -80,12 +81,12 @@ const OrganisationContributionsBatchPage: React.FC = () => {
     void fetchBatch()
   }, [fetchBatch])
 
-  // Determine next 1st of month label
-  const nextFirstLabel = (() => {
+  const cycleDay = batch?.billing_cycle_day ?? 1
+  const nextBatchLabel = (() => {
     const now = new Date()
-    const target = now.getDate() === 1
-      ? now
-      : new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const target = now.getDate() <= cycleDay
+      ? new Date(now.getFullYear(), now.getMonth(), cycleDay)
+      : new Date(now.getFullYear(), now.getMonth() + 1, cycleDay)
     return target.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
   })()
 
@@ -95,7 +96,7 @@ const OrganisationContributionsBatchPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Maandelijkse incasso-batch</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Overzicht van alle leden die worden geïncasseerd op <strong>{nextFirstLabel}</strong>
+            Leden worden geïncasseerd op dag <strong>{cycleDay}</strong> van elke maand — volgende batch: <strong>{nextBatchLabel}</strong>
           </p>
         </div>
         <button
