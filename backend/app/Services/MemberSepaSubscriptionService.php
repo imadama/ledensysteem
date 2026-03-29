@@ -231,16 +231,17 @@ class MemberSepaSubscriptionService
             ], ['stripe_account' => $stripeAccountId]);
 
             // 8. Maak Stripe subscription aan
-            // Verankerd op de geconfigureerde dag van de (volgende) maand
+            // Verankerd op de geconfigureerde dag + tijdstip van de (volgende) maand
             $cycleDay = max(1, min(28, (int) ($organisation->billing_cycle_day ?? 1)));
-            $now = now();
-            if ($now->day <= $cycleDay) {
-                // De dag van deze maand ligt nog in de toekomst (of is vandaag)
-                $billingAnchor = $now->copy()->startOfMonth()->addDays($cycleDay - 1)->startOfDay()->timestamp;
-            } else {
-                // De dag is al voorbij deze maand, pak volgende maand
-                $billingAnchor = $now->copy()->addMonth()->startOfMonth()->addDays($cycleDay - 1)->startOfDay()->timestamp;
+            [$cycleHour, $cycleMinute] = array_map('intval', explode(':', $organisation->billing_cycle_time ?? '00:00'));
+            $now = now()->utc();
+
+            $candidate = $now->copy()->startOfMonth()->addDays($cycleDay - 1)->setTime($cycleHour, $cycleMinute, 0);
+            if ($candidate->lte($now)) {
+                // Dit moment ligt in het verleden of is nu — gebruik volgende maand
+                $candidate = $now->copy()->addMonth()->startOfMonth()->addDays($cycleDay - 1)->setTime($cycleHour, $cycleMinute, 0);
             }
+            $billingAnchor = $candidate->timestamp;
 
             $stripeSubscription = $this->stripe->subscriptions->create([
                 'customer' => $customer->id,

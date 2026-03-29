@@ -22,6 +22,7 @@ class Organisation extends Model
         'billing_note',
         'pass_stripe_fee_to_member',
         'billing_cycle_day',
+        'billing_cycle_time',
         'billing_warning_sent_at',
         'payment_reminder_sent_at',
         'subdomain',

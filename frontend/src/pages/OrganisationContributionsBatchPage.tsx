@@ -21,6 +21,11 @@ type BatchResponse = {
   subscriptions: BatchSubscription[]
 }
 
+type OrganisationProfile = {
+  billing_cycle_day: number
+  billing_cycle_time: string
+}
+
 const statusConfig: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   active: {
     label: 'Actief',
@@ -62,13 +67,18 @@ const OrganisationContributionsBatchPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [batch, setBatch] = useState<BatchResponse | null>(null)
+  const [profile, setProfile] = useState<OrganisationProfile | null>(null)
 
   const fetchBatch = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const { data } = await apiClient.get<BatchResponse>('/api/organisation/contributions/monthly-batch')
-      setBatch(data)
+      const [batchRes, profileRes] = await Promise.all([
+        apiClient.get<BatchResponse>('/api/organisation/contributions/monthly-batch'),
+        apiClient.get<{ data: OrganisationProfile }>('/api/organisation/profile'),
+      ])
+      setBatch(batchRes.data)
+      setProfile(profileRes.data.data)
     } catch (err: any) {
       const message = err.response?.data?.message || err.message || 'Onbekende fout'
       setError(`Kon de batch niet laden: ${message}`)
@@ -81,13 +91,16 @@ const OrganisationContributionsBatchPage: React.FC = () => {
     void fetchBatch()
   }, [fetchBatch])
 
-  const cycleDay = batch?.billing_cycle_day ?? 1
+  const cycleDay = profile?.billing_cycle_day ?? batch?.billing_cycle_day ?? 1
+  const cycleTime = profile?.billing_cycle_time ?? '00:00'
   const nextBatchLabel = (() => {
     const now = new Date()
-    const target = now.getDate() <= cycleDay
-      ? new Date(now.getFullYear(), now.getMonth(), cycleDay)
-      : new Date(now.getFullYear(), now.getMonth() + 1, cycleDay)
-    return target.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+    const [h, m] = cycleTime.split(':').map(Number)
+    const candidateThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), cycleDay, h, m, 0))
+    const target = candidateThisMonth > now
+      ? candidateThisMonth
+      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, cycleDay, h, m, 0))
+    return target.toLocaleString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC'
   })()
 
   return (
