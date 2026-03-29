@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LogIn } from 'lucide-react'
 import { useMemberAuth } from '../../context/MemberAuthContext'
@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 
 const MemberLoginPage: React.FC = () => {
-  const { memberLogin } = useMemberAuth()
+  const { memberLogin, memberUser, isLoading } = useMemberAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const state = (location.state as { activationSuccess?: string } | null) ?? null
@@ -15,6 +15,13 @@ const MemberLoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const successMessage = state?.activationSuccess ?? null
+
+  useEffect(() => {
+    if (!isLoading && memberUser) {
+      const from = (location.state as { from?: Location })?.from?.pathname ?? '/portal/dashboard'
+      navigate(from, { replace: true })
+    }
+  }, [isLoading, memberUser, navigate, location])
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
