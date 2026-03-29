@@ -35,6 +35,13 @@ class OrganisationProfileController extends Controller
             'billing_cycle_time'        => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
         ]);
 
+        // Voorkom null-waarden voor NOT NULL kolommen
+        foreach (['type', 'city', 'country', 'contact_email'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] === null) {
+                $data[$field] = '';
+            }
+        }
+
         $organisation->update($data);
 
         return response()->json([
