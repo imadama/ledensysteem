@@ -27,7 +27,19 @@ class MemberInvitationMailable extends Mailable
             '/'
         );
 
-        $activationUrl = $frontendUrl.'/portal/activate?token='.urlencode($this->invitation->token);
+        $subdomain = $organisation?->subdomain;
+        if ($subdomain) {
+            $parsedFrontend = parse_url($frontendUrl);
+            $scheme = $parsedFrontend['scheme'] ?? 'https';
+            $host = $parsedFrontend['host'] ?? 'aidatim.nl';
+            // Strip 'app.' prefix to get the base domain (app.aidatim.nl → aidatim.nl)
+            $baseDomain = preg_replace('/^app\./', '', $host);
+            $portalBase = $scheme.'://'.$subdomain.'.'.$baseDomain;
+        } else {
+            $portalBase = $frontendUrl;
+        }
+
+        $activationUrl = $portalBase.'/portal/activate?token='.urlencode($this->invitation->token);
 
         $subject = __('Uitnodiging voor het ledenportaal van :organisation', [
             'organisation' => $organisation?->name ?? config('app.name', 'Ledenportaal'),
