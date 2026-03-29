@@ -470,7 +470,9 @@ class StripeWebhookController extends Controller
     private function handleInvoiceEvent(string $type, $object): void
     {
         $customerId = data_get($object, 'customer');
-        $stripeSubscriptionId = data_get($object, 'subscription');
+        // Nieuwe Stripe API versies zetten subscription in parent.subscription_details.subscription
+        $stripeSubscriptionId = data_get($object, 'subscription')
+            ?? data_get($object, 'parent.subscription_details.subscription');
 
         if (! $customerId && ! $stripeSubscriptionId) {
             return;
