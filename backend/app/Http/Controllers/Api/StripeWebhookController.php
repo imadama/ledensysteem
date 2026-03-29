@@ -474,7 +474,18 @@ class StripeWebhookController extends Controller
         $stripeSubscriptionId = data_get($object, 'subscription')
             ?? data_get($object, 'parent.subscription_details.subscription');
 
+        \Log::info('Stripe webhook handleInvoiceEvent', [
+            'type' => $type,
+            'invoice_id' => data_get($object, 'id'),
+            'customer_id' => $customerId,
+            'stripe_subscription_id' => $stripeSubscriptionId,
+            'amount_paid' => data_get($object, 'amount_paid'),
+            'payment_intent' => data_get($object, 'payment_intent'),
+            'parent_keys' => array_keys((array) data_get($object, 'parent', [])),
+        ]);
+
         if (! $customerId && ! $stripeSubscriptionId) {
+            \Log::warning('Stripe webhook: geen customer of subscription ID, event geskipped', ['type' => $type]);
             return;
         }
 
@@ -484,6 +495,11 @@ class StripeWebhookController extends Controller
             ->when(! $stripeSubscriptionId && $customerId, fn ($query) => $query->where('stripe_customer_id', $customerId))
             ->orderByDesc('created_at')
             ->first();
+
+        \Log::info('Stripe webhook: member subscription lookup', [
+            'found' => $memberSubscription ? $memberSubscription->id : null,
+            'stripe_subscription_id' => $stripeSubscriptionId,
+        ]);
 
         if ($memberSubscription) {
             $this->handleMemberSubscriptionInvoice($type, $object, $memberSubscription);
@@ -711,7 +727,21 @@ class StripeWebhookController extends Controller
         $amountPaid = (int) data_get($object, 'amount_paid', 0);
         $paymentIntentId = data_get($object, 'payment_intent');
 
+        \Log::info('Stripe webhook handleMemberSubscriptionInvoice', [
+            'type' => $type,
+            'amount_paid' => $amountPaid,
+            'payment_intent_id' => $paymentIntentId,
+            'invoice_id' => data_get($object, 'id'),
+            'member_subscription_id' => $subscription->id,
+            'member_id' => $subscription->member_id,
+            'top_level_keys' => array_keys((array) $object),
+        ]);
+
         if ($amountPaid <= 0 || ! $paymentIntentId) {
+            \Log::warning('Stripe webhook: geen amount_paid of payment_intent, contribution record niet aangemaakt', [
+                'amount_paid' => $amountPaid,
+                'payment_intent_id' => $paymentIntentId,
+            ]);
             return;
         }
 
