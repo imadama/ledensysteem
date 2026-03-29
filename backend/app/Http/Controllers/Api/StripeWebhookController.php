@@ -53,7 +53,12 @@ class StripeWebhookController extends Controller
             try {
                 $event = Webhook::constructEvent($payload, $signature, $secret);
                 break;
-            } catch (SignatureVerificationException) {
+            } catch (SignatureVerificationException $e) {
+                \Illuminate\Support\Facades\Log::warning('Stripe webhook signature mismatch', [
+                    'secret_prefix' => substr($secret, 0, 12) . '...',
+                    'error' => $e->getMessage(),
+                    'sig_header' => substr($signature, 0, 60) . '...',
+                ]);
                 continue;
             } catch (UnexpectedValueException $exception) {
                 report($exception);
