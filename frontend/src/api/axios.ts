@@ -209,6 +209,7 @@ apiClient.interceptors.response.use(
     if (
       status === 402 &&
       typeof window !== 'undefined' &&
+      !window.location.pathname.startsWith('/portal') &&
       window.location.pathname !== '/organisation/subscription'
     ) {
       window.location.href = '/organisation/subscription?payment_required=true'

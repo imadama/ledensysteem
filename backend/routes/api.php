@@ -124,7 +124,6 @@ Route::middleware([
 Route::middleware([
         'auth:sanctum',
         'role:member',
-        'billing.status',
         ResolveOrganisationFromSubdomain::class,
         ValidateUserOrganisationAccess::class,
     ])
