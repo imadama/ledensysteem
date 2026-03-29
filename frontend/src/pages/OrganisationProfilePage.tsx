@@ -211,7 +211,7 @@ const OrganisationProfilePage: React.FC = () => {
                   value={form.billing_cycle_day}
                   onChange={(e) => setForm((prev) => ({ ...prev, billing_cycle_day: Number(e.target.value) }))}
                 >
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
                     <option key={day} value={day}>{day}</option>
                   ))}
                 </select>
@@ -226,7 +226,7 @@ const OrganisationProfilePage: React.FC = () => {
                 <span className="text-sm text-gray-600 dark:text-gray-400">(UTC)</span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Nieuwe SEPA-incasso's worden verankerd op dit moment. Handig om snel te testen door dag/tijd dicht bij nu te zetten. Bestaande incasso's wijzigen niet mee.
+                Nieuwe SEPA-incasso's worden verankerd op dit moment. Handig om snel te testen door dag/tijd dicht bij nu te zetten. Bij dag 29–31 wordt automatisch de laatste dag van kortere maanden gebruikt. Bestaande incasso's wijzigen niet mee.
               </p>
               {fieldErrors.billing_cycle_day && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.billing_cycle_day.join(' ')}</p>

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('organisations', function (Blueprint $table) {
             $table->tinyInteger('billing_cycle_day')->unsigned()->default(1)->after('pass_stripe_fee_to_member')
-                ->comment('Dag van de maand waarop SEPA-incasso plaatsvindt (1-28)');
+                ->comment('Dag van de maand waarop SEPA-incasso plaatsvindt (1-31)');
         });
     }
 

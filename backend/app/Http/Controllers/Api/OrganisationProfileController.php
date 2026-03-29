@@ -31,7 +31,7 @@ class OrganisationProfileController extends Controller
             'country'                   => ['nullable', 'string', 'max:100'],
             'contact_email'             => ['nullable', 'email', 'max:255'],
             'pass_stripe_fee_to_member' => ['sometimes', 'boolean'],
-            'billing_cycle_day'         => ['sometimes', 'integer', 'between:1,28'],
+            'billing_cycle_day'         => ['sometimes', 'integer', 'between:1,31'],
             'billing_cycle_time'        => ['sometimes', 'string', 'regex:/^\d{2}:\d{2}$/'],
         ]);
 

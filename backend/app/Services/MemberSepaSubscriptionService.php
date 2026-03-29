@@ -232,14 +232,18 @@ class MemberSepaSubscriptionService
 
             // 8. Maak Stripe subscription aan
             // Verankerd op de geconfigureerde dag + tijdstip van de (volgende) maand
-            $cycleDay = max(1, min(28, (int) ($organisation->billing_cycle_day ?? 1)));
+            $cycleDay = max(1, min(31, (int) ($organisation->billing_cycle_day ?? 1)));
             [$cycleHour, $cycleMinute] = array_map('intval', explode(':', $organisation->billing_cycle_time ?? '00:00'));
             $now = now()->utc();
 
-            $candidate = $now->copy()->startOfMonth()->addDays($cycleDay - 1)->setTime($cycleHour, $cycleMinute, 0);
+            // Gebruik de geconfigureerde dag, maar niet meer dan het aantal dagen in die maand
+            $clampToMonth = fn (\Illuminate\Support\Carbon $base) => $base->startOfMonth()
+                ->addDays(min($cycleDay, $base->daysInMonth) - 1)
+                ->setTime($cycleHour, $cycleMinute, 0);
+
+            $candidate = $clampToMonth($now->copy());
             if ($candidate->lte($now)) {
-                // Dit moment ligt in het verleden of is nu — gebruik volgende maand
-                $candidate = $now->copy()->addMonth()->startOfMonth()->addDays($cycleDay - 1)->setTime($cycleHour, $cycleMinute, 0);
+                $candidate = $clampToMonth($now->copy()->addMonth());
             }
             $billingAnchor = $candidate->timestamp;
 
