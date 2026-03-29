@@ -725,7 +725,8 @@ class StripeWebhookController extends Controller
         }
 
         $amountPaid = (int) data_get($object, 'amount_paid', 0);
-        $paymentIntentId = data_get($object, 'payment_intent');
+        // Nieuwe Stripe API versie: payment_intent kan leeg zijn voor SEPA (zit dan in payments resource)
+        $paymentIntentId = data_get($object, 'payment_intent') ?: null;
 
         \Log::info('Stripe webhook handleMemberSubscriptionInvoice', [
             'type' => $type,
@@ -734,13 +735,11 @@ class StripeWebhookController extends Controller
             'invoice_id' => data_get($object, 'id'),
             'member_subscription_id' => $subscription->id,
             'member_id' => $subscription->member_id,
-            'top_level_keys' => array_keys((array) $object),
         ]);
 
-        if ($amountPaid <= 0 || ! $paymentIntentId) {
-            \Log::warning('Stripe webhook: geen amount_paid of payment_intent, contribution record niet aangemaakt', [
-                'amount_paid' => $amountPaid,
-                'payment_intent_id' => $paymentIntentId,
+        if ($amountPaid <= 0) {
+            \Log::warning('Stripe webhook: amount_paid is 0, contribution record niet aangemaakt', [
+                'invoice_id' => data_get($object, 'id'),
             ]);
             return;
         }
@@ -753,12 +752,15 @@ class StripeWebhookController extends Controller
 
         $invoiceId = data_get($object, 'id');
 
-        // Check of er al een transaction bestaat voor deze invoice
-        $transaction = PaymentTransaction::query()
-            ->where('stripe_payment_intent_id', $paymentIntentId)
-            ->first();
+        // Check of er al een transaction bestaat voor deze invoice (op payment_intent of invoice ID)
+        $transaction = null;
+        if ($paymentIntentId) {
+            $transaction = PaymentTransaction::query()
+                ->where('stripe_payment_intent_id', $paymentIntentId)
+                ->first();
+        }
 
-        // Check ook op invoice ID in metadata om dubbele records te voorkomen
+        // Check op invoice ID in metadata om dubbele records te voorkomen
         if (! $transaction) {
             $transaction = PaymentTransaction::query()
                 ->whereJsonContains('metadata->stripe_invoice_id', $invoiceId)
