@@ -24,6 +24,7 @@ import OrganisationMembersImportPage from './pages/OrganisationMembersImportPage
 import OrganisationProfilePage from './pages/OrganisationProfilePage'
 import OrganisationPaymentsSettingsPage from './pages/OrganisationPaymentsSettingsPage'
 import OrganisationContributionsOverviewPage from './pages/OrganisationContributionsOverviewPage'
+import OrganisationContributionsBatchPage from './pages/OrganisationContributionsBatchPage'
 import OrganisationSubscriptionPage from './pages/OrganisationSubscriptionPage'
 import OrganisationOnboardingPage from './pages/OrganisationOnboardingPage'
 import SubscriptionHistoryPage from './pages/SubscriptionHistoryPage'
@@ -105,6 +106,10 @@ function App() {
         <Route
           path="/organisation/contributions"
           element={<ProtectedRoute component={OrganisationContributionsOverviewPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/contributions/batch"
+          element={<ProtectedRoute component={OrganisationContributionsBatchPage} roles={['org_admin']} />}
         />
         <Route
           path="/organisation/subscription"

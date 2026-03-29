@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  Settings,
+  LogOut,
   X,
   Home,
   DollarSign,
@@ -13,7 +13,8 @@ import {
   CreditCard,
   FileText,
   Monitor,
-  Share2
+  Share2,
+  CalendarDays
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useMemberAuth } from '../context/MemberAuthContext'
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
     { name: 'Dashboard', icon: LayoutDashboard, view: 'dashboard', path: '/organisation/dashboard' },
     { name: 'Leden', icon: Users, view: 'members', path: '/organisation/members' },
     { name: 'Contributies', icon: DollarSign, view: 'contributions', path: '/organisation/contributions' },
+    { name: 'Incasso-batch', icon: CalendarDays, view: 'contributions-batch', path: '/organisation/contributions/batch' },
     { name: 'Beheerders', icon: Users, view: 'users', path: '/organisation/users' },
     { name: 'Organisatieprofiel', icon: Building2, view: 'profile', path: '/organisation/profile' },
     { name: 'Monitor', icon: Monitor, view: 'monitor', path: '/monitor' },
@@ -120,6 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
   const isActive = (path: string) => {
     if (path === '/dashboard') {
       return location.pathname === '/dashboard'
+    }
+    // Exact match voor paths die een prefix zijn van andere menu-items
+    if (path === '/organisation/contributions') {
+      return location.pathname === '/organisation/contributions'
     }
     return location.pathname.startsWith(path)
   }

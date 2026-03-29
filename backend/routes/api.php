@@ -93,6 +93,7 @@ Route::middleware([
 
         Route::get('contributions/summary', [ContributionReportController::class, 'organisationSummary']);
         Route::get('contributions/matrix', [ContributionReportController::class, 'membersPaymentMatrix']);
+        Route::get('contributions/monthly-batch', [ContributionReportController::class, 'monthlyBatch']);
         Route::get('subscription', [SubscriptionController::class, 'show']);
         Route::get('subscription/audit-logs', [SubscriptionController::class, 'auditLogs']);
         Route::post('subscription/start', [SubscriptionController::class, 'start']);

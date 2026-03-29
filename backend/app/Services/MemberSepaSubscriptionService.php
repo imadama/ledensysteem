@@ -231,19 +231,38 @@ class MemberSepaSubscriptionService
             ], ['stripe_account' => $stripeAccountId]);
 
             // 8. Maak Stripe subscription aan
-            // Nu de mandate is bevestigd via setup intent, kunnen we de subscription aanmaken
+            // Verankerd op de 1e van de (volgende) maand zodat alle incasso's op dezelfde dag vallen
+            $now = now();
+            $billingAnchor = $now->day === 1
+                ? $now->copy()->startOfDay()->timestamp
+                : $now->copy()->addMonth()->startOfMonth()->timestamp;
+
             $stripeSubscription = $this->stripe->subscriptions->create([
                 'customer' => $customer->id,
                 'items' => [[
                     'price' => $price->id,
                 ]],
                 'default_payment_method' => $paymentMethod->id,
+                'billing_cycle_anchor' => $billingAnchor,
+                'proration_behavior' => 'none',
                 'metadata' => [
                     'member_id' => (string) $member->id,
                     'organisation_id' => (string) $organisation->id,
                     'setup_by_admin' => (string) $admin->id,
                 ],
             ], ['stripe_account' => $stripeAccountId]);
+
+            // Vertaal Stripe status naar lokale status
+            $statusMap = [
+                'active' => 'active',
+                'trialing' => 'trial',
+                'past_due' => 'past_due',
+                'canceled' => 'canceled',
+                'unpaid' => 'unpaid',
+                'incomplete' => 'incomplete',
+                'incomplete_expired' => 'incomplete_expired',
+            ];
+            $localStatus = $statusMap[$stripeSubscription->status] ?? 'incomplete';
 
             // 9. Maak MemberSubscription aan
             $memberSubscription = MemberSubscription::create([
@@ -252,7 +271,13 @@ class MemberSepaSubscriptionService
                 'currency' => 'EUR',
                 'stripe_customer_id' => $customer->id,
                 'stripe_subscription_id' => $stripeSubscription->id,
-                'status' => 'incomplete', // Wordt 'active' via webhook
+                'status' => $localStatus,
+                'current_period_start' => $stripeSubscription->current_period_start
+                    ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_start)
+                    : null,
+                'current_period_end' => $stripeSubscription->current_period_end
+                    ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                    : null,
                 'metadata' => [
                     'setup_by_admin' => (string) $admin->id,
                     'description' => $description,

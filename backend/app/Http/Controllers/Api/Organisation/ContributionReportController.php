@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Organisation;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\MemberContributionRecord;
+use App\Models\MemberSubscription;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -163,6 +164,55 @@ class ContributionReportController extends Controller
         return response()->json([
             'year' => (int) $year,
             'months' => $months,
+        ]);
+    }
+
+    public function monthlyBatch(Request $request): JsonResponse
+    {
+        $admin = $request->user();
+        $organisationId = $admin->organisation_id;
+
+        if (! $organisationId) {
+            abort(Response::HTTP_FORBIDDEN, __('Geen organisatiecontext beschikbaar.'));
+        }
+
+        $subscriptions = MemberSubscription::query()
+            ->with(['member'])
+            ->whereHas('member', function ($query) use ($organisationId) {
+                $query->where('organisation_id', $organisationId);
+            })
+            ->whereIn('status', ['active', 'incomplete', 'past_due', 'trial'])
+            ->get();
+
+        $data = $subscriptions->map(function (MemberSubscription $subscription) {
+            $member = $subscription->member;
+            $iban = $member->sepa_subscription_iban ?? null;
+
+            // Toon landcode + eerste 2 cijfers + sterren + laatste 4 cijfers
+            $maskedIban = null;
+            if ($iban) {
+                $clean = str_replace(' ', '', strtoupper($iban));
+                $maskedIban = strlen($clean) > 6
+                    ? substr($clean, 0, 4) . str_repeat('*', strlen($clean) - 8) . substr($clean, -4)
+                    : $clean;
+            }
+
+            return [
+                'member_id' => $member->id,
+                'member_number' => $member->member_number,
+                'name' => $member->full_name,
+                'iban_masked' => $maskedIban,
+                'amount' => (float) $subscription->amount,
+                'currency' => strtolower($subscription->currency ?? 'eur'),
+                'subscription_status' => $subscription->status,
+                'next_billing_date' => $subscription->current_period_end?->format('Y-m-d'),
+            ];
+        })->sortBy('name')->values();
+
+        return response()->json([
+            'total_amount' => round($data->sum('amount'), 2),
+            'total_members' => $data->count(),
+            'subscriptions' => $data,
         ]);
     }
 
