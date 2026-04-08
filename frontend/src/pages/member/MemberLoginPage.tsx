@@ -98,7 +98,7 @@ const MemberLoginPage: React.FC = () => {
         </form>
 
         <div className="mt-6 space-y-2 text-center">
-          <Link to="/forgot-password" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
+          <Link to="/portal/forgot-password" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
             Wachtwoord vergeten?
           </Link>
           <div>

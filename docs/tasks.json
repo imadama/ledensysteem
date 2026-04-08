@@ -1,0 +1,86 @@
+{
+  "updated_at": "2026-04-08",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Ledeninlog end-to-end testen & fixen",
+      "description": "Activatieflow → inloggen → dashboard. Auth context heeft retry-logica die nog niet volledig getest is in productie.",
+      "status": "needs-test",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": "MemberAuthContext vereenvoudigd: dubbele retry-logica verwijderd. Login checkt nu direct de roles uit de login-response in plaats van een extra /api/auth/me call te doen. Publieke portaalpagina's (/portal/login, /portal/forgot-password, /portal/activate) slaan het initiële loadCurrentMember-verzoek nu over om onnodige 401-fouten te voorkomen. AuthController::login was al correct: retourneert roles in response, member rol check werkt via /api/member/* middleware. Activatieflow: backend maakt Bearer token aan na activatie, maar frontend gebruikt cookie-based auth — als loadCurrentMember na activatie faalt (geen sessie-cookie), wordt correct doorgestuurd naar /portal/login met successmelding."
+    },
+    {
+      "id": 2,
+      "title": "Wachtwoord vergeten (leden)",
+      "description": "Link in ledenportaal verwijst naar /forgot-password — controleren of dit correct werkt voor de member rol.",
+      "status": "needs-test",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": "Aparte pagina /portal/forgot-password aangemaakt (MemberForgotPasswordPage) met teruglink naar /portal/login. MemberLoginPage bijgewerkt om naar /portal/forgot-password te linken. Backend User::sendPasswordResetNotification uitgebreid: als de user de member rol heeft, wordt &from=portal toegevoegd aan de resetlink. ResetPasswordPage detecteert from=portal en stuurt na succesvol resetten door naar /portal/login i.p.v. /login. Route toegevoegd in App.tsx."
+    },
+    {
+      "id": 3,
+      "title": "Maandelijkse incasso-logica afronden",
+      "description": "Batch-pagina toont een preview maar triggert niets. Stripe moet de subscriptions automatisch incasseren op de ingestelde dag.",
+      "status": "todo",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "title": "SEPA end-to-end testen",
+      "description": "Volledige flow in testmodus simuleren: IBAN → mandate → incasso → webhook → record aangemaakt.",
+      "status": "todo",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "title": "Mislukte incasso afhandeling",
+      "description": "invoice.payment_failed → lid krijgt status past_due. Wat ziet lid? Wat ziet admin? Testen en melding toevoegen waar nodig.",
+      "status": "todo",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "title": "Mail-templates controleren & verbeteren",
+      "description": "Uitnodigingsmail, activatiemail en wachtwoord-reset — professionele opmaak, juiste afzendernaam.",
+      "status": "todo",
+      "priority": "midden",
+      "phase": 1,
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "title": "Mobiele weergave controleren",
+      "description": "Ledenportaal op mobiel doorlopen: dashboard, contributie, profiel.",
+      "status": "todo",
+      "priority": "midden",
+      "phase": 1,
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "title": "Stripe live keys instellen",
+      "description": "Overstappen van test naar live: sk_live_ key, nieuw webhook endpoint, STRIPE_WEBHOOK_SECRET updaten in Coolify.",
+      "status": "todo",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": "Vereist handmatige actie in Coolify + Stripe dashboard"
+    },
+    {
+      "id": 9,
+      "title": "Klant 1 onboarden",
+      "description": "Organisatie aanmaken, Stripe Connect koppelen, testlid aanmaken, activatiemail versturen.",
+      "status": "todo",
+      "priority": "hoog",
+      "phase": 1,
+      "notes": "Vereist handmatige actie samen met klant"
+    }
+  ]
+}

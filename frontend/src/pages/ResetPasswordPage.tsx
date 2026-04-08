@@ -10,6 +10,7 @@ const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate()
   const token = searchParams.get('token') ?? ''
   const emailParam = searchParams.get('email') ?? ''
+  const fromPortal = searchParams.get('from') === 'portal'
 
   const [email, setEmail] = useState(emailParam)
   const [password, setPassword] = useState('')
@@ -31,7 +32,7 @@ const ResetPasswordPage: React.FC = () => {
         password_confirmation: passwordConfirmation,
       })
       setMessage('Je wachtwoord is aangepast. Je kunt nu inloggen.')
-      setTimeout(() => navigate('/login'), 2000)
+      setTimeout(() => navigate(fromPortal ? '/portal/login' : '/login'), 2000)
     } catch (err) {
       console.error(err)
       setError('Resetten mislukt. Controleer de link of probeer opnieuw.')
@@ -108,7 +109,7 @@ const ResetPasswordPage: React.FC = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <Link to="/login" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline flex items-center justify-center gap-1">
+          <Link to={fromPortal ? '/portal/login' : '/login'} className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline flex items-center justify-center gap-1">
             <ArrowLeft size={16} />
             Terug naar inloggen
           </Link>

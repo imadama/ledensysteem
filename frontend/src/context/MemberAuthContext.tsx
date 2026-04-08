@@ -70,7 +70,12 @@ export const MemberAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (typeof window !== 'undefined') {
       const path = window.location.pathname
 
-      if (path.startsWith('/portal/activate')) {
+      // Sla het laden over op publieke portaalpagina's — gebruiker is nog niet ingelogd
+      if (
+        path.startsWith('/portal/activate') ||
+        path.startsWith('/portal/login') ||
+        path.startsWith('/portal/forgot-password')
+      ) {
         setIsLoading(false)
         return
       }
@@ -84,36 +89,30 @@ export const MemberAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(true)
       try {
         await getSanctumCsrfCookie()
-        await apiClient.post('/api/auth/login', credentials)
+        const { data: loginData } = await apiClient.post('/api/auth/login', credentials)
+
+        // Controleer of de ingelogde user de member rol heeft
+        const roles: string[] = loginData?.roles ?? []
+        if (!roles.includes('member')) {
+          await apiClient.post('/api/auth/logout').catch(() => null)
+          setMemberUser(null)
+          throw new Error('no_member_role')
+        }
+
         const profile = await loadCurrentMember()
 
         if (!profile) {
-          // Als het profiel niet kan worden geladen, controleer of de user de member rol heeft
-          const { data } = await apiClient.get('/api/auth/me')
-          const roles: string[] = data?.roles ?? []
-
-          if (!roles.includes('member')) {
-            throw new Error('no_member_role')
-          }
-
-          // Als de user wel de member rol heeft maar het profiel niet kan worden geladen,
-          // probeer het opnieuw te laden of gooi een specifieke error
-          const retryProfile = await loadCurrentMember()
-          if (!retryProfile) {
-            // Log de error voor debugging
-            console.error('Member profiel kan niet worden geladen ondanks member rol', {
-              userId: data.id,
-              email: data.email,
-              roles: roles,
-            })
-            throw new Error('Profiel kan niet worden geladen. Neem contact op met de beheerder.')
-          }
+          throw new Error('Profiel kan niet worden geladen. Neem contact op met de beheerder.')
         }
       } catch (error: any) {
-        if (error?.message === 'no_member_role' || error.response?.status === 403) {
+        if (error?.message === 'no_member_role') {
+          throw new Error('Dit account is geen ledenportaal-account. Gebruik het beheerdersportaal.')
+        }
+
+        if (error.response?.status === 403) {
           await apiClient.post('/api/auth/logout').catch(() => null)
           setMemberUser(null)
-          throw new Error('Dit account is geen ledenportaal-account. Gebruik het beheerdersportaal.')
+          throw new Error('Dit account heeft geen toegang tot het ledenportaal.')
         }
 
         if (error.response?.status === 422) {

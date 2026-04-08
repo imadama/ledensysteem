@@ -29,6 +29,7 @@ import OrganisationSubscriptionPage from './pages/OrganisationSubscriptionPage'
 import OrganisationOnboardingPage from './pages/OrganisationOnboardingPage'
 import SubscriptionHistoryPage from './pages/SubscriptionHistoryPage'
 import MemberLoginPage from './pages/member/MemberLoginPage'
+import MemberForgotPasswordPage from './pages/member/MemberForgotPasswordPage'
 import MemberActivationPage from './pages/member/MemberActivationPage'
 import MemberDashboardPage from './pages/member/MemberDashboardPage'
 import MemberProfilePage from './pages/member/MemberProfilePage'
@@ -70,6 +71,7 @@ function App() {
         <Route path="/aanmelden/succes" element={<PublicMemberRegistrationSuccessPage />} />
 
           <Route path="/portal/login" element={<MemberLoginPage />} />
+          <Route path="/portal/forgot-password" element={<MemberForgotPasswordPage />} />
           <Route path="/portal/activate" element={<MemberActivationPage />} />
           <Route path="/portal/dashboard" element={<MemberProtectedRoute component={MemberDashboardPage} />} />
           <Route path="/portal/profile" element={<MemberProtectedRoute component={MemberProfilePage} />} />

@@ -107,6 +107,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
         $url = rtrim($frontendUrl, '/').'/reset-password?token='.urlencode($token).'&email='.urlencode($this->email);
 
+        // Leden (member rol) worden na het resetten teruggestuurd naar het ledenportaal
+        if ($this->hasRole('member')) {
+            $url .= '&from=portal';
+        }
+
         $this->notify(new ResetPassword($url));
     }
 }
