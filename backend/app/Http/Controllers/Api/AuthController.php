@@ -159,13 +159,17 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        Password::sendResetLink(
-            $request->only('email'),
-            function ($user, string $token) use ($request): void {
-                $user->sendPasswordResetNotification($token);
-            }
-        );
+        try {
+            Password::sendResetLink($request->only('email'));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Wachtwoord reset mislukt', [
+                'email' => $request->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
+        // Altijd 200 retourneren — ook als het e-mailadres niet bestaat of iets mislukt.
+        // Dit voorkomt dat aanvallers kunnen achterhalen welke e-mailadressen bekend zijn.
         return response()->json([
             'message' => __('If an account exists for that email, a reset link has been sent.'),
         ]);
