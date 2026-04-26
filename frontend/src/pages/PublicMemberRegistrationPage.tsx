@@ -32,9 +32,26 @@ const PublicMemberRegistrationPage: React.FC = () => {
   const [organisationName, setOrganisationName] = useState<string | null>(null)
   const [isLoadingOrg, setIsLoadingOrg] = useState(true)
   const [orgError, setOrgError] = useState<string | null>(null)
-  
+  const [firstIncassoDate, setFirstIncassoDate] = useState<string | null>(null)
+
   // Extract name to avoid object dependency loop in useEffect
   const adminOrgName = adminOrganisation?.name
+
+  const calcNextBillingDate = (cycleDay: number): string => {
+    const today = new Date()
+    const year = today.getUTCFullYear()
+    const month = today.getUTCMonth()
+    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+    const day = Math.min(cycleDay, daysInMonth)
+    const candidate = new Date(Date.UTC(year, month, day))
+    if (candidate <= today) {
+      const nextMonth = month + 1
+      const daysInNext = new Date(Date.UTC(year, nextMonth + 1, 0)).getUTCDate()
+      return new Date(Date.UTC(year, nextMonth, Math.min(cycleDay, daysInNext)))
+        .toISOString().split('T')[0]
+    }
+    return candidate.toISOString().split('T')[0]
+  }
 
   useEffect(() => {
     let mounted = true
@@ -52,12 +69,14 @@ const PublicMemberRegistrationPage: React.FC = () => {
       try {
         const params: Record<string, string> = {}
         if (orgId) params.org_id = orgId
-        
+
         const { data } = await apiClient.get('/api/public/organisation-info', { params })
-        
+
         if (mounted) {
           if (data.name) {
             setOrganisationName(data.name)
+            const nextDate = calcNextBillingDate(data.billing_cycle_day ?? 1)
+            setFirstIncassoDate(nextDate)
             setIsLoadingOrg(false)
           } else {
             setOrgError('Organisatie gegevens niet gevonden.')
@@ -72,7 +91,7 @@ const PublicMemberRegistrationPage: React.FC = () => {
         }
       }
     }
-    
+
     loadOrg()
 
     return () => { mounted = false }
@@ -89,10 +108,16 @@ const PublicMemberRegistrationPage: React.FC = () => {
     city: '',
     iban: '',
     contribution_amount: '',
-    contribution_start_date: '',
+    contribution_start_date: firstIncassoDate ?? '',
     contribution_note: '',
     sepa_consent: false,
   })
+
+  useEffect(() => {
+    if (firstIncassoDate) {
+      setValues(prev => ({ ...prev, contribution_start_date: firstIncassoDate }))
+    }
+  }, [firstIncassoDate])
 
   const [errors, setErrors] = useState<FormErrors>({})
   const [generalError, setGeneralError] = useState<string | null>(null)
@@ -436,23 +461,17 @@ const PublicMemberRegistrationPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="contribution_start_date" className={labelClassName}>
-                    11. Start Contributie/Başlangıc üyelik <span className="text-red-500">*</span>
+                  <label className={labelClassName}>
+                    11. Start Contributie/Başlangıc üyelik
                   </label>
-                  <input
-                    id="contribution_start_date"
-                    type="date"
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                    value={values.contribution_start_date}
-                    onChange={handleChange('contribution_start_date')}
-                    className={inputClassName(!!errors.contribution_start_date)}
-                  />
-                  {errors.contribution_start_date && (
-                    <span className="mt-1 text-sm text-red-600 dark:text-red-400 block">
-                      {errors.contribution_start_date}
-                    </span>
-                  )}
+                  <div className={`${inputClassName(false)} bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300`}>
+                    {firstIncassoDate
+                      ? new Date(firstIncassoDate + 'T00:00:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+                      : 'Wordt bepaald door de incassodatum van de vereniging'}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    De eerste incasso vindt automatisch plaats op de incassodatum van de vereniging.
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">

@@ -46,6 +46,7 @@ class PublicMemberRegistrationController extends Controller
             'id' => $organisation->id,
             'name' => $organisation->name,
             'city' => $organisation->city,
+            'billing_cycle_day' => (int) ($organisation->billing_cycle_day ?? 1),
         ]);
     }
 
