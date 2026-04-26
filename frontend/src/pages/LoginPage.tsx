@@ -33,7 +33,13 @@ const LoginPage: React.FC = () => {
 
     try {
       await getSanctumCsrfCookie()
-      await login({ email, password })
+      const loggedInUser = await login({ email, password })
+
+      // Leden horen op het ledenportaal, niet op de beheerderspagina
+      if (loggedInUser.roles.includes('member') && !loggedInUser.roles.includes('org_admin')) {
+        navigate('/portal/dashboard', { replace: true })
+        return
+      }
 
       const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard'
       navigate(from, { replace: true })
@@ -116,6 +122,11 @@ const LoginPage: React.FC = () => {
           <Link to="/forgot-password" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
             Wachtwoord vergeten?
           </Link>
+          <div>
+            <Link to="/portal/login" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
+              Naar ledenportaal
+            </Link>
+          </div>
           <div>
             <Link to="/aanmelden" className="text-sm text-aidatim-blue dark:text-aidatim-blue hover:underline">
               Nieuwe lid aanmelden

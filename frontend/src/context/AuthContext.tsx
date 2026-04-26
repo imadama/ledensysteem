@@ -38,7 +38,7 @@ type AuthContextValue = {
   roles: string[]
   organisation: Organisation | null
   isLoading: boolean
-  login: (credentials: { email: string; password: string }) => Promise<void>
+  login: (credentials: { email: string; password: string }) => Promise<User>
   logout: () => Promise<void>
   refreshMe: () => Promise<void>
 }
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe()
   }, [refreshMe])
 
-  const login = useCallback(async (credentials: { email: string; password: string }) => {
+  const login = useCallback(async (credentials: { email: string; password: string }): Promise<User> => {
     await getSanctumCsrfCookie()
     const { data } = await apiClient.post<User>('/api/auth/login', credentials)
     setUser(data)
@@ -86,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       roles: data.roles,
       organisation: data.organisation ?? null,
     })
+    return data
   }, [])
 
   const logout = useCallback(async () => {
