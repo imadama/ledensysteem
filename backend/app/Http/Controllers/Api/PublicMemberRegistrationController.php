@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Models\Organisation;
 use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Services\MemberAccountService;
 use App\Services\MemberSepaSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ use Illuminate\Validation\ValidationException;
 class PublicMemberRegistrationController extends Controller
 {
     public function __construct(
-        private readonly MemberSepaSubscriptionService $sepaService
+        private readonly MemberSepaSubscriptionService $sepaService,
+        private readonly MemberAccountService $memberAccountService,
     ) {
     }
 
@@ -146,6 +148,13 @@ class PublicMemberRegistrationController extends Controller
                             'error' => $e->getMessage(),
                         ]);
                     }
+                }
+
+                // Stuur uitnodigingsmail zodat het lid direct een account kan activeren
+                try {
+                    $this->memberAccountService->sendInvitationToNewMember($member);
+                } catch (\Exception $e) {
+                    Log::error("Uitnodigingsmail mislukt voor nieuw lid {$member->id}: " . $e->getMessage());
                 }
 
                 return response()->json([

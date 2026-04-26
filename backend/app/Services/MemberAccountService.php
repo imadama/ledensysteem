@@ -19,6 +19,16 @@ class MemberAccountService
     {
         $this->ensureSameOrganisation($actor, $member);
 
+        return $this->createAndSendInvitation($member);
+    }
+
+    public function sendInvitationToNewMember(Member $member): MemberInvitation
+    {
+        return $this->createAndSendInvitation($member);
+    }
+
+    private function createAndSendInvitation(Member $member): MemberInvitation
+    {
         if (! $member->email) {
             throw ValidationException::withMessages([
                 'email' => __('Dit lid heeft geen e-mailadres en kan niet worden uitgenodigd.'),

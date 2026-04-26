@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aidatim — Roadmap 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 48px 56px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 3px solid #0052cc;
+    }
+    .logo-block h1 { font-size: 26px; font-weight: 800; color: #0052cc; letter-spacing: -0.5px; }
+    .logo-block p  { font-size: 12px; color: #6b7280; margin-top: 4px; }
+    .meta { text-align: right; font-size: 12px; color: #6b7280; line-height: 1.8; }
+    .meta strong { color: #1a1a2e; }
+
+    /* ── Section titles ── */
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0052cc;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Goal box ── */
+    .goal-box {
+      background: #eff6ff;
+      border-left: 4px solid #0052cc;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 36px;
+    }
+    .goal-box p { line-height: 1.6; color: #1e3a5f; }
+    .goal-box strong { font-weight: 700; }
+
+    /* ── Milestones ── */
+    .milestones {
+      display: flex;
+      gap: 0;
+      margin-bottom: 36px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .milestone {
+      flex: 1;
+      padding: 16px 20px;
+      border-right: 1px solid #e5e7eb;
+    }
+    .milestone:last-child { border-right: none; }
+    .milestone .date { font-size: 15px; font-weight: 800; color: #0052cc; margin-bottom: 4px; }
+    .milestone .label { font-size: 12px; color: #374151; font-weight: 600; margin-bottom: 4px; }
+    .milestone .desc { font-size: 11px; color: #6b7280; line-height: 1.5; }
+    .milestone.highlight { background: #eff6ff; }
+
+    /* ── Team ── */
+    .team-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+    .team-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 18px;
+    }
+    .team-card .name  { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+    .team-card .role  { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .team-card ul { padding-left: 14px; color: #374151; }
+    .team-card ul li { margin-bottom: 3px; line-height: 1.5; }
+
+    /* ── Phase blocks ── */
+    .phase { margin-bottom: 36px; page-break-inside: avoid; }
+    .phase-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .phase-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-launch  { background: #fee2e2; color: #b91c1c; }
+    .badge-core    { background: #fef9c3; color: #854d0e; }
+    .badge-stable  { background: #dcfce7; color: #166534; }
+    .badge-future  { background: #f3f4f6; color: #4b5563; }
+
+    .phase-title  { font-size: 17px; font-weight: 700; }
+    .phase-period { font-size: 12px; color: #6b7280; }
+
+    /* ── Task table ── */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    thead th {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+    }
+    tbody td {
+      border: 1px solid #e5e7eb;
+      padding: 9px 12px;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    tbody tr:nth-child(even) { background: #fafafa; }
+
+    .prio { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; }
+    .dot  { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-hoog   { background: #dc2626; }
+    .dot-midden { background: #f59e0b; }
+    .dot-laag   { background: #6b7280; }
+
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .tag-todo    { background: #f3f4f6; color: #374151; }
+    .tag-partial { background: #fef9c3; color: #854d0e; }
+    .tag-done    { background: #dcfce7; color: #166534; }
+
+    /* ── Definition of Done ── */
+    .dod {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 36px;
+    }
+    .dod ul { padding-left: 18px; }
+    .dod ul li { margin-bottom: 5px; line-height: 1.5; }
+
+    /* ── Feature cards (fase 3) ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .feature-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .feature-card .fc-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+    .feature-card .fc-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .fc-tag-core    { background: #dbeafe; color: #1d4ed8; }
+    .fc-tag-niche   { background: #f3e8ff; color: #7e22ce; }
+    .fc-tag-growth  { background: #dcfce7; color: #166534; }
+    .feature-card .fc-desc { font-size: 12px; color: #6b7280; line-height: 1.5; }
+
+    /* ── KPIs ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .kpi-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .kpi-card .kpi-value { font-size: 22px; font-weight: 800; color: #0052cc; margin-bottom: 4px; }
+    .kpi-card .kpi-label { font-size: 11px; color: #6b7280; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 11px;
+      color: #9ca3af;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    @media print {
+      body { padding: 24px 32px; }
+      .phase { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <div class="logo-block">
+      <h1>Aidatim</h1>
+      <p>Ledenbeheersysteem voor verenigingen</p>
+    </div>
+    <div class="meta">
+      <strong>Roadmap 2026</strong><br />
+      Versie 1.0<br />
+      April 2026
+    </div>
+  </div>
+
+  <!-- ── DOEL ── -->
+  <h2>Doel 2026</h2>
+  <div class="goal-box">
+    <p>
+      Aidatim is een multi-tenant ledenbeheersysteem voor verenigingen, gebouwd door een team van twee.
+      Op <strong>1 mei 2026</strong> lanceren we bij de eerste klant. Op <strong>1 juli 2026</strong> is het
+      kernsysteem volledig afgerond. Daarna ligt de focus op stabiliteit, eventuele bugfixes en
+      nieuwe modules die het platform geschikt maken voor meer soorten organisaties.
+    </p>
+  </div>
+
+  <!-- ── MILESTONES ── -->
+  <h2>Planning op hoofdlijnen</h2>
+  <div class="milestones">
+    <div class="milestone highlight">
+      <div class="date">1 mei 2026</div>
+      <div class="label">Lancering klant 1</div>
+      <div class="desc">Live in productie met eerste betalende klant. SEPA actief, ledenportaal toegankelijk.</div>
+    </div>
+    <div class="milestone">
+      <div class="date">1 juli 2026</div>
+      <div class="label">Kernsysteem af</div>
+      <div class="desc">Alle core-functionaliteit stabiel en getest. Systeem klaar voor meerdere klanten.</div>
+    </div>
+    <div class="milestone">
+      <div class="date">Q3 – Q4 2026</div>
+      <div class="label">Groei & nieuwe modules</div>
+      <div class="desc">Bugfixes waar nodig, flow-verbeteringen, en nieuwe features op basis van klantvraag.</div>
+    </div>
+  </div>
+
+  <!-- ── TEAM ── -->
+  <h2>Team</h2>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="name">Imad</div>
+      <div class="role">Engineering</div>
+      <ul>
+        <li>Backend (Laravel / PHP)</li>
+        <li>Frontend (React / TypeScript)</li>
+        <li>Stripe integratie &amp; webhooks</li>
+        <li>DevOps &amp; hosting (Coolify)</li>
+      </ul>
+    </div>
+    <div class="team-card">
+      <div class="name">Kubilay</div>
+      <div class="role">Commercieel</div>
+      <ul>
+        <li>Klanten werven</li>
+        <li>Demos &amp; onboarding gesprekken</li>
+        <li>Feedback ophalen bij prospects</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       FASE 1 — LANCERING (voor 1 mei)
+  ═══════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge badge-launch">Fase 1</span>
+      <span class="phase-title">Lancering bij klant 1</span>
+      <span class="phase-period">— deadline 1 mei 2026</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38%">Taak</th>
+          <th style="width:34%">Toelichting</th>
+          <th style="width:14%">Prioriteit</th>
+          <th style="width:14%">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ledeninlog end-to-end testen</strong></td>
+          <td>Activatieflow → inloggen → dashboard. Auth context heeft retry-logica die nog niet volledig getest is in productie.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-done">Gereed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Wachtwoord vergeten (leden)</strong></td>
+          <td>Link in ledenportaal verwijst naar /forgot-password — controleren of dit correct werkt voor de member rol.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-done">Gereed</span></td>
+        </tr>
+        <tr>
+          <td><strong>Maandelijkse incasso-logica afronden</strong></td>
+          <td>Batch-pagina toont een preview maar triggert niets. Stripe moet de subscriptions automatisch incasseren op de ingestelde dag.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>SEPA end-to-end testen</strong></td>
+          <td>Volledige flow in testmodus simuleren: IBAN → mandate → incasso → webhook → record aangemaakt.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mislukte incasso afhandeling</strong></td>
+          <td>invoice.payment_failed → lid krijgt status past_due. Wat ziet lid? Wat ziet admin? Testen en evt. melding toevoegen.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Stripe live keys instellen</strong></td>
+          <td>Overstappen van test naar live: sk_live_ key, nieuw webhook endpoint, STRIPE_WEBHOOK_SECRET updaten in Coolify.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Klant 1 onboarden</strong></td>
+          <td>Organisatie aanmaken, Stripe Connect koppelen, testlid aanmaken, activatiemail versturen, alles doorlopen samen met de klant.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mail-templates controleren</strong></td>
+          <td>Uitnodigingsmail, activatiemail en wachtwoord-reset — professionele opmaak, juist afzendernaam (info@aidatim.nl).</td>
+          <td><span class="prio"><span class="dot dot-midden"></span>Midden</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Mobiele weergave controleren</strong></td>
+          <td>Ledenportaal wordt op mobiel gebruikt. Dashboard, contributie en profiel doorlopen op telefoon.</td>
+          <td><span class="prio"><span class="dot dot-midden"></span>Midden</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── DEFINITION OF DONE ── -->
+  <h2>Definition of Done — 1 mei</h2>
+  <div class="dod">
+    <ul>
+      <li>Lid ontvangt uitnodigingsmail, activeert account, logt in en ziet zijn dashboard</li>
+      <li>Lid kan zijn contributiestatus en betalingsgeschiedenis inzien</li>
+      <li>Admin kan een SEPA-incasso instellen voor een lid</li>
+      <li>Stripe int automatisch op de ingestelde dag en de record verschijnt in het systeem</li>
+      <li>Bij mislukte betaling is dit zichtbaar voor zowel admin als lid</li>
+      <li>Alles draait op live Stripe keys (niet test)</li>
+      <li>Klant 1 is actief en heeft minimaal 1 lid met werkende SEPA</li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       FASE 2 — KERNSYSTEEM AF (voor 1 juli)
+  ═══════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge badge-core">Fase 2</span>
+      <span class="phase-title">Kernsysteem afronden</span>
+      <span class="phase-period">— mei / juni 2026, deadline 1 juli</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:38%">Taak</th>
+          <th style="width:34%">Toelichting</th>
+          <th style="width:14%">Prioriteit</th>
+          <th style="width:14%">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Betalingsherinnering automatiseren</strong></td>
+          <td>Leden met status past_due automatisch een herinneringsmail sturen via geplande job.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Bulk uitnodigen testen op schaal</strong></td>
+          <td>Endpoint bestaat (invite-bulk). Testen bij grotere ledenbestanden (50+ leden), timeouts voorkomen.</td>
+          <td><span class="prio"><span class="dot dot-midden"></span>Midden</span></td>
+          <td><span class="tag tag-partial">Gedeeltelijk</span></td>
+        </tr>
+        <tr>
+          <td><strong>CSV-import verfijnen</strong></td>
+          <td>Preview-import is gebouwd. Betere foutmeldingen bij validatiefouten, duplicaten correct afhandelen.</td>
+          <td><span class="prio"><span class="dot dot-midden"></span>Midden</span></td>
+          <td><span class="tag tag-partial">Gedeeltelijk</span></td>
+        </tr>
+        <tr>
+          <td><strong>Foutmeldingen voor leden verbeteren</strong></td>
+          <td>Technische errors vertalen naar begrijpelijke meldingen voor eindgebruikers in het ledenportaal.</td>
+          <td><span class="prio"><span class="dot dot-midden"></span>Midden</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Tweede klant onboarden</strong></td>
+          <td>Zodra Kubilay een tweede klant binnenbrengt: onboardingproces uitvoeren en knelpunten documenteren.</td>
+          <td><span class="prio"><span class="dot dot-hoog"></span>Hoog</span></td>
+          <td><span class="tag tag-todo">Te doen</span></td>
+        </tr>
+        <tr>
+          <td><strong>Marketingpagina lanceren</strong></td>
+          <td>Hero, features, pricing en CTA zijn al gebouwd. Afwerken en live zetten als publieke landingspagina.</td>
+          <td><span class="prio"><span class="dot dot-laag"></span>Laag</span></td>
+          <td><span class="tag tag-partial">Gedeeltelijk</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       FASE 3 — NA 1 JULI: STABIEL + NIEUWE MODULES
+  ═══════════════════════════════════════ -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-badge badge-stable">Fase 3</span>
+      <span class="phase-title">Stabiliteit &amp; nieuwe modules</span>
+      <span class="phase-period">— na 1 juli 2026, op basis van klantvraag</span>
+    </div>
+    <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">
+      Na 1 juli ligt de focus op <strong>stabiliteit</strong>. Bugs worden gefixed zodra ze opduiken.
+      Nieuwe modules worden gebouwd als er concrete klantvraag voor is — geen overbodige complexiteit.
+    </p>
+  </div>
+
+  <h2>Mogelijke nieuwe modules</h2>
+  <div class="feature-grid">
+
+    <div class="feature-card">
+      <div class="fc-title">Nieuwsbrief & aankondigingen</div>
+      <span class="fc-tag fc-tag-core">Kern</span>
+      <div class="fc-desc">
+        Admin stuurt maandelijkse update of aankondiging naar alle leden. Leden ontvangen dit per e-mail en zien het in het portaal. Inclusief inzamelacties en evenementen.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">Agenda &amp; meldingen</div>
+      <span class="fc-tag fc-tag-core">Kern</span>
+      <div class="fc-desc">
+        Kalender met evenementen voor de organisatie. Leden ontvangen notificaties bij nieuwe berichten of activiteiten. Admin kan berichten pushen vanuit het beheerderspaneel.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">Gebedstijden-module</div>
+      <span class="fc-tag fc-tag-niche">Niche</span>
+      <div class="fc-desc">
+        Realtime gebedstijdenklok op basis van locatie, geschikt voor weergave op schermen in moskeeën. Geïntegreerd in het ledenportaal of als standalone widget op een scherm.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">Schoolonderwijs-registratie</div>
+      <span class="fc-tag fc-tag-niche">Niche</span>
+      <div class="fc-desc">
+        Registratie van leerlingen voor islamitisch onderwijs of weekendscholen. Aanwezigheidsregistratie, klas-indeling en communicatie met ouders via het portaal.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">Zelfregistratie organisaties</div>
+      <span class="fc-tag fc-tag-growth">Groei</span>
+      <div class="fc-desc">
+        Organisaties melden zich zelf aan via de website. Geautomatiseerde activatie zonder handmatige tussenkomst van Imad.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">White-label ledenportaal</div>
+      <span class="fc-tag fc-tag-growth">Groei</span>
+      <div class="fc-desc">
+        Logo, kleuren en naam van de vereniging tonen in het ledenportaal. Elke organisatie heeft een herkenbaar eigen portaal zonder extra technische setup.
+      </div>
+    </div>
+
+    <div class="feature-card">
+      <div class="fc-title">Meertaligheid (NL / AR / TR)</div>
+      <span class="fc-tag fc-tag-growth">Groei</span>
+      <div class="fc-desc">
+        Ledenportaal beschikbaar in Nederlands, Arabisch en Turks. Leden kiezen hun voorkeurstaal bij activatie.
+        Vergroot toegankelijkheid voor leden die niet vloeiend Nederlands lezen — sterk verkoopargument voor moskeeën en islamitische verenigingen.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════
+       EXTRA DIENSTEN
+  ═══════════════════════════════════════ -->
+  <h2>Extra diensten</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:14px;">
+    Naast het Aidatim platform bieden we drie aanvullende diensten aan voor verenigingen en moskeeën.
+    Alle drie zijn al succesvol uitgevoerd bij klant 1 — bewezen in de praktijk.
+  </p>
+  <div class="feature-grid" style="margin-bottom:36px;">
+
+    <div class="feature-card" style="border-left: 3px solid #0052cc;">
+      <div class="fc-title">Website op maat</div>
+      <span class="fc-tag" style="background:#dbeafe;color:#1d4ed8;">Bewezen</span>
+      <div class="fc-desc" style="margin-top:6px;">
+        Voor verenigingen en moskeeën die nog geen website hebben. Professionele website op maat gebouwd,
+        inclusief contactpagina, agenda, en koppeling met het Aidatim ledenportaal.
+        Eenmalige investering voor de klant, doorlopende waarde.
+      </div>
+    </div>
+
+    <div class="feature-card" style="border-left: 3px solid #7e22ce;">
+      <div class="fc-title">Slimme moskee (domotica)</div>
+      <span class="fc-tag" style="background:#f3e8ff;color:#7e22ce;">Bewezen</span>
+      <div class="fc-desc" style="margin-top:6px;">
+        Verlichting, klimaat en andere apparatuur besturen via een app.
+        Geen technische kennis vereist voor de gebruiker — alles via één overzichtelijk scherm.
+        Ideaal voor grote ruimtes waar handmatig schakelen omslachtig is.
+      </div>
+    </div>
+
+    <div class="feature-card" style="border-left: 3px solid #166534;">
+      <div class="fc-title">Beveiligingscamera's</div>
+      <span class="fc-tag" style="background:#dcfce7;color:#166534;">Bewezen</span>
+      <div class="fc-desc" style="margin-top:6px;">
+        Installatie en configuratie van beveiligingscamera's. Live beelden bekijken via app,
+        opnames bewaren in de cloud. Inclusief advies over cameraplaatsing voor optimale dekking.
+      </div>
+    </div>
+
+    <div class="feature-card" style="border-left: 3px solid #f59e0b; background:#fffbeb;">
+      <div class="fc-title">Bundel-aanpak</div>
+      <span class="fc-tag" style="background:#fef9c3;color:#854d0e;">Kans</span>
+      <div class="fc-desc" style="margin-top:6px;">
+        Klanten die Aidatim afnemen kunnen ook één of meerdere diensten erbij nemen.
+        Dit verhoogt de omzet per klant en versterkt de band — alles via één aanspreekpunt (Imad &amp; Kubilay).
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── KPIs ── -->
+  <h2>Doelen 2026</h2>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value">1 mei</div>
+      <div class="kpi-label">Lancering bij klant 1</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">1 juli</div>
+      <div class="kpi-label">Kernsysteem volledig af</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">3 – 5</div>
+      <div class="kpi-label">Organisaties eind 2026</div>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    <span>Aidatim — Intern document</span>
+    <span>April 2026 · Imad &amp; Kubilay</span>
+  </div>
+
+</body>
+</html>

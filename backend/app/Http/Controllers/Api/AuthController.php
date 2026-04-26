@@ -160,11 +160,16 @@ class AuthController extends Controller
         ]);
 
         try {
-            Password::sendResetLink($request->only('email'));
+            $status = Password::sendResetLink($request->only('email'));
+            \Illuminate\Support\Facades\Log::info('Wachtwoord reset status', [
+                'email' => $request->email,
+                'status' => $status,
+            ]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Wachtwoord reset mislukt', [
                 'email' => $request->email,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
 
