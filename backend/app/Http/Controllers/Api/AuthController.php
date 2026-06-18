@@ -138,8 +138,66 @@ class AuthController extends Controller
         return response()->json($this->transformUser($user));
     }
 
+    /**
+     * Stateless token login for native/mobile clients (Sanctum personal access tokens).
+     *
+     * Unlike {@see login()} this does not start a session/cookie. It returns a
+     * Bearer token that the mobile app stores securely and sends on every request.
+     * The organisation subdomain is included in the response so the app can set
+     * the X-Organisation-Subdomain header on subsequent calls.
+     */
+    public function token(Request $request): JsonResponse
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+            'device_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        /** @var User|null $user */
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
+        if ($user->status !== 'active') {
+            throw ValidationException::withMessages([
+                'email' => [__('Your account is not active.')],
+            ]);
+        }
+
+        if ($user->organisation && $user->organisation->status === 'blocked') {
+            throw ValidationException::withMessages([
+                'email' => [__('Uw account is geblokkeerd. Neem contact op met Aidatim voor meer informatie.')],
+            ]);
+        }
+
+        $user->load('roles', 'organisation.currentSubscription.plan');
+
+        $deviceName = $credentials['device_name'] ?? 'mobile';
+        $token = $user->createToken($deviceName)->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $this->transformUser($user),
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
+        // Token-based clients: revoke the access token used for this request.
+        $token = $request->user()?->currentAccessToken();
+        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $token->delete();
+
+            return response()->json(['message' => 'Logged out']);
+        }
+
+        // Session/cookie-based clients (web SPA).
         $this->logoutUser($request);
 
         return response()->json(['message' => 'Logged out']);

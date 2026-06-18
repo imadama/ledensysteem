@@ -38,6 +38,7 @@ Route::prefix('public')->group(function (): void {
 Route::prefix('auth')->group(function (): void {
     Route::post('login', [AuthController::class, 'login']);
     Route::middleware('throttle:5,1')->group(function (): void {
+        Route::post('token', [AuthController::class, 'token']);
         Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     });
     Route::middleware('throttle:10,1')->group(function (): void {
