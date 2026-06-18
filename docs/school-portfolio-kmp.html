@@ -155,6 +155,25 @@
       </div>
     </div>
 
+    <!-- ── MIJLPAAL ── -->
+    <section>
+      <div class="callout" style="background:#f0fdf4;border-color:#bbf7d0;border-left-color:#22c55e;">
+        <p><strong>✅ Eerste werkende slice — US-01 Login (18 jun 2026).</strong> De Compose Multiplatform-app is opgezet en de <strong>volledige login-keten werkt end-to-end op de Android-emulator</strong>: inloggen → token van de bestaande backend (<code>POST /api/auth/token</code>) → Dashboard met echte ledendata (naam, organisatie, status). Code compileert op <strong>Android én iOS</strong>; de Android debug-APK draait.</p>
+        <p><strong>Architectuur staat:</strong> gelaagd (core/network → data → feature) met <strong>Ktor</strong> (HTTP), <strong>Koin</strong> (DI), <strong>MVVM</strong> (ViewModel + StateFlow), <strong>Compose Navigation</strong> en Engelstalige UI. Backend-token-endpoint is live met 3 feature-tests.</p>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
+        <figure style="margin:0;text-align:center;">
+          <img src="img/kmp/login.png" alt="Login-scherm op de Android-emulator" style="height:380px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
+          <figcaption style="font-size:11px;color:#64748b;margin-top:6px;">Login-scherm (Compose Multiplatform)</figcaption>
+        </figure>
+        <figure style="margin:0;text-align:center;">
+          <img src="img/kmp/dashboard.png" alt="Dashboard met echte ledendata na succesvolle login" style="height:380px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
+          <figcaption style="font-size:11px;color:#64748b;margin-top:6px;">Dashboard — live data uit de backend</figcaption>
+        </figure>
+      </div>
+      <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:8px;">Bewijs: draaiend op de Android-emulator (Pixel 9 Pro), ingelogd tegen <code>api.aidatim.nl</code>.</p>
+    </section>
+
     <!-- ── 0. KERNBESLISSING ── -->
     <section>
       <h2><span class="num">!</span> De kernkeuze van dit PoC</h2>
@@ -199,24 +218,24 @@
       <h2><span class="num">2</span> Te bouwen — de KMP/CMP app</h2>
       <p class="section-sub">De technische realisatie. Nieuwe KMP-projectstructuur (mei 2026), MVVM, Ktor naar de bestaande API.</p>
       <div class="grid">
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Projectopzet (nieuwe KMP-structuur)</div>
-          <div class="c-desc">Compose Multiplatform project volgens de <a href="https://blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure/">nieuwe default structuur</a>. Targets: Android + iOS. Map: <code>/mobile</code> in deze repo.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc">Compose Multiplatform project volgens de <a href="https://blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure/">nieuwe default structuur</a>. Targets: Android + iOS. Opgezet in <code>/mobile</code>; beide targets compileren, Android-APK draait.</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span>
           <div class="c-title">Netwerklaag (Ktor client)</div>
-          <div class="c-desc">Ktor + kotlinx.serialization. Typed API-client voor de member-endpoints, met baseURL + subdomein-header (<code>X-Organisation-Subdomain</code>).</div></div>
-        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+          <div class="c-desc">Ktor + kotlinx.serialization met per-platform engine. Auth-client (<code>POST /api/auth/token</code>) werkt; member-endpoints + subdomein-header (<code>X-Organisation-Subdomain</code>) volgen.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Auth-flow (token vs cookie)</div>
-          <div class="c-desc">Bearer-token aanbevolen. Vereist kleine backend-toevoeging (Sanctum <code>createToken</code>). Token veilig opslaan in lokale persistentie.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc">Gekozen voor <strong>Bearer-token</strong>. Backend-endpoint toegevoegd en live; app logt end-to-end in. Token nu in-memory — veilige opslag komt met de biometric-story.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">MVVM-architectuur</div>
-          <div class="c-desc">ViewModels + StateFlow per scherm, Repository-laag boven de Ktor-client. Vereist voor het MVVM-sequencediagram.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc">Toegepast in de login-slice: <code>LoginViewModel</code> + StateFlow + Repository boven de Ktor-client. Basis voor het MVVM-sequencediagram.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Dependency Injection</div>
-          <div class="c-desc">Koin (eenvoudig, veel docs) of Metro zoals KotlinConf-app. Aanbeveling: <strong>Koin</strong> voor een PoC.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc"><strong>Koin</strong> gekozen en ingericht (<code>AppModule</code>): HttpClient, API, repository en ViewModels.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Navigatie</div>
-          <div class="c-desc">Compose Navigation. Visualiseren met de <a href="https://github.com/skydoves/compose-nav-graph/">compose-nav-graph</a> plugin (tip docent) — bruikbaar in je ontwerpdoc.</div></div>
+          <div class="c-desc">Compose Navigation werkend: Login → Dashboard. Te visualiseren met de <a href="https://github.com/skydoves/compose-nav-graph/">compose-nav-graph</a> plugin voor het ontwerpdoc.</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span>
           <div class="c-title">Lokale persistentie <em>(gewenst)</em></div>
           <div class="c-desc">SQLDelight of multiplatform-settings/DataStore: offline cache van contributie + veilige token-opslag.</div></div>
@@ -227,8 +246,8 @@
 
       <p class="section-sub" style="margin-top:18px;padding-left:0;font-weight:700;color:#0f172a;">Schermen (gebaseerd op user stories)</p>
       <div class="stack">
-        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Login</div><div class="c-desc">+ biometric unlock</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Dashboard</div><div class="c-desc">status + volgende betaling</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Login</div><div class="c-desc">werkend; biometric volgt</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Dashboard</div><div class="c-desc">naam/org/status werkt; volgende betaling volgt</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Profile</div><div class="c-desc">bekijken / bewerken</div></div>
       </div>
@@ -239,12 +258,12 @@
       <h2><span class="num">3</span> Kleine backend-toevoeging</h2>
       <p class="section-sub">Minimale wijziging om de native app schoon te laten aansluiten.</p>
       <div class="grid">
-        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Token-login endpoint</div>
-          <div class="c-desc"><code>POST /api/auth/token</code> die email+wachtwoord aanneemt en een Sanctum-token teruggeeft. Bestaande <code>auth:sanctum</code> guard accepteert tokens al.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc"><code>POST /api/auth/token</code> live: neemt email+wachtwoord aan en geeft een Sanctum-token + ledendata terug. Gedekt door 3 feature-tests.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">CORS / device-toegang</div>
-          <div class="c-desc">Controleren dat de API zonder cookies (puur Bearer) werkt vanaf een mobiel device buiten de browser.</div></div>
+          <div class="c-desc">Bevestigd: de app bereikt <code>api.aidatim.nl</code> puur via Bearer (zonder cookies) vanaf de emulator.</div></div>
       </div>
     </section>
 
@@ -294,9 +313,9 @@
         <div class="card s-partial"><span class="tag t-partial">Deels</span>
           <div class="c-title">CI/CD-omgeving</div>
           <div class="c-desc">"Aantoonbaar ingerichte werkomgeving". GitHub Actions: build + test bij elke push. Repo staat al op GitHub.</div></div>
-        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span>
           <div class="c-title">Engelstalige broncode &amp; GUI</div>
-          <div class="c-desc"><strong>Eis!</strong> De nieuwe app moet volledig Engels zijn (de huidige app is NL). Vanaf dag 1 in het Engels bouwen.</div></div>
+          <div class="c-desc"><strong>Eis!</strong> Toegepast vanaf dag 1 — login/dashboard-UI en alle nieuwe code zijn Engels. Bewaken naarmate er schermen bijkomen.</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span>
           <div class="c-title">Installatie- &amp; gebruiksinstructie</div>
           <div class="c-desc">Korte README: hoe bouwen/installeren en gebruiken.</div></div>
@@ -319,10 +338,10 @@
       <table>
         <thead><tr><th style="width:55%">Opleverdeel (opdracht)</th><th>Status</th><th>Opmerking</th></tr></thead>
         <tbody>
-          <tr><td>Werkende, functioneel geteste cross-platform app (KMP/CMP i.p.v. MAUI)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Kern van de realisatie</td></tr>
+          <tr><td>Werkende, functioneel geteste cross-platform app (KMP/CMP i.p.v. MAUI)</td><td><span class="mini-tag t-partial">Deels</span></td><td>Login-slice werkt op Android, compileert op iOS</td></tr>
           <tr><td>Eigen backend + persistentie <em>(vervalt bij bestaande backend)</em></td><td><span class="mini-tag t-have">Vervalt ✓</span></td><td>Bestaande Laravel-backend; opnemen in voorstel</td></tr>
-          <tr><td>Meest recente technologie toegepast</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Nieuwe KMP-structuur, laatste Compose MP</td></tr>
-          <tr><td>Broncode &amp; GUI Engelstalig</td><td><span class="mini-tag t-decision">Let op</span></td><td>Vanaf start Engels bouwen</td></tr>
+          <tr><td>Meest recente technologie toegepast</td><td><span class="mini-tag t-have">Aanwezig</span></td><td>Nieuwe KMP-structuur, laatste Compose MP, Ktor</td></tr>
+          <tr><td>Broncode &amp; GUI Engelstalig</td><td><span class="mini-tag t-partial">Deels</span></td><td>Toegepast vanaf start; bewaken</td></tr>
           <tr><td>Ontwerpdoc — functionaliteit-samenvatting</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
           <tr><td>Ontwerpdoc — user stories</td><td><span class="mini-tag t-partial">Deels</span></td><td>Vaststellen met verantwoordelijke</td></tr>
           <tr><td>Ontwerpdoc — use case diagram</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
