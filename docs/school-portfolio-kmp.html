@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aidatim — School Portfolio (KMP/CMP PoC)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #f1f5f9;
+      line-height: 1.55;
+      padding-bottom: 60px;
+    }
+    a { color: #0052cc; }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: #0052cc;
+      color: white;
+      padding: 22px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+    .topbar p  { font-size: 12.5px; opacity: 0.8; margin-top: 3px; }
+    .topbar .badge {
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── Progress ── */
+    .progress-card {
+      background: white;
+      border-radius: 0 0 12px 12px;
+      padding: 20px 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      margin-bottom: 28px;
+    }
+    .progress-card .bar-bg {
+      height: 12px; background: #e2e8f0; border-radius: 8px; overflow: hidden; margin: 10px 0 14px;
+    }
+    .progress-card .bar-fill { height: 100%; background: linear-gradient(90deg,#22c55e,#16a34a); width: 0%; transition: width .8s ease; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #475569; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .lg-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 32px; }
+    h2 {
+      font-size: 16px; font-weight: 800; color: #0f172a;
+      margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+    }
+    h2 .num {
+      background: #0052cc; color: white; width: 26px; height: 26px; border-radius: 7px;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+    .section-sub { font-size: 12.5px; color: #64748b; margin-bottom: 14px; padding-left: 36px; }
+
+    /* ── Cards ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .card {
+      background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 14px 16px; border-left: 4px solid #cbd5e1; position: relative;
+    }
+    .card.s-have    { border-left-color: #22c55e; }
+    .card.s-partial { border-left-color: #f59e0b; }
+    .card.s-todo    { border-left-color: #94a3b8; }
+    .card.s-decision{ border-left-color: #8b5cf6; }
+    .card .c-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; padding-right: 70px; }
+    .card .c-desc  { font-size: 12px; color: #64748b; }
+    .card .c-desc code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:11px; }
+    .tag {
+      position: absolute; top: 13px; right: 14px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+      padding: 3px 8px; border-radius: 5px;
+    }
+    .t-have    { background: #dcfce7; color: #166534; }
+    .t-partial { background: #fef9c3; color: #854d0e; }
+    .t-todo    { background: #f1f5f9; color: #475569; }
+    .t-decision{ background: #ede9fe; color: #6d28d9; }
+
+    /* ── Callout ── */
+    .callout {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #0052cc;
+      border-radius: 8px; padding: 14px 18px; margin-bottom: 14px;
+    }
+    .callout.warn { background:#fffbeb; border-color:#fde68a; border-left-color:#f59e0b; }
+    .callout.purple { background:#faf5ff; border-color:#e9d5ff; border-left-color:#8b5cf6; }
+    .callout strong { color: #0f172a; }
+    .callout p { font-size: 12.5px; color:#334155; }
+    .callout p + p { margin-top: 6px; }
+
+    /* ── Checklist table ── */
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    thead th {
+      background: #f8fafc; border-bottom: 2px solid #e2e8f0; padding: 9px 14px; text-align: left;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;
+    }
+    tbody td { border-bottom: 1px solid #f1f5f9; padding: 9px 14px; vertical-align: top; font-size: 12.5px; }
+    tbody tr:last-child td { border-bottom: none; }
+    .mini-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+
+    /* ── Resources ── */
+    .res-list { list-style: none; }
+    .res-list li { background: white; border:1px solid #e2e8f0; border-radius: 8px; padding: 11px 14px; margin-bottom: 8px; font-size: 12.5px; }
+    .res-list li b { display:block; margin-bottom: 2px; }
+
+    .stack { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+    .stack .card { border-left-width: 4px; }
+
+    .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 36px; }
+
+    @media (max-width: 760px) {
+      .grid, .grid-3, .stack { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <div class="topbar">
+    <div>
+      <h1>Aidatim — School Portfolio</h1>
+      <p>Proof of Concept · Kotlin Multiplatform / Compose Multiplatform · LU3 complex informatiesysteem</p>
+    </div>
+    <span class="badge">Wat we hebben &amp; wat nog moet</span>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ── PROGRESS ── -->
+    <div class="progress-card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">
+        <strong style="font-size:14px;">Voortgang opleverdelen</strong>
+        <span id="progress-text" style="font-size:13px;color:#16a34a;font-weight:700;"></span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" id="progress-bar"></div></div>
+      <div class="legend">
+        <span><i class="lg-dot" style="background:#22c55e"></i> Aanwezig / af</span>
+        <span><i class="lg-dot" style="background:#f59e0b"></i> Gedeeltelijk</span>
+        <span><i class="lg-dot" style="background:#94a3b8"></i> Nog te doen</span>
+        <span><i class="lg-dot" style="background:#8b5cf6"></i> Beslissing nodig</span>
+      </div>
+    </div>
+
+    <!-- ── 0. KERNBESLISSING ── -->
+    <section>
+      <h2><span class="num">!</span> De kernkeuze van dit PoC</h2>
+      <div class="callout">
+        <p><strong>De opdracht vraagt .NET MAUI — jouw docent staat KMP/CMP toe.</strong> We bouwen dus een <strong>cross-platform mobiele app (Android + iOS) in Compose Multiplatform</strong>. Overal waar de opdracht ".NET MAUI" zegt, lees je voor jou "Compose Multiplatform"; waar ".NET Web API" staat, lees je "de bestaande Laravel-backend".</p>
+        <p><strong>Eigen .NET-backend bouwen vervalt.</strong> De opdracht zegt letterlijk: <em>"Als de applicatie volledig kan aansluiten op een bestaande backend en/of persistentie vervalt deze voorwaarde."</em> Je hebt al een complete, draaiende Laravel-backend (<code>api.aidatim.nl</code>) met een volledige <code>/api/member/</code>-laag. Wél opnemen in je voorstel + bespreken met docent (dat is een expliciete eis).</p>
+        <p><strong>Het PoC = een native Ledenportaal-app.</strong> Leden gebruiken het portaal nu via de mobiele browser. Een native app is een echte <em>procesverbetering</em>: biometrische login, offline inzage en sensoren. Dat sluit precies aan op LU3 ("integreren in een bestaand systeem").</p>
+      </div>
+      <div class="callout purple">
+        <p><strong>Beslispunt — authenticatie.</strong> De backend gebruikt nu <strong>Sanctum cookie-auth</strong> (gemaakt voor de web-SPA). Een native app werkt veel schoner met <strong>token-auth (Bearer)</strong>. Sanctum ondersteunt dit, maar je moet een kleine token-login-endpoint toevoegen (personal access tokens). <em>Aanbeveling: token-auth toevoegen.</em> Dit is ook mooi materiaal voor het hoofdstuk "authenticatie &amp; autorisatie" in je ontwerpdocument.</p>
+      </div>
+    </section>
+
+    <!-- ── 1. WAT WE AL HEBBEN ── -->
+    <section>
+      <h2><span class="num">1</span> Wat we al hebben</h2>
+      <p class="section-sub">Bestaande assets die het PoC mogelijk maken — dit is jouw "bestaande systeem" om in te integreren.</p>
+      <div class="grid">
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Draaiende Laravel-backend</div>
+          <div class="c-desc">Productie op <code>api.aidatim.nl</code>, multi-tenant, Stripe/SEPA, webhooks. Dit is de backend waar de app op aansluit.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Volledige member-API</div>
+          <div class="c-desc"><code>/api/member/</code>: profile, contribution, contribution-history, subscription, sepa/setup, contribution-pay. Alles wat de app nodig heeft bestaat al.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Auth-systeem (Sanctum)</div>
+          <div class="c-desc">Login, forgot/reset password, rollen (member / org_admin / platform_admin), activatie-tokens. Basis voor het auth-hoofdstuk.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Bestaande web-frontend als referentie</div>
+          <div class="c-desc">React-ledenportaal (dashboard, contributie, profiel). Perfecte basis voor je wireframes en UX van de native app.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Domeinkennis &amp; datamodel</div>
+          <div class="c-desc">Member, MemberSubscription, ContributionRecord, etc. — bekend en gedocumenteerd in CLAUDE.md. Helpt bij klassendiagrammen.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
+          <div class="c-title">Git + GitHub repo</div>
+          <div class="c-desc">Monorepo op GitHub. Klaar voor een <code>/mobile</code>-module en GitHub Actions als CI/CD-omgeving.</div></div>
+      </div>
+    </section>
+
+    <!-- ── 2. APP REALISATIE ── -->
+    <section>
+      <h2><span class="num">2</span> Te bouwen — de KMP/CMP app</h2>
+      <p class="section-sub">De technische realisatie. Nieuwe KMP-projectstructuur (mei 2026), MVVM, Ktor naar de bestaande API.</p>
+      <div class="grid">
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Projectopzet (nieuwe KMP-structuur)</div>
+          <div class="c-desc">Compose Multiplatform project volgens de <a href="https://blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure/">nieuwe default structuur</a>. Targets: Android + iOS. Map: <code>/mobile</code> in deze repo.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Netwerklaag (Ktor client)</div>
+          <div class="c-desc">Ktor + kotlinx.serialization. Typed API-client voor de member-endpoints, met baseURL + subdomein-header (<code>X-Organisation-Subdomain</code>).</div></div>
+        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+          <div class="c-title">Auth-flow (token vs cookie)</div>
+          <div class="c-desc">Bearer-token aanbevolen. Vereist kleine backend-toevoeging (Sanctum <code>createToken</code>). Token veilig opslaan in lokale persistentie.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">MVVM-architectuur</div>
+          <div class="c-desc">ViewModels + StateFlow per scherm, Repository-laag boven de Ktor-client. Vereist voor het MVVM-sequencediagram.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Dependency Injection</div>
+          <div class="c-desc">Koin (eenvoudig, veel docs) of Metro zoals KotlinConf-app. Aanbeveling: <strong>Koin</strong> voor een PoC.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Navigatie</div>
+          <div class="c-desc">Compose Navigation. Visualiseren met de <a href="https://github.com/skydoves/compose-nav-graph/">compose-nav-graph</a> plugin (tip docent) — bruikbaar in je ontwerpdoc.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Lokale persistentie <em>(gewenst)</em></div>
+          <div class="c-desc">SQLDelight of multiplatform-settings/DataStore: offline cache van contributie + veilige token-opslag.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Sensorgebruik <em>(gewenst)</em></div>
+          <div class="c-desc">Biometrische login (vingerafdruk/Face ID) en/of camera voor QR-lidkaart. Eén sensor is genoeg om de eis te raken.</div></div>
+      </div>
+
+      <p class="section-sub" style="margin-top:18px;padding-left:0;font-weight:700;color:#0f172a;">Schermen (gebaseerd op user stories)</p>
+      <div class="stack">
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Login</div><div class="c-desc">+ biometric unlock</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Dashboard</div><div class="c-desc">status + volgende betaling</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Profile</div><div class="c-desc">bekijken / bewerken</div></div>
+      </div>
+    </section>
+
+    <!-- ── 3. BACKEND AANPASSING ── -->
+    <section>
+      <h2><span class="num">3</span> Kleine backend-toevoeging</h2>
+      <p class="section-sub">Minimale wijziging om de native app schoon te laten aansluiten.</p>
+      <div class="grid">
+        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+          <div class="c-title">Token-login endpoint</div>
+          <div class="c-desc"><code>POST /api/auth/token</code> die email+wachtwoord aanneemt en een Sanctum-token teruggeeft. Bestaande <code>auth:sanctum</code> guard accepteert tokens al.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">CORS / device-toegang</div>
+          <div class="c-desc">Controleren dat de API zonder cookies (puur Bearer) werkt vanaf een mobiel device buiten de browser.</div></div>
+      </div>
+    </section>
+
+    <!-- ── 4. ONTWERPDOCUMENT ── -->
+    <section>
+      <h2><span class="num">4</span> Ontwerpdocument</h2>
+      <p class="section-sub">Alle eisen uit de opdracht. Herleidbaar naar de realisatie.</p>
+      <div class="grid grid-3">
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Functionaliteit-samenvatting</div><div class="c-desc">App + backend kort toegelicht</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">User stories</div><div class="c-desc">Concept klaar; vaststellen met "verantwoordelijke werkplek"</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Use case diagram</div><div class="c-desc">Member als actor</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Wireframes</div><div class="c-desc">Web-portaal als referentie aanwezig</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Web API-documentatie</div><div class="c-desc">Endpoints bestaan; uitschrijven met request-voorbeelden</div></div>
+        <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Auth &amp; autorisatie</div><div class="c-desc">Sanctum + rollen + multi-tenant bekend; uitschrijven</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Package diagram + architectuur</div><div class="c-desc">KMP-modulestructuur</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Deployment diagram</div><div class="c-desc">App → API → MySQL/Stripe</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Klassendiagrammen</div><div class="c-desc">Eigen ontworpen klassen (VM's, models)</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Sequence: MVVM</div><div class="c-desc">Min. 1 — verplicht</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Sequence: app ↔ backend</div><div class="c-desc">Min. 1 — verplicht</div></div>
+      </div>
+    </section>
+
+    <!-- ── 5. TESTEN ── -->
+    <section>
+      <h2><span class="num">5</span> Testen &amp; testrapportage</h2>
+      <p class="section-sub">Minimaal 3 unit + 3 UI/device tests. LU3 vraagt ook regressie/integratie/systeem qua strekking.</p>
+      <div class="grid">
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">≥ 3 unit tests (commonTest)</div>
+          <div class="c-desc">Bv. IBAN-validatie, contributie-berekening, ViewModel state-transities. <code>kotlin.test</code>.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">≥ 3 UI / device tests</div>
+          <div class="c-desc">Compose UI-tests + draaien op Android-emulator en iOS-simulator.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Acceptatietest(en) o.b.v. DoD</div>
+          <div class="c-desc">Aparte deelopdracht — koppel elke test aan een DoD-criterium.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Testrapportage</div>
+          <div class="c-desc">Resultaten verzamelen in één document (eis LU3).</div></div>
+      </div>
+    </section>
+
+    <!-- ── 6. WERKOMGEVING & OVERIGE ── -->
+    <section>
+      <h2><span class="num">6</span> Werkomgeving &amp; overige opleverdelen</h2>
+      <div class="grid">
+        <div class="card s-partial"><span class="tag t-partial">Deels</span>
+          <div class="c-title">CI/CD-omgeving</div>
+          <div class="c-desc">"Aantoonbaar ingerichte werkomgeving". GitHub Actions: build + test bij elke push. Repo staat al op GitHub.</div></div>
+        <div class="card s-decision"><span class="tag t-decision">Beslis</span>
+          <div class="c-title">Engelstalige broncode &amp; GUI</div>
+          <div class="c-desc"><strong>Eis!</strong> De nieuwe app moet volledig Engels zijn (de huidige app is NL). Vanaf dag 1 in het Engels bouwen.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Installatie- &amp; gebruiksinstructie</div>
+          <div class="c-desc">Korte README: hoe bouwen/installeren en gebruiken.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Definition of Done + checklist</div>
+          <div class="c-desc">DoD vaststellen met verantwoordelijke + afvinkchecklist als opleverdeel.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Projectbestand (code + assets)</div>
+          <div class="c-desc">Volledige KMP-project met alle assets — dekt de repo automatisch.</div></div>
+        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-title">Demovideo</div>
+          <div class="c-desc">Doel/gebruikers, demo user stories, ontwerp/realisatie-keuzes, waar je trots op bent.</div></div>
+      </div>
+    </section>
+
+    <!-- ── 7. CHECKLIST ── -->
+    <section>
+      <h2><span class="num">7</span> Volledige opleverchecklist (uit de opdracht)</h2>
+      <p class="section-sub">Elke eis 1-op-1 uit de opdracht, met huidige status.</p>
+      <table>
+        <thead><tr><th style="width:55%">Opleverdeel (opdracht)</th><th>Status</th><th>Opmerking</th></tr></thead>
+        <tbody>
+          <tr><td>Werkende, functioneel geteste cross-platform app (KMP/CMP i.p.v. MAUI)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Kern van de realisatie</td></tr>
+          <tr><td>Eigen backend + persistentie <em>(vervalt bij bestaande backend)</em></td><td><span class="mini-tag t-have">Vervalt ✓</span></td><td>Bestaande Laravel-backend; opnemen in voorstel</td></tr>
+          <tr><td>Meest recente technologie toegepast</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Nieuwe KMP-structuur, laatste Compose MP</td></tr>
+          <tr><td>Broncode &amp; GUI Engelstalig</td><td><span class="mini-tag t-decision">Let op</span></td><td>Vanaf start Engels bouwen</td></tr>
+          <tr><td>Ontwerpdoc — functionaliteit-samenvatting</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Ontwerpdoc — user stories</td><td><span class="mini-tag t-partial">Deels</span></td><td>Vaststellen met verantwoordelijke</td></tr>
+          <tr><td>Ontwerpdoc — use case diagram</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Ontwerpdoc — wireframes</td><td><span class="mini-tag t-partial">Deels</span></td><td>Web-portaal als referentie</td></tr>
+          <tr><td>Ontwerpdoc — Web API-documentatie + request-voorbeelden</td><td><span class="mini-tag t-partial">Deels</span></td><td>Endpoints bestaan; uitschrijven</td></tr>
+          <tr><td>Ontwerpdoc — authenticatie &amp; autorisatie</td><td><span class="mini-tag t-partial">Deels</span></td><td>Sanctum + rollen bekend</td></tr>
+          <tr><td>Ontwerpdoc — package diagram + architectuur</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Ontwerpdoc — deployment diagram</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Ontwerpdoc — klassendiagrammen eigen klassen</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Ontwerpdoc — sequence MVVM (min. 1)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Verplicht</td></tr>
+          <tr><td>Ontwerpdoc — sequence app↔backend (min. 1)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Verplicht</td></tr>
+          <tr><td>≥ 3 zinvolle unit tests</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>≥ 3 zinvolle UI/device tests</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Acceptatietest(en) o.b.v. DoD</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Projectbestand met alle code &amp; assets</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Repo dekt dit</td></tr>
+          <tr><td>Aantoonbaar ingerichte werkomgeving (CI/CD)</td><td><span class="mini-tag t-partial">Deels</span></td><td>GitHub Actions inrichten</td></tr>
+          <tr><td>Installatie- &amp; gebruiksinstructie</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>DoD-checklist</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>Demovideo</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Laatste stap</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── 8. AANBEVOLEN VOLGORDE ── -->
+    <section>
+      <h2><span class="num">8</span> Aanbevolen volgorde</h2>
+      <div class="grid grid-3">
+        <div class="card s-have" style="border-left-color:#0052cc;"><div class="c-title">Sprint 0 — Fundament</div><div class="c-desc">Voorstel + docent-akkoord (bestaande backend), user stories &amp; DoD vaststellen, KMP-project opzetten, token-auth backend.</div></div>
+        <div class="card s-have" style="border-left-color:#0052cc;"><div class="c-title">Sprint 1 — Realisatie</div><div class="c-desc">Ktor-laag, MVVM, login + dashboard + contribution + profile, lokale persistentie + 1 sensor. Engels!</div></div>
+        <div class="card s-have" style="border-left-color:#0052cc;"><div class="c-title">Sprint 2 — Afronden</div><div class="c-desc">Tests + rapportage, CI/CD, ontwerpdoc-diagrammen, DoD-checklist, installatie-instructie, demovideo.</div></div>
+      </div>
+    </section>
+
+    <!-- ── 9. RESOURCES ── -->
+    <section>
+      <h2><span class="num">9</span> Resources (tips docent)</h2>
+      <ul class="res-list">
+        <li><b>Nieuwe KMP/CMP projectstructuur</b><a href="https://blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure/">blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure</a></li>
+        <li><b>CMP workshop slides</b><a href="https://jb.gg/kc26-cmp-ws">jb.gg/kc26-cmp-ws</a></li>
+        <li><b>KotlinConf-app (best practices, Metro DI)</b><a href="https://github.com/jetbrains/kotlinconf-app">github.com/jetbrains/kotlinconf-app</a></li>
+        <li><b>KotlinConf-app met Koin DI (PR #699)</b><a href="https://github.com/JetBrains/kotlinconf-app/pull/699">github.com/JetBrains/kotlinconf-app/pull/699</a></li>
+        <li><b>Compose navigatie-visualisatie plugin</b><a href="https://github.com/skydoves/compose-nav-graph/">github.com/skydoves/compose-nav-graph</a></li>
+      </ul>
+    </section>
+
+    <div class="footer">Aidatim — Intern planningsdocument · School Portfolio LU3 · gegenereerd overzicht</div>
+  </div>
+
+  <script>
+    (function () {
+      // Tel statussen uit alle .card met een status-klasse
+      var cards = document.querySelectorAll('.card[class*="s-"]');
+      var have = 0, partial = 0, total = 0;
+      cards.forEach(function (c) {
+        if (c.classList.contains('s-have'))       { have++;    total++; }
+        else if (c.classList.contains('s-partial')){ partial++; total++; }
+        else if (c.classList.contains('s-todo'))   { total++; }
+        else if (c.classList.contains('s-decision')){ total++; }
+      });
+      // 'have' telt vol, 'partial' telt half mee
+      var score = total ? Math.round(((have + partial * 0.5) / total) * 100) : 0;
+      var bar = document.getElementById('progress-bar');
+      var txt = document.getElementById('progress-text');
+      if (bar) setTimeout(function(){ bar.style.width = score + '%'; }, 150);
+      if (txt) txt.textContent = score + '% · ' + have + ' af, ' + partial + ' deels van ' + total + ' onderdelen';
+    })();
+  </script>
+
+</body>
+</html>
