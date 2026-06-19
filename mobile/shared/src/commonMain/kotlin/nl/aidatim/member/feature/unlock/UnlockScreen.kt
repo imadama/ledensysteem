@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -22,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import nl.aidatim.member.core.biometric.BiometricAuthenticator
 import nl.aidatim.member.core.biometric.BiometricResult
+import nl.aidatim.member.data.auth.AuthRepository
+import nl.aidatim.member.data.auth.SessionStatus
 import org.koin.compose.koinInject
 
 /**
@@ -30,20 +33,31 @@ import org.koin.compose.koinInject
  * through so the user is never locked out of a valid session.
  */
 @Composable
-fun UnlockScreen(onUnlocked: () -> Unit, onSignOut: () -> Unit) {
+fun UnlockScreen(onUnlocked: () -> Unit, onSessionInvalid: () -> Unit, onSignOut: () -> Unit) {
     val authenticator = koinInject<BiometricAuthenticator>()
+    val authRepository = koinInject<AuthRepository>()
     val scope = rememberCoroutineScope()
     var failed by remember { mutableStateOf(false) }
+    var validating by remember { mutableStateOf(false) }
+
+    // After a passed biometric check, confirm the token is still valid server-side.
+    suspend fun validateAndProceed() {
+        validating = true
+        when (authRepository.validateSession()) {
+            SessionStatus.INVALID -> onSessionInvalid()
+            SessionStatus.VALID, SessionStatus.INCONCLUSIVE -> onUnlocked()
+        }
+    }
 
     suspend fun attempt() {
         when (authenticator.authenticate("Unlock Aidatim", "Confirm your identity to continue")) {
-            BiometricResult.SUCCESS, BiometricResult.UNAVAILABLE -> onUnlocked()
+            BiometricResult.SUCCESS, BiometricResult.UNAVAILABLE -> validateAndProceed()
             BiometricResult.FAILED -> failed = true
         }
     }
 
     LaunchedEffect(Unit) {
-        if (!authenticator.canAuthenticate()) onUnlocked() else attempt()
+        if (!authenticator.canAuthenticate()) validateAndProceed() else attempt()
     }
 
     Column(
@@ -70,11 +84,15 @@ fun UnlockScreen(onUnlocked: () -> Unit, onSignOut: () -> Unit) {
             )
         }
 
-        Button(
-            onClick = { failed = false; scope.launch { attempt() } },
-            modifier = Modifier.padding(top = 24.dp),
-        ) {
-            Text("Unlock")
+        if (validating) {
+            CircularProgressIndicator(modifier = Modifier.padding(top = 24.dp))
+        } else {
+            Button(
+                onClick = { failed = false; scope.launch { attempt() } },
+                modifier = Modifier.padding(top = 24.dp),
+            ) {
+                Text("Unlock")
+            }
         }
 
         TextButton(onClick = onSignOut, modifier = Modifier.padding(top = 4.dp)) {

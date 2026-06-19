@@ -5,6 +5,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import nl.aidatim.member.core.security.SessionStorage
 
+/** Result of checking a restored token against the backend. */
+enum class SessionStatus { VALID, INVALID, INCONCLUSIVE }
+
 /**
  * Holds the authenticated session. The Bearer token + member profile are kept
  * in memory for the running app and persisted to secure platform storage
@@ -44,6 +47,27 @@ class AuthRepository(
         token = null
         _currentUser.value = null
         session.clear()
+    }
+
+    /**
+     * Confirms the restored token is still accepted by the backend.
+     * - [SessionStatus.VALID]: token works; the stored profile is refreshed.
+     * - [SessionStatus.INVALID]: backend returned 401; the session is cleared.
+     * - [SessionStatus.INCONCLUSIVE]: network error — keep the session (offline-tolerant).
+     */
+    suspend fun validateSession(): SessionStatus {
+        val current = token ?: return SessionStatus.INVALID
+        return try {
+            val user = api.me(current)
+            _currentUser.value = user
+            session.save(current, user)
+            SessionStatus.VALID
+        } catch (e: UnauthorizedException) {
+            logout()
+            SessionStatus.INVALID
+        } catch (e: Exception) {
+            SessionStatus.INCONCLUSIVE
+        }
     }
 
     fun authToken(): String? = token

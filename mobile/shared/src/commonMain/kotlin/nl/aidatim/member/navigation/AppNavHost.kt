@@ -34,6 +34,11 @@ fun AppNavHost() {
                         popUpTo(Routes.UNLOCK) { inclusive = true }
                     }
                 },
+                onSessionInvalid = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.UNLOCK) { inclusive = true }
+                    }
+                },
                 onSignOut = {
                     authRepository.logout()
                     navController.navigate(Routes.LOGIN) {
