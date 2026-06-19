@@ -9,6 +9,27 @@ class ContributionRepository(private val api: ContributionApi) {
     suspend fun history(): Result<List<ContributionItem>> = runCatching {
         api.history().map { it.toItem() }
     }
+
+    suspend fun currentContribution(): Result<ContributionSummary?> = runCatching {
+        api.current()?.toSummary()
+    }
+}
+
+private fun ContributionSummaryDto.toSummary(): ContributionSummary = ContributionSummary(
+    amountLabel = formatAmount(contribution_amount),
+    frequencyLabel = formatFrequency(contribution_frequency),
+    sinceLabel = contribution_start_date?.let { formatPeriod(it, null) }?.takeIf { it != "—" },
+    automatic = has_subscription,
+)
+
+/** Maps the backend's Dutch frequency labels to English for the UI. */
+private fun formatFrequency(raw: String?): String = when (raw?.lowercase()) {
+    "maandelijks" -> "Monthly"
+    "jaarlijks" -> "Yearly"
+    "per kwartaal", "kwartaal" -> "Quarterly"
+    "wekelijks" -> "Weekly"
+    null, "" -> "—"
+    else -> raw
 }
 
 private fun ContributionRecordDto.toItem(): ContributionItem {

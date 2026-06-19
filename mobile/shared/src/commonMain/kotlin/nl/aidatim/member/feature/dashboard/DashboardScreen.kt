@@ -16,13 +16,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import nl.aidatim.member.data.auth.AuthRepository
+import nl.aidatim.member.data.contribution.ContributionRepository
 import org.koin.compose.koinInject
 
 @Composable
 fun DashboardScreen(onLogout: () -> Unit, onOpenContributions: () -> Unit) {
     val repository = koinInject<AuthRepository>()
     val user by repository.currentUser.collectAsState()
+
+    val contributionRepository = koinInject<ContributionRepository>()
+    val viewModel = viewModel { DashboardViewModel(contributionRepository) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -45,6 +52,26 @@ fun DashboardScreen(onLogout: () -> Unit, onOpenContributions: () -> Unit) {
                 Text("Email: ${user?.email ?: "-"}")
                 Text("Organisation: ${user?.organisation?.name ?: "-"}")
                 Text("Status: ${user?.status ?: "-"}")
+            }
+        }
+
+        state.contribution?.let { contribution ->
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("Contribution", style = MaterialTheme.typography.titleMedium)
+                    Text("Amount: ${contribution.amountLabel} · ${contribution.frequencyLabel}")
+                    contribution.sinceLabel?.let { Text("Since: $it") }
+                    Text(
+                        if (contribution.automatic) {
+                            "Automatic collection: active"
+                        } else {
+                            "Automatic collection: not set up"
+                        },
+                    )
+                }
             }
         }
 

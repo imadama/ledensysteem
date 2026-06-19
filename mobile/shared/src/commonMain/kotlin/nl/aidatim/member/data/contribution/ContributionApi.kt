@@ -2,6 +2,7 @@ package nl.aidatim.member.data.contribution
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
@@ -21,12 +22,7 @@ class ContributionApi(
 
     suspend fun history(): List<ContributionRecordDto> {
         val response = client.get("${ApiConfig.BASE_URL}/api/member/contribution-history") {
-            session.authToken()?.let { token ->
-                header(HttpHeaders.Authorization, "Bearer $token")
-            }
-            session.organisationSubdomain()?.let { subdomain ->
-                header("X-Organisation-Subdomain", subdomain)
-            }
+            authHeaders()
         }
 
         if (response.status.isSuccess()) {
@@ -35,5 +31,24 @@ class ContributionApi(
 
         val message = runCatching { response.body<ErrorResponse>().message }.getOrNull()
         throw ContributionException(message ?: "Could not load contributions (${response.status.value})")
+    }
+
+    /** The member's current contribution arrangement, or null when none is set. */
+    suspend fun current(): ContributionSummaryDto? {
+        val response = client.get("${ApiConfig.BASE_URL}/api/member/contribution") {
+            authHeaders()
+        }
+
+        if (response.status.isSuccess()) {
+            return response.body<ContributionSummaryResponse>().data
+        }
+
+        val message = runCatching { response.body<ErrorResponse>().message }.getOrNull()
+        throw ContributionException(message ?: "Could not load contribution (${response.status.value})")
+    }
+
+    private fun HttpRequestBuilder.authHeaders() {
+        session.authToken()?.let { token -> header(HttpHeaders.Authorization, "Bearer $token") }
+        session.organisationSubdomain()?.let { subdomain -> header("X-Organisation-Subdomain", subdomain) }
     }
 }
