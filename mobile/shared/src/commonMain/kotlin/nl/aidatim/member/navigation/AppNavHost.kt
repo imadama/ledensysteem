@@ -8,6 +8,7 @@ import nl.aidatim.member.data.auth.AuthRepository
 import nl.aidatim.member.feature.contribution.ContributionScreen
 import nl.aidatim.member.feature.dashboard.DashboardScreen
 import nl.aidatim.member.feature.login.LoginScreen
+import nl.aidatim.member.feature.profile.ProfileScreen
 import nl.aidatim.member.feature.unlock.UnlockScreen
 import org.koin.compose.koinInject
 
@@ -16,6 +17,7 @@ object Routes {
     const val UNLOCK = "unlock"
     const val DASHBOARD = "dashboard"
     const val CONTRIBUTION = "contribution"
+    const val PROFILE = "profile"
 }
 
 @Composable
@@ -64,10 +66,14 @@ fun AppNavHost() {
                     }
                 },
                 onOpenContributions = { navController.navigate(Routes.CONTRIBUTION) },
+                onOpenProfile = { navController.navigate(Routes.PROFILE) },
             )
         }
         composable(Routes.CONTRIBUTION) {
             ContributionScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.PROFILE) {
+            ProfileScreen(onBack = { navController.popBackStack() })
         }
     }
 }

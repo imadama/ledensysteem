@@ -23,7 +23,11 @@ import nl.aidatim.member.data.contribution.ContributionRepository
 import org.koin.compose.koinInject
 
 @Composable
-fun DashboardScreen(onLogout: () -> Unit, onOpenContributions: () -> Unit) {
+fun DashboardScreen(
+    onLogout: () -> Unit,
+    onOpenContributions: () -> Unit,
+    onOpenProfile: () -> Unit,
+) {
     val repository = koinInject<AuthRepository>()
     val user by repository.currentUser.collectAsState()
 
@@ -77,6 +81,10 @@ fun DashboardScreen(onLogout: () -> Unit, onOpenContributions: () -> Unit) {
 
         Button(onClick = onOpenContributions, modifier = Modifier.fillMaxWidth()) {
             Text("View contributions")
+        }
+
+        OutlinedButton(onClick = onOpenProfile, modifier = Modifier.fillMaxWidth()) {
+            Text("View profile")
         }
 
         OutlinedButton(onClick = {
