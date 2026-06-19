@@ -161,6 +161,7 @@
         <p><strong>✅ Eerste werkende slice — US-01 Login (18 jun 2026).</strong> De Compose Multiplatform-app is opgezet en de <strong>volledige login-keten werkt end-to-end op zowel de Android-emulator als de iOS-simulator</strong>: inloggen → token van de bestaande backend (<code>POST /api/auth/token</code>) → Dashboard met echte ledendata (naam, organisatie, status). Eén gedeelde codebase, draaiend op beide platforms.</p>
         <p><strong>Architectuur staat:</strong> gelaagd (core/network → data → feature) met <strong>Ktor</strong> (HTTP), <strong>Koin</strong> (DI), <strong>MVVM</strong> (ViewModel + StateFlow), <strong>Compose Navigation</strong> en Engelstalige UI. Backend-token-endpoint is live met 3 feature-tests.</p>
         <p><strong>✅ Tweede slice — US-04 Contributie-overzicht (19 jun 2026).</strong> Geauthenticeerde call naar <code>GET /api/member/contribution-history</code> (Bearer-token + <code>X-Organisation-Subdomain</code>), met lijst, status-chips (Paid/Open/Failed/Processing), en loading-/error-/lege-staat. Werkt op beide platforms — bewijst dat de architectuur ook voor een tweede feature schaalt.</p>
+        <p><strong>✅ Derde slice — US-02 Sessie onthouden + biometrische ontgrendeling (19 jun 2026).</strong> Token + profiel versleuteld opgeslagen (<code>expect/actual</code>: Android Keystore ↔ iOS Keychain) zodat de sessie een herstart overleeft; bij heropenen een biometrische poort (Android <code>BiometricPrompt</code> ↔ iOS <code>LocalAuthentication</code>) en token-validatie via <code>GET /api/auth/me</code> (401 → uitloggen). Gedekt door 3 unit-tests. Raakt de LU3-eisen <em>sensorgebruik</em> én <em>lokale persistentie</em>.</p>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
         <figure style="margin:0;text-align:center;">
@@ -245,17 +246,17 @@
         <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Navigatie</div>
           <div class="c-desc">Compose Navigation werkend: Login → Dashboard. Te visualiseren met de <a href="https://github.com/skydoves/compose-nav-graph/">compose-nav-graph</a> plugin voor het ontwerpdoc.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Lokale persistentie <em>(gewenst)</em></div>
-          <div class="c-desc">SQLDelight of multiplatform-settings/DataStore: offline cache van contributie + veilige token-opslag.</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+          <div class="c-desc">Versleutelde token-/profielopslag via multiplatform-settings (iOS Keychain, Android Keystore). Offline-cache van contributie volgt evt. later.</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Sensorgebruik <em>(gewenst)</em></div>
-          <div class="c-desc">Biometrische login (vingerafdruk/Face ID) en/of camera voor QR-lidkaart. Eén sensor is genoeg om de eis te raken.</div></div>
+          <div class="c-desc">Biometrische ontgrendeling (vingerafdruk/Face ID) via <code>BiometricPrompt</code> (Android) en <code>LocalAuthentication</code> (iOS).</div></div>
       </div>
 
       <p class="section-sub" style="margin-top:18px;padding-left:0;font-weight:700;color:#0f172a;">Schermen (gebaseerd op user stories)</p>
       <div class="stack">
-        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Login</div><div class="c-desc">werkend; biometric volgt</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Login</div><div class="c-desc">werkend + biometric unlock</div></div>
         <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Dashboard</div><div class="c-desc">naam/org/status werkt; volgende betaling volgt</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus (US-04)</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Profile</div><div class="c-desc">bekijken / bewerken</div></div>
@@ -300,9 +301,9 @@
       <h2><span class="num">5</span> Testen &amp; testrapportage</h2>
       <p class="section-sub">Minimaal 3 unit + 3 UI/device tests. LU3 vraagt ook regressie/integratie/systeem qua strekking.</p>
       <div class="grid">
-        <div class="card s-todo"><span class="tag t-todo">Todo</span>
+        <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">≥ 3 unit tests (commonTest)</div>
-          <div class="c-desc">Bv. IBAN-validatie, contributie-berekening, ViewModel state-transities. <code>kotlin.test</code>.</div></div>
+          <div class="c-desc">3 tests voor sessie-validatie (401 → uitloggen, 200 → behouden, netwerkfout → behouden) met Ktor MockEngine. Groen.</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span>
           <div class="c-title">≥ 3 UI / device tests</div>
           <div class="c-desc">Compose UI-tests + draaien op Android-emulator en iOS-simulator.</div></div>
@@ -362,7 +363,7 @@
           <tr><td>Ontwerpdoc — klassendiagrammen eigen klassen</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
           <tr><td>Ontwerpdoc — sequence MVVM (min. 1)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Verplicht</td></tr>
           <tr><td>Ontwerpdoc — sequence app↔backend (min. 1)</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Verplicht</td></tr>
-          <tr><td>≥ 3 zinvolle unit tests</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
+          <tr><td>≥ 3 zinvolle unit tests</td><td><span class="mini-tag t-have">Aanwezig</span></td><td>3 sessie-validatie-tests groen (Ktor MockEngine)</td></tr>
           <tr><td>≥ 3 zinvolle UI/device tests</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
           <tr><td>Acceptatietest(en) o.b.v. DoD</td><td><span class="mini-tag t-todo">Te doen</span></td><td></td></tr>
           <tr><td>Projectbestand met alle code &amp; assets</td><td><span class="mini-tag t-todo">Te doen</span></td><td>Repo dekt dit</td></tr>
