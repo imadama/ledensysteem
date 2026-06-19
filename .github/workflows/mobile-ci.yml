@@ -1,0 +1,76 @@
+name: Mobile CI
+
+# Builds and tests the Kotlin Multiplatform member app (mobile/) on every push
+# and pull request that touches it. Android build + unit tests run on Linux;
+# the iOS framework is compiled on macOS to prove the shared code builds for
+# both targets.
+
+on:
+  push:
+    branches: [main, feature/kmp-mobile-app]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+
+jobs:
+  android:
+    name: Android build & unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install required SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        run: ./gradlew :shared:testAndroidHostTest --no-configuration-cache --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew :androidApp:assembleDebug --no-configuration-cache --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidApp-debug
+          path: mobile/androidApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+
+  ios:
+    name: iOS framework compile
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Compile iOS framework (simulator arm64)
+        run: ./gradlew :shared:compileKotlinIosSimulatorArm64 --no-configuration-cache --stacktrace
