@@ -85,6 +85,18 @@ class AuthRepositoryTest {
     }
 
     @Test
+    fun logout_clears_local_session() = runTest {
+        val storage = storedSession()
+        val repository = AuthRepository(AuthApi(clientReturning(HttpStatusCode.OK, "{}")), storage)
+        assertTrue(repository.isLoggedIn)
+
+        repository.logout()
+
+        assertFalse(repository.isLoggedIn, "logout must clear the in-memory token")
+        assertFalse(storage.hasSession(), "logout must wipe the stored session")
+    }
+
+    @Test
     fun validateSession_keeps_session_on_network_error() = runTest {
         val storage = storedSession()
         val repository = AuthRepository(AuthApi(clientThrowing()), storage)

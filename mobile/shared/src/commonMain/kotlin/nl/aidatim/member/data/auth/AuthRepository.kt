@@ -1,8 +1,12 @@
 package nl.aidatim.member.data.auth
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import nl.aidatim.member.core.security.SessionStorage
 
 /** Result of checking a restored token against the backend. */
@@ -22,6 +26,8 @@ class AuthRepository(
     val currentUser: StateFlow<UserDto?> = _currentUser.asStateFlow()
 
     private var token: String? = null
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val isLoggedIn: Boolean get() = token != null
 
@@ -44,9 +50,14 @@ class AuthRepository(
     }
 
     fun logout() {
+        val current = token
         token = null
         _currentUser.value = null
         session.clear()
+        // Best-effort: revoke the token server-side without blocking the UI.
+        if (current != null) {
+            scope.launch { runCatching { api.logout(current) } }
+        }
     }
 
     /**

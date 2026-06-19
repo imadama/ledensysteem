@@ -51,4 +51,11 @@ class AuthApi(private val client: HttpClient) {
 
         throw AuthException("Session check failed (${response.status.value})")
     }
+
+    /** Revokes the given token on the server (best-effort). */
+    suspend fun logout(token: String) {
+        client.post("${ApiConfig.BASE_URL}/api/auth/logout") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+    }
 }
