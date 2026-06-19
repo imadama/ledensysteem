@@ -160,6 +160,7 @@
       <div class="callout" style="background:#f0fdf4;border-color:#bbf7d0;border-left-color:#22c55e;">
         <p><strong>✅ Eerste werkende slice — US-01 Login (18 jun 2026).</strong> De Compose Multiplatform-app is opgezet en de <strong>volledige login-keten werkt end-to-end op zowel de Android-emulator als de iOS-simulator</strong>: inloggen → token van de bestaande backend (<code>POST /api/auth/token</code>) → Dashboard met echte ledendata (naam, organisatie, status). Eén gedeelde codebase, draaiend op beide platforms.</p>
         <p><strong>Architectuur staat:</strong> gelaagd (core/network → data → feature) met <strong>Ktor</strong> (HTTP), <strong>Koin</strong> (DI), <strong>MVVM</strong> (ViewModel + StateFlow), <strong>Compose Navigation</strong> en Engelstalige UI. Backend-token-endpoint is live met 3 feature-tests.</p>
+        <p><strong>✅ Tweede slice — US-04 Contributie-overzicht (19 jun 2026).</strong> Geauthenticeerde call naar <code>GET /api/member/contribution-history</code> (Bearer-token + <code>X-Organisation-Subdomain</code>), met lijst, status-chips (Paid/Open/Failed/Processing), en loading-/error-/lege-staat. Werkt op beide platforms — bewijst dat de architectuur ook voor een tweede feature schaalt.</p>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
         <figure style="margin:0;text-align:center;">
@@ -173,6 +174,10 @@
         <figure style="margin:0;text-align:center;">
           <img src="img/kmp/ios-dashboard.png" alt="Hetzelfde dashboard op de iOS-simulator" style="height:380px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
           <figcaption style="font-size:11px;color:#64748b;margin-top:6px;">Zelfde scherm — iOS-simulator</figcaption>
+        </figure>
+        <figure style="margin:0;text-align:center;">
+          <img src="img/kmp/contribution-ios.png" alt="Contributie-overzicht met betaalstatus (iOS)" style="height:380px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);" />
+          <figcaption style="font-size:11px;color:#64748b;margin-top:6px;">US-04 Contributie — iOS-simulator</figcaption>
         </figure>
       </div>
       <p style="text-align:center;font-size:11px;color:#94a3b8;margin-top:8px;">Bewijs: dezelfde codebase draaiend op de Android-emulator (Pixel 9 Pro) én de iOS-simulator (iPhone 17, iOS 26.5), ingelogd tegen <code>api.aidatim.nl</code>.</p>
@@ -227,7 +232,7 @@
           <div class="c-desc">Compose Multiplatform project volgens de <a href="https://blog.jetbrains.com/kotlin/2026/05/new-kmp-default-structure/">nieuwe default structuur</a>. Targets: Android + iOS. Opgezet in <code>/mobile</code>; beide targets compileren, Android-APK draait.</div></div>
         <div class="card s-partial"><span class="tag t-partial">Deels</span>
           <div class="c-title">Netwerklaag (Ktor client)</div>
-          <div class="c-desc">Ktor + kotlinx.serialization met per-platform engine. Auth-client (<code>POST /api/auth/token</code>) werkt; member-endpoints + subdomein-header (<code>X-Organisation-Subdomain</code>) volgen.</div></div>
+          <div class="c-desc">Ktor + kotlinx.serialization met per-platform engine. Auth-client én member-endpoint (contributie) werken, incl. Bearer-token + subdomein-header (<code>X-Organisation-Subdomain</code>). Resterende member-endpoints volgen per story.</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span>
           <div class="c-title">Auth-flow (token vs cookie)</div>
           <div class="c-desc">Gekozen voor <strong>Bearer-token</strong>. Backend-endpoint toegevoegd en live; app logt end-to-end in. Token nu in-memory — veilige opslag komt met de biometric-story.</div></div>
@@ -252,7 +257,7 @@
       <div class="stack">
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Login</div><div class="c-desc">werkend; biometric volgt</div></div>
         <div class="card s-partial"><span class="tag t-partial">Deels</span><div class="c-title">Dashboard</div><div class="c-desc">naam/org/status werkt; volgende betaling volgt</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus (US-04)</div></div>
         <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Profile</div><div class="c-desc">bekijken / bewerken</div></div>
       </div>
     </section>
