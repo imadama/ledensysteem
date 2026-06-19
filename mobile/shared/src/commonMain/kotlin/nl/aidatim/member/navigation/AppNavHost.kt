@@ -8,10 +8,12 @@ import nl.aidatim.member.data.auth.AuthRepository
 import nl.aidatim.member.feature.contribution.ContributionScreen
 import nl.aidatim.member.feature.dashboard.DashboardScreen
 import nl.aidatim.member.feature.login.LoginScreen
+import nl.aidatim.member.feature.unlock.UnlockScreen
 import org.koin.compose.koinInject
 
 object Routes {
     const val LOGIN = "login"
+    const val UNLOCK = "unlock"
     const val DASHBOARD = "dashboard"
     const val CONTRIBUTION = "contribution"
 }
@@ -21,10 +23,25 @@ fun AppNavHost() {
     val authRepository = koinInject<AuthRepository>()
     val navController = rememberNavController()
 
-    // A restored (persisted) session starts straight on the dashboard.
-    val startDestination = if (authRepository.isLoggedIn) Routes.DASHBOARD else Routes.LOGIN
+    // A restored (persisted) session must pass the biometric gate first.
+    val startDestination = if (authRepository.isLoggedIn) Routes.UNLOCK else Routes.LOGIN
 
     NavHost(navController = navController, startDestination = startDestination) {
+        composable(Routes.UNLOCK) {
+            UnlockScreen(
+                onUnlocked = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.UNLOCK) { inclusive = true }
+                    }
+                },
+                onSignOut = {
+                    authRepository.logout()
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.UNLOCK) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(Routes.LOGIN) {
             LoginScreen(
                 onLoggedIn = {

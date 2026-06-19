@@ -1,5 +1,6 @@
 package nl.aidatim.member.di
 
+import nl.aidatim.member.core.biometric.BiometricAuthenticator
 import nl.aidatim.member.core.network.createHttpClient
 import nl.aidatim.member.core.security.SessionStorage
 import nl.aidatim.member.core.security.createSecureSettings
@@ -13,6 +14,7 @@ import org.koin.dsl.module
 val appModule = module {
     single { createHttpClient() }
     single { SessionStorage(createSecureSettings()) }
+    single { BiometricAuthenticator() }
     single { AuthApi(get()) }
     single { AuthRepository(get(), get()) }
     single { ContributionApi(get(), get()) }
