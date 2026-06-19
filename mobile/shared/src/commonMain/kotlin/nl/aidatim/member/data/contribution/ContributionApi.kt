@@ -24,6 +24,9 @@ class ContributionApi(
             session.authToken()?.let { token ->
                 header(HttpHeaders.Authorization, "Bearer $token")
             }
+            session.organisationSubdomain()?.let { subdomain ->
+                header("X-Organisation-Subdomain", subdomain)
+            }
         }
 
         if (response.status.isSuccess()) {

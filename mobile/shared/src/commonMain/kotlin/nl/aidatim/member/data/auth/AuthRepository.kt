@@ -29,4 +29,10 @@ class AuthRepository(private val api: AuthApi) {
     }
 
     fun authToken(): String? = token
+
+    /**
+     * Subdomain of the member's organisation, sent as the X-Organisation-Subdomain
+     * header on member endpoints (the backend resolves the tenant from it).
+     */
+    fun organisationSubdomain(): String? = _currentUser.value?.organisation?.subdomain
 }
