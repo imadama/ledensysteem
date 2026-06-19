@@ -162,6 +162,7 @@
         <p><strong>Architectuur staat:</strong> gelaagd (core/network → data → feature) met <strong>Ktor</strong> (HTTP), <strong>Koin</strong> (DI), <strong>MVVM</strong> (ViewModel + StateFlow), <strong>Compose Navigation</strong> en Engelstalige UI. Backend-token-endpoint is live met 3 feature-tests.</p>
         <p><strong>✅ Tweede slice — US-04 Contributie-overzicht (19 jun 2026).</strong> Geauthenticeerde call naar <code>GET /api/member/contribution-history</code> (Bearer-token + <code>X-Organisation-Subdomain</code>), met lijst, status-chips (Paid/Open/Failed/Processing), en loading-/error-/lege-staat. Werkt op beide platforms — bewijst dat de architectuur ook voor een tweede feature schaalt.</p>
         <p><strong>✅ Derde slice — US-02 Sessie onthouden + biometrische ontgrendeling (19 jun 2026).</strong> Token + profiel versleuteld opgeslagen (<code>expect/actual</code>: Android Keystore ↔ iOS Keychain) zodat de sessie een herstart overleeft; bij heropenen een biometrische poort (Android <code>BiometricPrompt</code> ↔ iOS <code>LocalAuthentication</code>) en token-validatie via <code>GET /api/auth/me</code> (401 → uitloggen). Gedekt door 3 unit-tests. Raakt de LU3-eisen <em>sensorgebruik</em> én <em>lokale persistentie</em>.</p>
+        <p><strong>✅ Vierde slice — US-06 Profiel bekijken + bewerken (19 jun 2026).</strong> Eerste schrijf-feature: profiel laden + bewerken (e-mail, adres, telefoon, IBAN) via <code>PUT /api/member/profile</code>. End-to-end bevestigd — een wijziging in de app is ook in de webversie zichtbaar.</p>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
         <figure style="margin:0;text-align:center;">
@@ -259,7 +260,7 @@
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Login</div><div class="c-desc">werkend + biometric unlock</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Dashboard</div><div class="c-desc">lidmaatschap + contributie-samenvatting (US-03)</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus (US-04)</div></div>
-        <div class="card s-todo"><span class="tag t-todo">Todo</span><div class="c-title">Profile</div><div class="c-desc">bekijken / bewerken</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Profile</div><div class="c-desc">bekijken + bewerken/opslaan (US-06)</div></div>
       </div>
     </section>
 
