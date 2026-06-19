@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -19,7 +20,7 @@ import nl.aidatim.member.data.auth.AuthRepository
 import org.koin.compose.koinInject
 
 @Composable
-fun DashboardScreen(onLogout: () -> Unit) {
+fun DashboardScreen(onLogout: () -> Unit, onOpenContributions: () -> Unit) {
     val repository = koinInject<AuthRepository>()
     val user by repository.currentUser.collectAsState()
 
@@ -45,6 +46,10 @@ fun DashboardScreen(onLogout: () -> Unit) {
                 Text("Organisation: ${user?.organisation?.name ?: "-"}")
                 Text("Status: ${user?.status ?: "-"}")
             }
+        }
+
+        Button(onClick = onOpenContributions, modifier = Modifier.fillMaxWidth()) {
+            Text("View contributions")
         }
 
         OutlinedButton(onClick = {

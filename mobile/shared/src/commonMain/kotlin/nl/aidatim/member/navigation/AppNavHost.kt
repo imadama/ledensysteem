@@ -4,12 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import nl.aidatim.member.feature.contribution.ContributionScreen
 import nl.aidatim.member.feature.dashboard.DashboardScreen
 import nl.aidatim.member.feature.login.LoginScreen
 
 object Routes {
     const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
+    const val CONTRIBUTION = "contribution"
 }
 
 @Composable
@@ -33,7 +35,11 @@ fun AppNavHost() {
                         popUpTo(Routes.DASHBOARD) { inclusive = true }
                     }
                 },
+                onOpenContributions = { navController.navigate(Routes.CONTRIBUTION) },
             )
+        }
+        composable(Routes.CONTRIBUTION) {
+            ContributionScreen(onBack = { navController.popBackStack() })
         }
     }
 }
