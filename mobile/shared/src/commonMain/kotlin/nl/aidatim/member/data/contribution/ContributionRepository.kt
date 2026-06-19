@@ -28,8 +28,9 @@ private fun formatFrequency(raw: String?): String = when (raw?.lowercase()) {
     "jaarlijks" -> "Yearly"
     "per kwartaal", "kwartaal" -> "Quarterly"
     "wekelijks" -> "Weekly"
+    "monthly", "yearly", "quarterly", "weekly" -> raw.replaceFirstChar { it.uppercase() }
     null, "" -> "—"
-    else -> raw
+    else -> raw.replaceFirstChar { it.uppercase() }
 }
 
 private fun ContributionRecordDto.toItem(): ContributionItem {
