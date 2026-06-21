@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aidatim — Ontwerpdiagrammen (KMP Member App)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px; color: #1a1a2e; background: #f1f5f9; line-height: 1.55; padding-bottom: 60px;
+    }
+    .topbar { background: #0052cc; color: white; padding: 22px 40px; }
+    .topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+    .topbar p { font-size: 12.5px; opacity: 0.85; margin-top: 3px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    section { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 22px 26px; margin-top: 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h2 { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+    h2 .num { background: #0052cc; color: white; width: 26px; height: 26px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+    .sub { font-size: 12.5px; color: #64748b; margin: 0 0 14px 36px; }
+    .mermaid { display: flex; justify-content: center; padding: 10px 0; overflow-x: auto; }
+    .intro { margin-top: 22px; font-size: 12.5px; color: #334155; }
+    code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:11px; }
+    .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 36px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Aidatim — Ontwerpdiagrammen</h1>
+    <p>KMP/Compose Multiplatform Member App · afgeleid uit de daadwerkelijke broncode (<code>mobile/</code>)</p>
+  </div>
+
+  <div class="wrap">
+    <p class="intro">Onderstaande UML-diagrammen horen bij het ontwerpdocument (LU3). Ze beschrijven de native member-app
+      die op de bestaande Laravel-backend (<code>api.aidatim.nl</code>) aansluit. De diagrammen reflecteren de echte
+      modulestructuur, klassen en runtime-interacties van de app.</p>
+
+    <!-- 1. USE CASE -->
+    <section>
+      <h2><span class="num">1</span> Use case diagram</h2>
+      <p class="sub">Actor <em>Member</em> en de gerealiseerde use cases.</p>
+      <pre class="mermaid">
+flowchart LR
+  member(("👤 Member"))
+  subgraph app["Aidatim Member App"]
+    direction TB
+    uc1(["Sign in"])
+    uc2(["Unlock with biometrics"])
+    uc3(["View dashboard"])
+    uc4(["View contribution history"])
+    uc5(["View and edit profile"])
+    uc6(["Sign out"])
+  end
+  member --- uc1
+  member --- uc2
+  member --- uc3
+  member --- uc4
+  member --- uc5
+  member --- uc6
+      </pre>
+    </section>
+
+    <!-- 2. PACKAGE / ARCHITECTURE -->
+    <section>
+      <h2><span class="num">2</span> Package- &amp; architectuurdiagram</h2>
+      <p class="sub">Gelaagde structuur met afhankelijkheidsrichting; Koin (<code>di</code>) bedraadt de lagen.</p>
+      <pre class="mermaid">
+flowchart TB
+  navigation["navigation<br/>(Compose Navigation)"]
+  subgraph featureL["feature — screens + ViewModels (MVVM)"]
+    login; unlock; dashboard; contribution; profile
+  end
+  subgraph dataL["data — repositories + API + DTOs"]
+    authD["auth"]; contribD["contribution"]; profileD["profile"]
+  end
+  subgraph coreL["core"]
+    network["network (Ktor)"]; security["security (secure storage)"]; biometric["biometric"]
+  end
+  di["di (Koin module)"]
+
+  navigation --> featureL
+  featureL --> dataL
+  featureL --> biometric
+  dataL --> network
+  dataL --> security
+  di -.bedraadt.-> featureL
+  di -.bedraadt.-> dataL
+  di -.bedraadt.-> coreL
+      </pre>
+    </section>
+
+    <!-- 3. DEPLOYMENT -->
+    <section>
+      <h2><span class="num">3</span> Deployment diagram</h2>
+      <p class="sub">De app draait op het device; alle data komt via HTTPS (Bearer-token) van de bestaande backend.</p>
+      <pre class="mermaid">
+flowchart LR
+  subgraph devices["Mobiel device"]
+    android["Android app<br/>(APK)"]
+    ios["iOS app<br/>(.app)"]
+  end
+  api["Laravel API<br/>api.aidatim.nl"]
+  db[("MySQL")]
+  stripe["Stripe Connect"]
+  mail["Gmail SMTP"]
+
+  android -->|"HTTPS · Bearer"| api
+  ios -->|"HTTPS · Bearer"| api
+  api --> db
+  api --> stripe
+  api --> mail
+      </pre>
+    </section>
+
+    <!-- 4. CLASS DIAGRAM -->
+    <section>
+      <h2><span class="num">4</span> Klassendiagram (eigen klassen)</h2>
+      <p class="sub">Auth- en core-slice: ViewModel → Repository → API → HttpClient, met secure storage en biometrie.
+        De contributie- en profiel-slices volgen exact hetzelfde patroon.</p>
+      <pre class="mermaid">
+classDiagram
+  class LoginViewModel {
+    +state: StateFlow~LoginUiState~
+    +login()
+    +onEmailChange(value)
+    +onPasswordChange(value)
+  }
+  class LoginUiState {
+    +email: String
+    +password: String
+    +isLoading: Boolean
+    +error: String?
+    +loggedIn: Boolean
+  }
+  class AuthRepository {
+    +currentUser: StateFlow~UserDto~
+    +isLoggedIn: Boolean
+    +login(email, password) Result
+    +logout()
+    +validateSession() SessionStatus
+    +authToken() String?
+    +organisationSubdomain() String?
+  }
+  class AuthApi {
+    +login(email, password) TokenResponse
+    +me(token) UserDto
+    +logout(token)
+  }
+  class SessionStorage {
+    +save(token, user)
+    +token() String?
+    +user() UserDto?
+    +hasSession() Boolean
+    +clear()
+  }
+  class BiometricAuthenticator {
+    +canAuthenticate() Boolean
+    +authenticate(title, subtitle) BiometricResult
+  }
+  class UserDto {
+    +id: Int
+    +email: String
+    +name: String?
+    +status: String?
+    +organisation: OrganisationDto?
+  }
+
+  LoginViewModel --> LoginUiState : exposes
+  LoginViewModel --> AuthRepository
+  AuthRepository --> AuthApi
+  AuthRepository --> SessionStorage
+  AuthRepository --> UserDto : currentUser
+  AuthApi --> UserDto : returns
+      </pre>
+    </section>
+
+    <!-- 5. SEQUENCE MVVM -->
+    <section>
+      <h2><span class="num">5</span> Sequencediagram — MVVM (login)</h2>
+      <p class="sub">View → ViewModel → Repository → API, met state-updates via <code>StateFlow</code> (verplicht: min. 1 MVVM-sequence).</p>
+      <pre class="mermaid">
+sequenceDiagram
+  actor U as Member
+  participant V as LoginScreen
+  participant VM as LoginViewModel
+  participant R as AuthRepository
+  participant A as AuthApi
+  U->>V: e-mail + wachtwoord, tik "Sign in"
+  V->>VM: login()
+  VM->>VM: state = isLoading
+  VM->>R: login(email, password)
+  R->>A: login(email, password)
+  A-->>R: TokenResponse
+  R->>R: SessionStorage.save(token, user)
+  R-->>VM: Result.success
+  VM->>VM: state = loggedIn
+  VM-->>V: StateFlow update
+  V->>U: navigatie naar Dashboard
+      </pre>
+    </section>
+
+    <!-- 6. SEQUENCE APP <-> BACKEND -->
+    <section>
+      <h2><span class="num">6</span> Sequencediagram — app ↔ backend (token-validatie)</h2>
+      <p class="sub">Bij het ontgrendelen wordt het opgeslagen token gevalideerd tegen de backend (verplicht: min. 1 app↔backend-sequence).</p>
+      <pre class="mermaid">
+sequenceDiagram
+  participant App as UnlockScreen
+  participant R as AuthRepository
+  participant A as AuthApi
+  participant B as Backend (api.aidatim.nl)
+  App->>R: validateSession()
+  R->>A: me(token)
+  A->>B: GET /api/auth/me<br/>Authorization: Bearer
+  alt token geldig
+    B-->>A: 200 · UserDto
+    A-->>R: UserDto
+    R->>R: profiel verversen + opslaan
+    R-->>App: VALID → Dashboard
+  else token verlopen/ongeldig
+    B-->>A: 401 Unauthorized
+    A-->>R: UnauthorizedException
+    R->>R: SessionStorage.clear()
+    R-->>App: INVALID → Login
+  end
+      </pre>
+    </section>
+
+    <div class="footer">Aidatim — Ontwerpdiagrammen · LU3 · gegenereerd uit de broncode</div>
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</body>
+</html>
