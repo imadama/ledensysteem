@@ -3,6 +3,7 @@
 .gradle
 **/build/
 .ios-ddata/
+google-services.json
 xcuserdata
 !src/**/build/
 local.properties

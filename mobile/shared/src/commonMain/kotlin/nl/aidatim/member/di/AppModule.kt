@@ -2,8 +2,10 @@ package nl.aidatim.member.di
 
 import nl.aidatim.member.core.biometric.BiometricAuthenticator
 import nl.aidatim.member.core.network.createHttpClient
+import nl.aidatim.member.core.push.PushTokenProvider
 import nl.aidatim.member.core.security.SessionStorage
 import nl.aidatim.member.core.security.createSecureSettings
+import nl.aidatim.member.data.device.DeviceTokenApi
 import nl.aidatim.member.data.auth.AuthApi
 import nl.aidatim.member.data.auth.AuthRepository
 import nl.aidatim.member.data.contribution.ContributionApi
@@ -19,8 +21,10 @@ val appModule = module {
     single { createHttpClient() }
     single { SessionStorage(createSecureSettings()) }
     single { BiometricAuthenticator() }
+    single { PushTokenProvider() }
+    single { DeviceTokenApi(get()) }
     single { AuthApi(get()) }
-    single { AuthRepository(get(), get()) }
+    single { AuthRepository(get(), get(), get(), get()) }
     single { ContributionApi(get(), get()) }
     single { ContributionRepository(get()) }
     single { ProfileApi(get(), get()) }

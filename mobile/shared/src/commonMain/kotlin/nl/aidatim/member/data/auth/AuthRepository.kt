@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import nl.aidatim.member.core.push.PushTokenProvider
 import nl.aidatim.member.core.security.SessionStorage
+import nl.aidatim.member.data.device.DeviceTokenApi
 
 /** Result of checking a restored token against the backend. */
 enum class SessionStatus { VALID, INVALID, INCONCLUSIVE }
@@ -20,6 +22,8 @@ enum class SessionStatus { VALID, INVALID, INCONCLUSIVE }
 class AuthRepository(
     private val api: AuthApi,
     private val session: SessionStorage,
+    private val deviceTokens: DeviceTokenApi? = null,
+    private val pushTokens: PushTokenProvider? = null,
 ) {
 
     private val _currentUser = MutableStateFlow<UserDto?>(null)
@@ -47,16 +51,36 @@ class AuthRepository(
         token = response.token
         _currentUser.value = response.user
         session.save(response.token, response.user)
+        registerPushToken(response.token, response.user.organisation?.subdomain)
     }
 
     fun logout() {
         val current = token
+        val subdomain = organisationSubdomain()
         token = null
         _currentUser.value = null
         session.clear()
-        // Best-effort: revoke the token server-side without blocking the UI.
+        // Best-effort: revoke the token + unregister push, without blocking the UI.
         if (current != null) {
             scope.launch { runCatching { api.logout(current) } }
+            unregisterPushToken(current, subdomain)
+        }
+    }
+
+    /** Best-effort: register this device's push token with the backend after login. */
+    private fun registerPushToken(bearer: String, subdomain: String?) {
+        val api = deviceTokens ?: return
+        val provider = pushTokens ?: return
+        scope.launch {
+            runCatching { provider.currentToken()?.let { api.register(it, bearer, subdomain) } }
+        }
+    }
+
+    private fun unregisterPushToken(bearer: String, subdomain: String?) {
+        val api = deviceTokens ?: return
+        val provider = pushTokens ?: return
+        scope.launch {
+            runCatching { provider.currentToken()?.let { api.unregister(it, bearer, subdomain) } }
         }
     }
 
