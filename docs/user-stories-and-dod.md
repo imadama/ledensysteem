@@ -199,7 +199,7 @@ Het PoC is *done* wanneer:
 - [ ] Toelichting/samenvatting functionaliteit (app + backend)
 - [ ] User stories *(dit document)*
 - [ ] Use case diagram
-- [ ] Wireframes
+- [x] Wireframes *(`docs/wireframes.html`)*
 - [ ] Web API-documentatie met request-voorbeelden
 - [ ] Toelichting authenticatie & autorisatie
 - [ ] Package diagram + gekozen architectuur

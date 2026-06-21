@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aidatim — Wireframes (KMP Member App)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #1a1a2e; background: #f1f5f9; line-height: 1.55; padding-bottom: 60px; }
+    .topbar { background: #0052cc; color: white; padding: 22px 40px; }
+    .topbar h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; }
+    .topbar p { font-size: 12.5px; opacity: 0.85; margin-top: 3px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .intro { margin-top: 22px; font-size: 12.5px; color: #334155; background:white; border:1px solid #e2e8f0; border-radius:12px; padding:16px 20px; }
+    h2 { font-size: 16px; font-weight: 800; color: #0f172a; margin: 28px 0 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; }
+    figure { margin: 0; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    figure svg { width: 100%; height: auto; }
+    figcaption { margin-top: 8px; }
+    figcaption b { font-size: 13px; color: #0f172a; }
+    figcaption span { display:block; font-size: 11.5px; color: #64748b; margin-top: 2px; }
+    .flow { background:white; border:1px solid #e2e8f0; border-radius:12px; padding: 18px; margin-top: 14px; }
+    .mermaid { display:flex; justify-content:center; }
+    .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 36px; }
+    code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Aidatim — Wireframes</h1>
+    <p>KMP/Compose Multiplatform Member App · low-fidelity schermontwerpen + navigatieflow</p>
+  </div>
+
+  <div class="wrap">
+    <p class="intro">Low-fidelity wireframes van de kernschermen van de native ledenportaal-app. Ze tonen
+      de <strong>opzet en indeling</strong> per scherm (geen definitieve kleuren/typografie). De navigatieflow
+      onderaan laat zien hoe de schermen samenhangen. Bijbehorende user stories: zie
+      <a href="user-stories-and-dod.html">user stories &amp; DoD</a>.</p>
+
+    <h2>Schermen</h2>
+    <div class="grid">
+
+      <!-- LOGIN -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <rect x="232" y="26" width="26" height="10" rx="2" fill="#e2e8f0"/>
+          <text x="140" y="215" font-size="22" font-weight="700" fill="#334155" text-anchor="middle">Aidatim</text>
+          <text x="140" y="238" font-size="12" fill="#94a3b8" text-anchor="middle">Member portal</text>
+          <rect x="30" y="280" width="220" height="44" rx="7" fill="#f8fafc" stroke="#cbd5e1"/>
+          <text x="44" y="307" font-size="12" fill="#94a3b8">Email</text>
+          <rect x="30" y="334" width="220" height="44" rx="7" fill="#f8fafc" stroke="#cbd5e1"/>
+          <text x="44" y="361" font-size="12" fill="#94a3b8">Password</text>
+          <rect x="30" y="398" width="220" height="46" rx="23" fill="#cbd5e1"/>
+          <text x="140" y="427" font-size="13" font-weight="700" fill="#475569" text-anchor="middle">Sign in</text>
+        </svg>
+        <figcaption><b>Login</b><span>US-01 · e-mail + wachtwoord</span></figcaption>
+      </figure>
+
+      <!-- UNLOCK -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="140" y="250" font-size="34" text-anchor="middle">🔒</text>
+          <text x="140" y="300" font-size="20" font-weight="700" fill="#334155" text-anchor="middle">Aidatim</text>
+          <text x="140" y="322" font-size="11.5" fill="#94a3b8" text-anchor="middle">Locked — confirm your identity</text>
+          <rect x="60" y="356" width="160" height="44" rx="22" fill="#cbd5e1"/>
+          <text x="140" y="383" font-size="13" font-weight="700" fill="#475569" text-anchor="middle">Unlock</text>
+          <text x="140" y="430" font-size="12" fill="#64748b" text-anchor="middle">Sign out</text>
+        </svg>
+        <figcaption><b>Unlock</b><span>US-02 · biometrische ontgrendeling</span></figcaption>
+      </figure>
+
+      <!-- DASHBOARD -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="24" y="68" font-size="16" font-weight="700" fill="#334155">Welcome, imad ama</text>
+          <rect x="20" y="84" width="240" height="104" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+          <text x="34" y="108" font-size="12.5" font-weight="700" fill="#475569">Membership</text>
+          <text x="34" y="130" font-size="11" fill="#94a3b8">Email: imadama@…</text>
+          <text x="34" y="150" font-size="11" fill="#94a3b8">Organisation: HDV</text>
+          <text x="34" y="170" font-size="11" fill="#94a3b8">Status: active</text>
+          <rect x="20" y="200" width="240" height="86" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+          <text x="34" y="224" font-size="12.5" font-weight="700" fill="#475569">Contribution</text>
+          <text x="34" y="246" font-size="11" fill="#94a3b8">€10.00 · Monthly</text>
+          <text x="34" y="266" font-size="11" fill="#94a3b8">Since: April 2026</text>
+          <rect x="20" y="300" width="240" height="36" rx="18" fill="#cbd5e1"/>
+          <text x="140" y="323" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">Announcements</text>
+          <rect x="20" y="344" width="240" height="36" rx="18" fill="#cbd5e1"/>
+          <text x="140" y="367" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">View contributions</text>
+          <rect x="20" y="388" width="240" height="36" rx="18" fill="#ffffff" stroke="#cbd5e1"/>
+          <text x="140" y="411" font-size="12" fill="#64748b" text-anchor="middle">View profile</text>
+          <rect x="20" y="436" width="110" height="34" rx="17" fill="#ffffff" stroke="#cbd5e1"/>
+          <text x="75" y="458" font-size="12" fill="#64748b" text-anchor="middle">Sign out</text>
+        </svg>
+        <figcaption><b>Dashboard</b><span>US-03 · lidmaatschap + contributie</span></figcaption>
+      </figure>
+
+      <!-- CONTRIBUTIONS -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="24" y="64" font-size="12" fill="#0052cc">‹ Back</text>
+          <text x="80" y="64" font-size="15" font-weight="700" fill="#334155">Contributions</text>
+          <g>
+            <rect x="20" y="84" width="240" height="62" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+            <text x="34" y="112" font-size="12.5" font-weight="700" fill="#475569">April 2026</text>
+            <text x="34" y="130" font-size="10.5" fill="#94a3b8">via subscription</text>
+            <text x="210" y="112" font-size="12.5" font-weight="700" fill="#475569" text-anchor="end">€10.29</text>
+            <rect x="176" y="120" width="40" height="16" rx="6" fill="#e2e8f0"/>
+            <text x="196" y="132" font-size="9" fill="#475569" text-anchor="middle">Paid</text>
+          </g>
+          <g>
+            <rect x="20" y="156" width="240" height="62" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+            <text x="34" y="184" font-size="12.5" font-weight="700" fill="#475569">March 2026</text>
+            <text x="210" y="184" font-size="12.5" font-weight="700" fill="#475569" text-anchor="end">€10.00</text>
+            <rect x="176" y="192" width="40" height="16" rx="6" fill="#e2e8f0"/>
+            <text x="196" y="204" font-size="9" fill="#475569" text-anchor="middle">Open</text>
+          </g>
+          <g>
+            <rect x="20" y="228" width="240" height="62" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+            <text x="34" y="256" font-size="12.5" font-weight="700" fill="#475569">February 2026</text>
+            <text x="210" y="256" font-size="12.5" font-weight="700" fill="#475569" text-anchor="end">€10.00</text>
+            <rect x="176" y="264" width="40" height="16" rx="6" fill="#e2e8f0"/>
+            <text x="196" y="276" font-size="9" fill="#475569" text-anchor="middle">Paid</text>
+          </g>
+        </svg>
+        <figcaption><b>Contributies</b><span>US-04 · historie + status</span></figcaption>
+      </figure>
+
+      <!-- PROFILE -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="24" y="60" font-size="12" fill="#0052cc">‹ Back</text>
+          <text x="80" y="60" font-size="15" font-weight="700" fill="#334155">Profile</text>
+          <rect x="20" y="76" width="240" height="58" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+          <text x="34" y="98" font-size="11.5" font-weight="700" fill="#475569">Member</text>
+          <text x="34" y="116" font-size="10.5" fill="#94a3b8">Name: imad ama · Status: active</text>
+          <g font-size="11" fill="#94a3b8">
+            <rect x="20" y="146" width="240" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="32" y="167">Email</text>
+            <rect x="20" y="186" width="240" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="32" y="207">Street address</text>
+            <rect x="20" y="226" width="115" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="32" y="247">Postal code</text>
+            <rect x="145" y="226" width="115" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="157" y="247">City</text>
+            <rect x="20" y="266" width="240" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="32" y="287">Phone</text>
+            <rect x="20" y="306" width="240" height="34" rx="6" fill="#f8fafc" stroke="#cbd5e1"/><text x="32" y="327">IBAN</text>
+          </g>
+          <rect x="20" y="356" width="240" height="42" rx="21" fill="#cbd5e1"/>
+          <text x="140" y="383" font-size="12.5" font-weight="700" fill="#475569" text-anchor="middle">Save changes</text>
+        </svg>
+        <figcaption><b>Profiel</b><span>US-06 · bekijken + bewerken</span></figcaption>
+      </figure>
+
+      <!-- ANNOUNCEMENTS FEED -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="24" y="64" font-size="12" fill="#0052cc">‹ Back</text>
+          <text x="80" y="64" font-size="15" font-weight="700" fill="#334155">Announcements</text>
+          <g>
+            <rect x="20" y="84" width="240" height="78" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+            <text x="34" y="108" font-size="12.5" font-weight="700" fill="#475569">Test bericht 1</text>
+            <text x="34" y="128" font-size="10.5" fill="#94a3b8">Is de bericht in de app te zien?</text>
+            <text x="34" y="150" font-size="10" fill="#94a3b8">21 Jun 2026   ♡ 1   💬 1</text>
+          </g>
+          <g>
+            <rect x="20" y="172" width="240" height="78" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+            <text x="34" y="196" font-size="12.5" font-weight="700" fill="#475569">Algemene ledenvergadering</text>
+            <text x="34" y="216" font-size="10.5" fill="#94a3b8">Donderdag 20:00 in het clubhuis…</text>
+            <text x="34" y="238" font-size="10" fill="#94a3b8">18 Jun 2026   ♡ 4   💬 2</text>
+          </g>
+        </svg>
+        <figcaption><b>Mededelingen-feed</b><span>US-11 · berichten + tellingen</span></figcaption>
+      </figure>
+
+      <!-- POST DETAIL -->
+      <figure>
+        <svg viewBox="0 0 280 580" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="268" height="568" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+          <text x="24" y="34" font-size="11" fill="#94a3b8">9:41</text>
+          <text x="24" y="60" font-size="12" fill="#0052cc">‹ Back</text>
+          <text x="80" y="60" font-size="15" font-weight="700" fill="#334155">Announcement</text>
+          <text x="24" y="92" font-size="15" font-weight="700" fill="#334155">Test bericht 1</text>
+          <text x="24" y="110" font-size="10.5" fill="#94a3b8">21 June 2026</text>
+          <text x="24" y="134" font-size="11" fill="#94a3b8">Is de bericht in de app te zien?</text>
+          <rect x="24" y="150" width="110" height="34" rx="17" fill="#ffffff" stroke="#cbd5e1"/>
+          <text x="79" y="172" font-size="11.5" fill="#64748b" text-anchor="middle">♥ Liked (1)</text>
+          <line x1="20" y1="200" x2="260" y2="200" stroke="#e2e8f0"/>
+          <text x="24" y="222" font-size="12.5" font-weight="700" fill="#475569">Comments (1)</text>
+          <rect x="20" y="234" width="240" height="48" rx="10" fill="#f1f5f9" stroke="#e2e8f0"/>
+          <text x="34" y="254" font-size="11" font-weight="700" fill="#475569">imad ama</text>
+          <text x="34" y="272" font-size="10.5" fill="#94a3b8">Ik zie het</text>
+          <rect x="20" y="296" width="240" height="40" rx="7" fill="#f8fafc" stroke="#cbd5e1"/>
+          <text x="32" y="320" font-size="11" fill="#94a3b8">Write a comment</text>
+          <rect x="20" y="346" width="240" height="40" rx="20" fill="#cbd5e1"/>
+          <text x="140" y="371" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">Post comment</text>
+        </svg>
+        <figcaption><b>Bericht-detail</b><span>US-11 · reactie + like</span></figcaption>
+      </figure>
+
+    </div>
+
+    <h2>Navigatieflow</h2>
+    <div class="flow">
+      <pre class="mermaid">
+flowchart LR
+  Login(["Login"]) --> Dashboard
+  Unlock(["Unlock<br/>(biometric)"]) --> Dashboard
+  Dashboard --> Contributions(["Contributies"])
+  Dashboard --> Profile(["Profiel"])
+  Dashboard --> Announcements(["Mededelingen"])
+  Announcements --> Detail(["Bericht-detail"])
+  Dashboard -. sign out .-> Login
+      </pre>
+    </div>
+
+    <div class="footer">Aidatim — Wireframes · LU3 ontwerpdocument</div>
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  </script>
+</body>
+</html>
