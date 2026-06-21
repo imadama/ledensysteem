@@ -55,7 +55,7 @@ jobs:
           if-no-files-found: warn
 
   ios:
-    name: iOS framework compile
+    name: iOS framework compile & UI tests
     runs-on: macos-latest
     defaults:
       run:
@@ -72,5 +72,5 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Compile iOS framework (simulator arm64)
-        run: ./gradlew :shared:compileKotlinIosSimulatorArm64 --no-configuration-cache --stacktrace
+      - name: Run iOS simulator tests (unit + Compose UI)
+        run: ./gradlew :shared:iosSimulatorArm64Test --no-configuration-cache --stacktrace

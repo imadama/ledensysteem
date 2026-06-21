@@ -35,6 +35,22 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
         if (state.loggedIn) onLoggedIn()
     }
 
+    LoginContent(
+        state = state,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onSubmit = viewModel::login,
+    )
+}
+
+/** Stateless login UI — driven entirely by [LoginUiState] + callbacks, so it is unit-testable. */
+@Composable
+fun LoginContent(
+    state: LoginUiState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,7 +68,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
 
         OutlinedTextField(
             value = state.email,
-            onValueChange = viewModel::onEmailChange,
+            onValueChange = onEmailChange,
             label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -61,7 +77,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
 
         OutlinedTextField(
             value = state.password,
-            onValueChange = viewModel::onPasswordChange,
+            onValueChange = onPasswordChange,
             label = { Text("Password") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -79,7 +95,7 @@ fun LoginScreen(onLoggedIn: () -> Unit) {
         }
 
         Button(
-            onClick = viewModel::login,
+            onClick = onSubmit,
             enabled = state.canSubmit,
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
         ) {
