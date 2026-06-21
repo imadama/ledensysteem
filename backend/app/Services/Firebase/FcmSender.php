@@ -55,18 +55,50 @@ class FcmSender
 
     private function messaging(): ?Messaging
     {
-        $credentials = config('services.firebase.credentials');
+        $value = config('services.firebase.credentials');
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
 
-        if (! is_string($credentials) || $credentials === '' || ! file_exists($credentials)) {
+        $serviceAccount = $this->resolveServiceAccount($value);
+        if ($serviceAccount === null) {
             return null;
         }
 
         try {
-            return (new Factory())->withServiceAccount($credentials)->createMessaging();
+            return (new Factory())->withServiceAccount($serviceAccount)->createMessaging();
         } catch (Throwable $e) {
             Log::error('FCM initialisation failed', ['error' => $e->getMessage()]);
 
             return null;
         }
+    }
+
+    /**
+     * Accepts the service account as a file path, a raw JSON string, or a
+     * base64-encoded JSON string (handy for a single-line env var on Coolify).
+     *
+     * @return string|array<string, mixed>|null
+     */
+    private function resolveServiceAccount(string $value): string|array|null
+    {
+        if (file_exists($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $fromBase64 = base64_decode($value, true);
+        if ($fromBase64 !== false) {
+            $decoded = json_decode($fromBase64, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
     }
 }

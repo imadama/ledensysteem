@@ -68,12 +68,18 @@ STRIPE_DEFAULT_CURRENCY=${STRIPE_DEFAULT_CURRENCY:-eur}
 STRIPE_PRICE_BASIC=${STRIPE_PRICE_BASIC:-}
 STRIPE_PRICE_PLUS=${STRIPE_PRICE_PLUS:-}
 STRIPE_PRICE_ENTERPRISE=${STRIPE_PRICE_ENTERPRISE:-}
+
+FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS:-}
 EOF
 
 # Ensure storage and cache directories have correct permissions
 mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Run database migrations on boot so new tables are created automatically on deploy.
+echo "Running database migrations..."
+php artisan migrate --force || echo "WARNING: migrations failed"
 
 # Execute the main command
 exec "$@"
