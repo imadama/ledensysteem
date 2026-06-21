@@ -14,7 +14,8 @@ import {
   FileText,
   Monitor,
   Share2,
-  CalendarDays
+  CalendarDays,
+  Megaphone
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useMemberAuth } from '../context/MemberAuthContext'
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole }) =
   const orgAdminItems = [
     { name: 'Dashboard', icon: LayoutDashboard, view: 'dashboard', path: '/organisation/dashboard' },
     { name: 'Leden', icon: Users, view: 'members', path: '/organisation/members' },
+    { name: 'Berichten', icon: Megaphone, view: 'posts', path: '/organisation/posts' },
     { name: 'Contributies', icon: DollarSign, view: 'contributions', path: '/organisation/contributions' },
     { name: 'Incasso-batch', icon: CalendarDays, view: 'contributions-batch', path: '/organisation/contributions/batch' },
     { name: 'Beheerders', icon: Users, view: 'users', path: '/organisation/users' },
