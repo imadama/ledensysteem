@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MemberActivationController;
 use App\Http\Controllers\Api\Member\ContributionPaymentController;
+use App\Http\Controllers\Api\Member\DeviceTokenController;
 use App\Http\Controllers\Api\Member\MemberPostController;
 use App\Http\Controllers\Api\Member\SelfServiceController;
 use App\Http\Controllers\Api\Organisation\OrganisationPostController;
@@ -157,6 +158,9 @@ Route::middleware([
         Route::post('posts/{id}/comments', [MemberPostController::class, 'storeComment']);
         Route::post('posts/{id}/like', [MemberPostController::class, 'like']);
         Route::delete('posts/{id}/like', [MemberPostController::class, 'unlike']);
+
+        Route::post('device-tokens', [DeviceTokenController::class, 'store']);
+        Route::delete('device-tokens', [DeviceTokenController::class, 'destroy']);
     });
 
 Route::middleware([

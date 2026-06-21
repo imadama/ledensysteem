@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Api\Organisation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organisation\StorePostRequest;
 use App\Http\Requests\Organisation\UpdatePostRequest;
+use App\Jobs\SendOrganisationPostNotification;
 use App\Models\OrganisationPost;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Throwable;
 
 class OrganisationPostController extends Controller
 {
@@ -40,6 +44,10 @@ class OrganisationPostController extends Controller
             'published_at' => $status === 'published' ? now() : null,
         ]);
 
+        if ($post->status === 'published') {
+            $this->notifyMembers($post);
+        }
+
         return response()->json([
             'data' => $this->transform($post->loadCount(['comments', 'likes']), includeBody: true),
         ], 201);
@@ -62,15 +70,21 @@ class OrganisationPostController extends Controller
         $post->title = $data['title'];
         $post->body = $data['body'];
 
+        $newlyPublished = false;
         if (array_key_exists('status', $data) && $data['status'] !== null) {
-            // When a draft becomes published for the first time, stamp published_at.
+            // When a draft becomes published for the first time, stamp published_at + notify.
             if ($data['status'] === 'published' && $post->published_at === null) {
                 $post->published_at = now();
+                $newlyPublished = true;
             }
             $post->status = $data['status'];
         }
 
         $post->save();
+
+        if ($newlyPublished) {
+            $this->notifyMembers($post);
+        }
 
         return response()->json([
             'data' => $this->transform($post->loadCount(['comments', 'likes']), includeBody: true),
@@ -112,6 +126,24 @@ class OrganisationPostController extends Controller
                 'created_at' => $like->created_at?->toIso8601String(),
             ])->all(),
         ]);
+    }
+
+    /**
+     * Best-effort push notification to members. Runs synchronously (no worker yet)
+     * and never lets a push failure break post creation.
+     */
+    private function notifyMembers(OrganisationPost $post): void
+    {
+        try {
+            SendOrganisationPostNotification::dispatchSync(
+                $post->organisation_id,
+                $post->id,
+                $post->title,
+                Str::limit($post->body, 120),
+            );
+        } catch (Throwable $e) {
+            Log::error('Post notification dispatch failed', ['error' => $e->getMessage()]);
+        }
     }
 
     /**

@@ -127,6 +127,25 @@ class OrganisationPostTest extends TestCase
         ]);
     }
 
+    public function test_member_can_register_and_unregister_a_device_token(): void
+    {
+        Sanctum::actingAs($this->member());
+
+        $this->postJson('/api/member/device-tokens', ['token' => 'fcm-abc-123'], $this->headers)
+            ->assertNoContent();
+
+        $this->assertDatabaseHas('device_tokens', [
+            'token' => 'fcm-abc-123',
+            'organisation_id' => $this->organisation->id,
+            'platform' => 'android',
+        ]);
+
+        $this->deleteJson('/api/member/device-tokens', ['token' => 'fcm-abc-123'], $this->headers)
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('device_tokens', ['token' => 'fcm-abc-123']);
+    }
+
     public function test_member_does_not_see_draft_posts(): void
     {
         $admin = $this->orgAdmin();

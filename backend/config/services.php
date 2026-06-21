@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'firebase' => [
+        // Absolute path to the Firebase service-account JSON (for FCM push).
+        // Push is disabled when this is unset.
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
 ];
