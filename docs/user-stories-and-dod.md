@@ -25,6 +25,7 @@
 - Profiel bekijken en bewerken.
 - SEPA-incasso instellen en openstaande contributie betalen.
 - Sensorgebruik (biometrische login) en lokale persistentie (offline cache + veilige tokenopslag).
+- Mededelingen van de organisatie ontvangen, erop reageren (tekst + like) en een **push-notificatie** krijgen bij een nieuw bericht.
 
 **Out of scope** (PoC-afbakening) — admin-/platformfunctionaliteit, ledenbeheer, organisatiebeheer,
 Stripe Connect-onboarding. Dat blijft in de bestaande web-applicatie.
@@ -133,9 +134,19 @@ identificeren.
   - _(optioneel)_ Wanneer ik de scanner open, dan kan ik via de camera een QR-code uitlezen.
 - **Raakt:** sensorgebruik (camera) — alternatief/aanvulling op US-02 voor de sensor-eis.
 
----
+### US-11 — Mededelingen ontvangen, erop reageren en een melding krijgen — `MUST`
+**Als** lid **wil ik** mededelingen van mijn organisatie zien, erop reageren (tekstreactie + like) en
+een melding op mijn toestel krijgen bij een nieuw bericht **zodat** ik op de hoogte blijf en kan
+reageren.
 
-### Prioriteitsoverzicht
+- **Endpoints:** `GET /api/member/posts`, `GET /api/member/posts/{id}`, `POST /api/member/posts/{id}/comments`,
+  `POST`/`DELETE /api/member/posts/{id}/like`, `POST`/`DELETE /api/member/device-tokens`.
+  Het *plaatsen* van berichten doet de org_admin in de web-admin (buiten de app).
+- **Acceptatiecriteria:**
+  - Gegeven dat ik ben ingelogd, wanneer ik de mededelingen open, dan zie ik de gepubliceerde berichten van mijn organisatie (met een nette lege staat als er geen zijn).
+  - Wanneer ik een bericht open, dan kan ik een tekstreactie plaatsen en het bericht liken/un-liken; de aantallen werken direct bij.
+  - **Wanneer mijn organisatie een nieuw bericht plaatst, dan ontvang ik een push-notificatie op mijn toestel** (Android nu; iOS later).
+- **Raakt:** push-notificaties (FCM op Android) + registratie van het device-token na inloggen.
 
 | ID | Story | Prioriteit | Endpoint(s) | Gewenste eis |
 |---|---|---|---|---|
@@ -149,6 +160,7 @@ identificeren.
 | US-08 | Contributie betalen | COULD | `GET /member/contribution-open`, `POST /member/contribution-pay` | — |
 | US-09 | Uitloggen | MUST | `POST /auth/logout` | — |
 | US-10 | QR-lidkaart | COULD | — | sensor (camera) |
+| US-11 | Mededelingen + reacties + push | MUST | `GET /member/posts(/{id})`, `POST /member/posts/{id}/comments`, `POST·DELETE /member/posts/{id}/like`, `POST·DELETE /member/device-tokens` | push-notificaties |
 
 **Minimale PoC-demo (voor het filmpje):** US-01, US-02, US-03, US-04, US-09 — plus minimaal één
 SHOULD-story (US-05 of US-06). Dit dekt: auth, sensor, persistentie en de kernfunctionaliteit.
@@ -172,6 +184,7 @@ Een story is *done* wanneer:
 Het PoC is *done* wanneer:
 - [ ] Een werkende, **functioneel geteste** cross-platform app is opgeleverd (Android + iOS).
 - [ ] De app sluit **volledig aan op de bestaande backend** (afgestemd met docent in het voorstel).
+- [ ] De app kan **meldingen (push-notificaties) ontvangen** — een lid krijgt een melding bij een nieuw bericht van de organisatie (Android).
 - [ ] **Meest recente technologie** is toegepast (nieuwe KMP-structuur, actuele Compose Multiplatform).
 - [ ] Broncode én GUI zijn **volledig Engelstalig**.
 - [ ] Het **ontwerpdocument** is compleet (zie checklist hieronder).

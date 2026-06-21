@@ -163,6 +163,7 @@
         <p><strong>✅ Tweede slice — US-04 Contributie-overzicht (19 jun 2026).</strong> Geauthenticeerde call naar <code>GET /api/member/contribution-history</code> (Bearer-token + <code>X-Organisation-Subdomain</code>), met lijst, status-chips (Paid/Open/Failed/Processing), en loading-/error-/lege-staat. Werkt op beide platforms — bewijst dat de architectuur ook voor een tweede feature schaalt.</p>
         <p><strong>✅ Derde slice — US-02 Sessie onthouden + biometrische ontgrendeling (19 jun 2026).</strong> Token + profiel versleuteld opgeslagen (<code>expect/actual</code>: Android Keystore ↔ iOS Keychain) zodat de sessie een herstart overleeft; bij heropenen een biometrische poort (Android <code>BiometricPrompt</code> ↔ iOS <code>LocalAuthentication</code>) en token-validatie via <code>GET /api/auth/me</code> (401 → uitloggen). Gedekt door 3 unit-tests. Raakt de LU3-eisen <em>sensorgebruik</em> én <em>lokale persistentie</em>.</p>
         <p><strong>✅ Vierde slice — US-06 Profiel bekijken + bewerken (19 jun 2026).</strong> Eerste schrijf-feature: profiel laden + bewerken (e-mail, adres, telefoon, IBAN) via <code>PUT /api/member/profile</code>. End-to-end bevestigd — een wijziging in de app is ook in de webversie zichtbaar.</p>
+        <p><strong>✅ Vijfde slice — US-11 Mededelingen + reacties + push (21 jun 2026).</strong> Organisaties plaatsen berichten in de web-admin; leden zien ze in de app, plaatsen tekstreacties en likes, en krijgen een <strong>Android push-notificatie</strong> (FCM) bij een nieuw bericht. Volledige keten end-to-end live op productie: web-admin → Laravel-backend → app + push. Raakt nieuwe backend-tabellen, een React-beheerscherm, en Firebase Cloud Messaging.</p>
       </div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:6px;">
         <figure style="margin:0;text-align:center;">
@@ -261,6 +262,7 @@
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Dashboard</div><div class="c-desc">lidmaatschap + contributie-samenvatting (US-03)</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Contribution</div><div class="c-desc">historie + betaalstatus (US-04)</div></div>
         <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Profile</div><div class="c-desc">bekijken + bewerken/opslaan (US-06)</div></div>
+        <div class="card s-have"><span class="tag t-have">Have</span><div class="c-title">Announcements</div><div class="c-desc">feed + reacties + likes + push (US-11)</div></div>
       </div>
     </section>
 
