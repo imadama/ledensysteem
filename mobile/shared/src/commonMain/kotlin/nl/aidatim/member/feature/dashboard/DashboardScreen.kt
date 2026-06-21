@@ -27,6 +27,7 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     onOpenContributions: () -> Unit,
     onOpenProfile: () -> Unit,
+    onOpenPosts: () -> Unit,
 ) {
     val repository = koinInject<AuthRepository>()
     val user by repository.currentUser.collectAsState()
@@ -77,6 +78,10 @@ fun DashboardScreen(
                     )
                 }
             }
+        }
+
+        Button(onClick = onOpenPosts, modifier = Modifier.fillMaxWidth()) {
+            Text("Announcements")
         }
 
         Button(onClick = onOpenContributions, modifier = Modifier.fillMaxWidth()) {

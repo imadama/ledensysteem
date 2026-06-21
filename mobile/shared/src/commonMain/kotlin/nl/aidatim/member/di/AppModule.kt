@@ -8,6 +8,8 @@ import nl.aidatim.member.data.auth.AuthApi
 import nl.aidatim.member.data.auth.AuthRepository
 import nl.aidatim.member.data.contribution.ContributionApi
 import nl.aidatim.member.data.contribution.ContributionRepository
+import nl.aidatim.member.data.posts.PostsApi
+import nl.aidatim.member.data.posts.PostsRepository
 import nl.aidatim.member.data.profile.ProfileApi
 import nl.aidatim.member.data.profile.ProfileRepository
 import org.koin.dsl.module
@@ -23,4 +25,6 @@ val appModule = module {
     single { ContributionRepository(get()) }
     single { ProfileApi(get(), get()) }
     single { ProfileRepository(get()) }
+    single { PostsApi(get(), get()) }
+    single { PostsRepository(get()) }
 }
