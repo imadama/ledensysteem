@@ -28,7 +28,7 @@ import nl.aidatim.member.data.posts.PostsRepository
 import org.koin.compose.koinInject
 
 @Composable
-fun PostsScreen(onBack: () -> Unit, onOpenPost: (Int) -> Unit) {
+fun PostsScreen(onOpenPost: (Int) -> Unit) {
     val repository = koinInject<PostsRepository>()
     val viewModel = viewModel { PostsViewModel(repository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -40,14 +40,10 @@ fun PostsScreen(onBack: () -> Unit, onOpenPost: (Int) -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
-            Text(
-                text = "Announcements",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
+        Text(
+            text = "Announcements",
+            style = MaterialTheme.typography.headlineSmall,
+        )
 
         when {
             state.isLoading -> Centered { CircularProgressIndicator() }

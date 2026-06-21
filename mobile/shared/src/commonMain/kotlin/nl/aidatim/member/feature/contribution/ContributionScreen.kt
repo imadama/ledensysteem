@@ -31,7 +31,7 @@ import nl.aidatim.member.data.contribution.ContributionStatus
 import org.koin.compose.koinInject
 
 @Composable
-fun ContributionScreen(onBack: () -> Unit) {
+fun ContributionScreen() {
     val repository = koinInject<nl.aidatim.member.data.contribution.ContributionRepository>()
     val viewModel = viewModel { ContributionViewModel(repository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -43,14 +43,10 @@ fun ContributionScreen(onBack: () -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
-            Text(
-                text = "Contributions",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
+        Text(
+            text = "Contributions",
+            style = MaterialTheme.typography.headlineSmall,
+        )
 
         when {
             state.isLoading -> CenteredMessage { CircularProgressIndicator() }

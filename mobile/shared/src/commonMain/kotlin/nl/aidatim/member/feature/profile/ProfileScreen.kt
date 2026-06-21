@@ -13,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,7 +30,7 @@ import nl.aidatim.member.data.profile.ProfileDto
 import org.koin.compose.koinInject
 
 @Composable
-fun ProfileScreen(onBack: () -> Unit) {
+fun ProfileScreen(onSignOut: () -> Unit) {
     val repository = koinInject<nl.aidatim.member.data.profile.ProfileRepository>()
     val viewModel = viewModel { ProfileViewModel(repository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -42,14 +43,10 @@ fun ProfileScreen(onBack: () -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
-            Text(
-                text = "Profile",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
+        Text(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineSmall,
+        )
 
         when {
             state.isLoading -> Centered { CircularProgressIndicator() }
@@ -143,6 +140,13 @@ fun ProfileScreen(onBack: () -> Unit) {
                     }
                 }
             }
+        }
+
+        OutlinedButton(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            Text("Sign out")
         }
     }
 }
