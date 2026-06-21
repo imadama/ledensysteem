@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\MemberActivationController;
 use App\Http\Controllers\Api\Member\ContributionPaymentController;
+use App\Http\Controllers\Api\Member\MemberPostController;
 use App\Http\Controllers\Api\Member\SelfServiceController;
+use App\Http\Controllers\Api\Organisation\OrganisationPostController;
 use App\Http\Controllers\Api\Organisation\SubscriptionController;
 use App\Http\Controllers\Api\Organisation\ContributionReportController;
 use App\Http\Controllers\Api\Organisation\MemberController;
@@ -108,6 +110,14 @@ Route::middleware([
             Route::post('connection/refresh', [PaymentConnectionController::class, 'refresh']);
             Route::post('connection/dashboard-link', [PaymentConnectionController::class, 'createDashboardLink']);
         });
+
+        Route::get('posts', [OrganisationPostController::class, 'index']);
+        Route::post('posts', [OrganisationPostController::class, 'store']);
+        Route::get('posts/{id}', [OrganisationPostController::class, 'show']);
+        Route::put('posts/{id}', [OrganisationPostController::class, 'update']);
+        Route::delete('posts/{id}', [OrganisationPostController::class, 'destroy']);
+        Route::get('posts/{id}/comments', [OrganisationPostController::class, 'comments']);
+        Route::get('posts/{id}/likes', [OrganisationPostController::class, 'likes']);
     });
 
 // Monitor route - toegankelijk voor zowel monitor als org_admin rollen
@@ -140,6 +150,13 @@ Route::middleware([
         Route::get('contribution-open', [ContributionPaymentController::class, 'index']);
         Route::post('contribution-pay', [ContributionPaymentController::class, 'store']);
         Route::post('contribution-pay-manual', [ContributionPaymentController::class, 'payManual']);
+
+        Route::get('posts', [MemberPostController::class, 'index']);
+        Route::get('posts/{id}', [MemberPostController::class, 'show']);
+        Route::get('posts/{id}/comments', [MemberPostController::class, 'comments']);
+        Route::post('posts/{id}/comments', [MemberPostController::class, 'storeComment']);
+        Route::post('posts/{id}/like', [MemberPostController::class, 'like']);
+        Route::delete('posts/{id}/like', [MemberPostController::class, 'unlike']);
     });
 
 Route::middleware([
