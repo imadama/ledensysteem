@@ -11,6 +11,10 @@ use Illuminate\Validation\Rule;
 class DeviceTokenController extends Controller
 {
     /**
+     * REGISTRATION step 3: the app sent us its FCM token (POST /api/member/device-tokens).
+     * We store it linked to this member AND their organisation, so FcmSender can
+     * later look up "all tokens for organisation X" when a post is published.
+     *
      * Register (or refresh) the device's push token for the current member.
      * Upsert on the token so a token migrating between accounts/devices is handled.
      */
@@ -21,8 +25,11 @@ class DeviceTokenController extends Controller
             'platform' => ['nullable', Rule::in(['android'])],
         ]);
 
-        $user = $request->user();
+        $user = $request->user(); // the logged-in member (from the Bearer token)
 
+        // updateOrCreate = insert if new, update if the token already exists.
+        // Keying on the token means the same phone re-logging as another member
+        // simply moves the row to that member/organisation (no duplicates).
         DeviceToken::updateOrCreate(
             ['token' => $validated['token']],
             [
@@ -33,7 +40,7 @@ class DeviceTokenController extends Controller
             ],
         );
 
-        return response()->json(null, 204);
+        return response()->json(null, 204); // 204 = success, no body needed
     }
 
     /** Unregister a device token (on logout). */

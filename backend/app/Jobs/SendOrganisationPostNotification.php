@@ -29,11 +29,14 @@ class SendOrganisationPostNotification implements ShouldQueue
     ) {
     }
 
+    // DELIVERY step 3: the job simply asks the FcmSender to notify the whole
+    // organisation. The extra `data` (type + post_id) travels with the push so
+    // the app could, later, open the exact post when the notification is tapped.
     public function handle(FcmSender $sender): void
     {
         $sender->sendToOrganisation($this->organisationId, $this->title, $this->body, [
             'type' => 'organisation_post',
             'post_id' => (string) $this->postId,
-        ]);
+        ]); // -> DELIVERY step 4
     }
 }
