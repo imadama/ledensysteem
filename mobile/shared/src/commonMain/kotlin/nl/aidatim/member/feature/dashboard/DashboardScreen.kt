@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -22,13 +20,9 @@ import nl.aidatim.member.data.auth.AuthRepository
 import nl.aidatim.member.data.contribution.ContributionRepository
 import org.koin.compose.koinInject
 
+/** Home tab: membership status + contribution summary. Navigation is via the bottom bar. */
 @Composable
-fun DashboardScreen(
-    onLogout: () -> Unit,
-    onOpenContributions: () -> Unit,
-    onOpenProfile: () -> Unit,
-    onOpenPosts: () -> Unit,
-) {
+fun DashboardScreen() {
     val repository = koinInject<AuthRepository>()
     val user by repository.currentUser.collectAsState()
 
@@ -78,25 +72,6 @@ fun DashboardScreen(
                     )
                 }
             }
-        }
-
-        Button(onClick = onOpenPosts, modifier = Modifier.fillMaxWidth()) {
-            Text("Announcements")
-        }
-
-        Button(onClick = onOpenContributions, modifier = Modifier.fillMaxWidth()) {
-            Text("View contributions")
-        }
-
-        OutlinedButton(onClick = onOpenProfile, modifier = Modifier.fillMaxWidth()) {
-            Text("View profile")
-        }
-
-        OutlinedButton(onClick = {
-            repository.logout()
-            onLogout()
-        }) {
-            Text("Sign out")
         }
     }
 }

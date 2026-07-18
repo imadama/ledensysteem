@@ -30,45 +30,51 @@ import nl.aidatim.member.data.contribution.ContributionItem
 import nl.aidatim.member.data.contribution.ContributionStatus
 import org.koin.compose.koinInject
 
+// ---------------------------------------------------------------------------
+// VIEW layer (the "V" in MVVM): a Compose screen. It only DRAWS the state and
+// forwards user actions to the ViewModel. There is no network/business logic
+// in here — that is the whole point of MVVM.
+// ---------------------------------------------------------------------------
+
 @Composable
-fun ContributionScreen(onBack: () -> Unit) {
+fun ContributionScreen() {
+    // Koin gives us the repository; viewModel { } creates/keeps the ViewModel.
     val repository = koinInject<nl.aidatim.member.data.contribution.ContributionRepository>()
     val viewModel = viewModel { ContributionViewModel(repository) }
+    // Subscribe to the state: whenever it changes, Compose re-draws this screen.
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .safeContentPadding()
+            .safeContentPadding()   // keep content out of the status bar / notch
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack) { Text("Back") }
-            Text(
-                text = "Contributions",
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        }
+        Text(
+            text = "Contributions",
+            style = MaterialTheme.typography.headlineSmall,
+        )
 
+        // Draw a different thing per state. Covers all four cases -> never a blank/crash.
         when {
-            state.isLoading -> CenteredMessage { CircularProgressIndicator() }
+            state.isLoading -> CenteredMessage { CircularProgressIndicator() } // 1. loading
 
-            state.error != null -> CenteredMessage {
+            state.error != null -> CenteredMessage {                            // 2. error + retry
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = state.error ?: "Something went wrong",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    // Retry just calls back into the ViewModel — no logic here.
                     Button(onClick = viewModel::load, modifier = Modifier.padding(top = 12.dp)) {
                         Text("Retry")
                     }
                 }
             }
 
-            state.isEmpty -> CenteredMessage {
+            state.isEmpty -> CenteredMessage {                                  // 3. empty state
                 Text(
                     text = "No contributions yet.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -76,7 +82,9 @@ fun ContributionScreen(onBack: () -> Unit) {
                 )
             }
 
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) { // 4. the list
+                // LazyColumn only renders the rows on screen (efficient scrolling).
+                // key = { it.id } lets Compose track items correctly on updates.
                 items(state.items, key = { it.id }) { item ->
                     ContributionRow(item)
                 }
@@ -85,6 +93,7 @@ fun ContributionScreen(onBack: () -> Unit) {
     }
 }
 
+// One row = one month. Period + optional note on the left, amount + status on the right.
 @Composable
 private fun ContributionRow(item: ContributionItem) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -92,9 +101,9 @@ private fun ContributionRow(item: ContributionItem) {
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) {   // weight(1f) = take the free space
                 Text(item.periodLabel, fontWeight = FontWeight.SemiBold)
-                item.note?.let {
+                item.note?.let {                       // only draw the note if there is one
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodySmall,
@@ -110,9 +119,10 @@ private fun ContributionRow(item: ContributionItem) {
     }
 }
 
+// A small coloured pill showing the payment status (green = paid, red = failed, ...).
 @Composable
 private fun StatusChip(item: ContributionItem) {
-    val (background, foreground) = statusColors(item.status)
+    val (background, foreground) = statusColors(item.status)  // pick colours for this status
     Surface(
         color = background,
         shape = RoundedCornerShape(6.dp),
@@ -127,14 +137,16 @@ private fun StatusChip(item: ContributionItem) {
     }
 }
 
+// Maps each status to a (background, text) colour pair. Returned as a Kotlin Pair.
 private fun statusColors(status: ContributionStatus): Pair<Color, Color> = when (status) {
-    ContributionStatus.PAID -> Color(0xFFDCFCE7) to Color(0xFF166534)
-    ContributionStatus.PENDING -> Color(0xFFFEF9C3) to Color(0xFF854D0E)
-    ContributionStatus.PROCESSING -> Color(0xFFDBEAFE) to Color(0xFF1E40AF)
-    ContributionStatus.FAILED -> Color(0xFFFEE2E2) to Color(0xFF991B1B)
-    ContributionStatus.UNKNOWN -> Color(0xFFF1F5F9) to Color(0xFF475569)
+    ContributionStatus.PAID -> Color(0xFFDCFCE7) to Color(0xFF166534)        // green
+    ContributionStatus.PENDING -> Color(0xFFFEF9C3) to Color(0xFF854D0E)     // amber
+    ContributionStatus.PROCESSING -> Color(0xFFDBEAFE) to Color(0xFF1E40AF)  // blue
+    ContributionStatus.FAILED -> Color(0xFFFEE2E2) to Color(0xFF991B1B)      // red
+    ContributionStatus.UNKNOWN -> Color(0xFFF1F5F9) to Color(0xFF475569)     // grey
 }
 
+// Small helper: centres its content on the screen (used for loading/error/empty).
 @Composable
 private fun CenteredMessage(content: @Composable () -> Unit) {
     Column(

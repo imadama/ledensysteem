@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aidatim — Takenbord</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      background: #f1f5f9;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: #0052cc;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .topbar p  { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+    .topbar .phase-badge {
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      background: white;
+      padding: 16px 32px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .progress-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #0052cc;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .progress-label { font-size: 12px; color: #6b7280; white-space: nowrap; }
+    .progress-label strong { color: #1a1a2e; }
+
+    /* ── Board ── */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      padding: 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .column-header {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .col-count {
+      background: #e2e8f0;
+      color: #475569;
+      border-radius: 99px;
+      padding: 1px 8px;
+      font-size: 11px;
+    }
+
+    .col-todo     .column-header { color: #64748b; }
+    .col-inprog   .column-header { color: #0052cc; }
+    .col-test     .column-header { color: #d97706; }
+    .col-done     .column-header { color: #16a34a; }
+
+    .col-inprog   .col-count { background: #dbeafe; color: #1d4ed8; }
+    .col-test     .col-count { background: #fef9c3; color: #854d0e; }
+    .col-done     .col-count { background: #dcfce7; color: #166534; }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .card.inprogress { border-left: 3px solid #0052cc; }
+    .card.needs-test { border-left: 3px solid #d97706; background: #fffbeb; }
+    .card.done       { border-left: 3px solid #16a34a; opacity: 0.7; }
+
+    .card-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; line-height: 1.4; }
+    .card-desc  { font-size: 11px; color: #6b7280; line-height: 1.5; margin-bottom: 8px; }
+    .card-notes {
+      font-size: 11px;
+      color: #92400e;
+      background: #fef3c7;
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+
+    .prio-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .dot-hoog   { background: #dc2626; }
+    .dot-midden { background: #f59e0b; }
+    .dot-laag   { background: #94a3b8; }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tag-test  { background: #fef9c3; color: #854d0e; }
+    .tag-done  { background: #dcfce7; color: #166534; }
+    .tag-manual { background: #f3f4f6; color: #475569; }
+
+    /* empty state */
+    .empty { font-size: 12px; color: #94a3b8; text-align: center; padding: 24px 0; }
+
+    /* ── Updated at ── */
+    .updated {
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+      padding: 8px 0 24px;
+    }
+
+    @media (max-width: 900px) {
+      .board { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .board { grid-template-columns: 1fr; padding: 16px; }
+      .topbar, .progress-wrap { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Aidatim — Takenbord</h1>
+    <p>Fase 1 — Lancering klant 1 (deadline 1 mei 2026)</p>
+  </div>
+  <span class="phase-badge">Fase 1</span>
+</div>
+
+<div class="progress-wrap" id="progress-wrap">
+  <div class="progress-bar-bg">
+    <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+  </div>
+  <span class="progress-label" id="progress-label">Laden...</span>
+</div>
+
+<div class="board">
+
+  <!-- Te doen -->
+  <div class="col-todo">
+    <div class="column-header">
+      Te doen
+      <span class="col-count" id="count-todo">0</span>
+    </div>
+    <div id="col-todo-cards"></div>
+  </div>
+
+  <!-- In behandeling -->
+  <div class="col-inprog">
+    <div class="column-header">
+      In behandeling
+      <span class="col-count" id="count-inprog">0</span>
+    </div>
+    <div id="col-inprog-cards"></div>
+  </div>
+
+  <!-- Testen vereist -->
+  <div class="col-test">
+    <div class="column-header">
+      Testen vereist
+      <span class="col-count" id="count-test">0</span>
+    </div>
+    <div id="col-test-cards"></div>
+  </div>
+
+  <!-- Afgerond -->
+  <div class="col-done">
+    <div class="column-header">
+      Afgerond
+      <span class="col-count" id="count-done">0</span>
+    </div>
+    <div id="col-done-cards"></div>
+  </div>
+
+</div>
+
+<div class="updated" id="updated-at"></div>
+
+<script>
+  async function loadTasks() {
+    const res = await fetch('./tasks.json?nocache=' + Date.now())
+    const data = await res.json()
+    return data
+  }
+
+  function prioLabel(p) {
+    const map = { hoog: 'hoog', midden: 'midden', laag: 'laag' }
+    return map[p] || p
+  }
+
+  function renderCard(task) {
+    const statusClass = task.status === 'inprogress' ? 'inprogress'
+      : task.status === 'needs-test' ? 'needs-test'
+      : task.status === 'done' ? 'done'
+      : ''
+
+    const notesHtml = task.notes
+      ? `<div class="card-notes">ℹ️ ${task.notes}</div>`
+      : ''
+
+    const tagHtml = task.status === 'needs-test'
+      ? `<span class="tag tag-test">Jij aan zet</span>`
+      : task.status === 'done'
+      ? `<span class="tag tag-done">Afgerond</span>`
+      : task.notes?.includes('handmatige')
+      ? `<span class="tag tag-manual">Handmatig</span>`
+      : ''
+
+    return `
+      <div class="card ${statusClass}">
+        <div class="card-title">${task.title}</div>
+        <div class="card-desc">${task.description}</div>
+        ${notesHtml}
+        <div class="card-footer">
+          <span class="prio-dot">
+            <span class="dot dot-${task.priority}"></span>
+            ${prioLabel(task.priority)}
+          </span>
+          ${tagHtml}
+        </div>
+      </div>
+    `
+  }
+
+  async function render() {
+    const data = await loadTasks()
+    const tasks = data.tasks
+
+    const cols = {
+      'todo':       document.getElementById('col-todo-cards'),
+      'inprogress': document.getElementById('col-inprog-cards'),
+      'needs-test': document.getElementById('col-test-cards'),
+      'done':       document.getElementById('col-done-cards'),
+    }
+    const counts = {
+      'todo':       document.getElementById('count-todo'),
+      'inprogress': document.getElementById('count-inprog'),
+      'needs-test': document.getElementById('count-test'),
+      'done':       document.getElementById('count-done'),
+    }
+
+    Object.values(cols).forEach(c => c.innerHTML = '')
+
+    const buckets = { 'todo': [], 'inprogress': [], 'needs-test': [], 'done': [] }
+    tasks.forEach(t => {
+      if (buckets[t.status] !== undefined) buckets[t.status].push(t)
+    })
+
+    Object.entries(buckets).forEach(([status, list]) => {
+      counts[status].textContent = list.length
+      if (list.length === 0) {
+        cols[status].innerHTML = '<div class="empty">Leeg</div>'
+      } else {
+        cols[status].innerHTML = list.map(renderCard).join('')
+      }
+    })
+
+    // Progress
+    const done = buckets['done'].length
+    const test = buckets['needs-test'].length
+    const total = tasks.length
+    const pct = Math.round(((done + test * 0.5) / total) * 100)
+    document.getElementById('progress-fill').style.width = pct + '%'
+    document.getElementById('progress-label').innerHTML =
+      `<strong>${done}</strong> van ${total} afgerond &nbsp;·&nbsp; <strong>${test}</strong> te testen`
+
+    document.getElementById('updated-at').textContent = 'Laatste update: ' + data.updated_at
+  }
+
+  render()
+  // Herlaad elke 30 seconden automatisch
+  setInterval(render, 30000)
+</script>
+
+</body>
+</html>

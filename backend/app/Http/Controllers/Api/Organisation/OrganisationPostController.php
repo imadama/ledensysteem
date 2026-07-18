@@ -35,6 +35,7 @@ class OrganisationPostController extends Controller
         $data = $request->validated();
         $status = $data['status'] ?? 'published';
 
+        // DELIVERY step 1: an org-admin creates a post (POST /api/organisation/posts).
         $post = OrganisationPost::create([
             'organisation_id' => $user->organisation_id,
             'created_by' => $user->id,
@@ -44,8 +45,9 @@ class OrganisationPostController extends Controller
             'published_at' => $status === 'published' ? now() : null,
         ]);
 
+        // Only published posts notify members; a draft stays silent.
         if ($post->status === 'published') {
-            $this->notifyMembers($post);
+            $this->notifyMembers($post); // -> DELIVERY step 2
         }
 
         return response()->json([
@@ -132,6 +134,11 @@ class OrganisationPostController extends Controller
      * Best-effort push notification to members. Runs synchronously (no worker yet)
      * and never lets a push failure break post creation.
      */
+    // DELIVERY step 2: hand the work to the notification job.
+    // dispatchSync = run it right now (there is no queue worker running yet).
+    // Str::limit trims the body to a short notification preview (120 chars).
+    // The whole thing is wrapped in try/catch: a push failure must NEVER stop
+    // the post from being created — creating the post is the important part.
     private function notifyMembers(OrganisationPost $post): void
     {
         try {
@@ -140,7 +147,7 @@ class OrganisationPostController extends Controller
                 $post->id,
                 $post->title,
                 Str::limit($post->body, 120),
-            );
+            ); // -> DELIVERY step 3 (the job's handle())
         } catch (Throwable $e) {
             Log::error('Post notification dispatch failed', ['error' => $e->getMessage()]);
         }

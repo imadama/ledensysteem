@@ -72,5 +72,8 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # Compile only: the Compose UI tests run on the local iOS simulator (the
+      # compose-ui-test iOS link fails on the CI runner's older Xcode). Unit
+      # tests run in the Android job; iOS UI tests are verified locally.
       - name: Compile iOS framework (simulator arm64)
         run: ./gradlew :shared:compileKotlinIosSimulatorArm64 --no-configuration-cache --stacktrace
