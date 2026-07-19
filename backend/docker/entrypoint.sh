@@ -46,8 +46,12 @@ DB_USERNAME=${DB_USERNAME:-}
 DB_PASSWORD=${DB_PASSWORD:-}
 
 SESSION_DOMAIN=${SESSION_DOMAIN:-}
+SESSION_SECURE_COOKIE=${SESSION_SECURE_COOKIE:-true}
+SESSION_SAME_SITE=${SESSION_SAME_SITE:-lax}
 SANCTUM_STATEFUL_DOMAINS=${SANCTUM_STATEFUL_DOMAINS:-}
 CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
+
+QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
 
 MAIL_MAILER=${MAIL_MAILER:-smtp}
 MAIL_HOST=${MAIL_HOST:-}
@@ -78,8 +82,14 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Run database migrations on boot so new tables are created automatically on deploy.
-echo "Running database migrations..."
-php artisan migrate --force || echo "WARNING: migrations failed"
+# ALLEEN op de hoofdcontainer (RUN_MIGRATIONS=true) — de queue-/scheduler-containers
+# zetten dit op false zodat migraties niet meerdere keren tegelijk draaien.
+# Fouten zijn nu fataal (geen '|| echo' meer): een mislukte migratie moet de deploy
+# luid laten falen i.p.v. de app met een half-gemigreerde database te laten starten.
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
+    echo "Running database migrations..."
+    php artisan migrate --force
+fi
 
 # Execute the main command
 exec "$@"
