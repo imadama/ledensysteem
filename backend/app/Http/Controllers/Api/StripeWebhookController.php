@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\MemberContributionRecord;
 use App\Models\MemberSubscription;
 use App\Models\OrganisationSubscription;
-use App\Models\Plan;
 use App\Models\PaymentTransaction;
+use App\Models\Plan;
 use App\Models\StripeEvent;
 use App\Services\OrganisationStripeService;
 use App\Services\SubscriptionAuditService;
@@ -29,8 +29,7 @@ class StripeWebhookController extends Controller
         private readonly OrganisationStripeService $stripeService,
         private readonly SubscriptionAuditService $auditService,
         private readonly StripeClient $stripe,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {
@@ -55,10 +54,11 @@ class StripeWebhookController extends Controller
                 break;
             } catch (SignatureVerificationException $e) {
                 \Illuminate\Support\Facades\Log::warning('Stripe webhook signature mismatch', [
-                    'secret_prefix' => substr($secret, 0, 12) . '...',
+                    'secret_prefix' => substr($secret, 0, 12).'...',
                     'error' => $e->getMessage(),
-                    'sig_header' => substr($signature, 0, 60) . '...',
+                    'sig_header' => substr($signature, 0, 60).'...',
                 ]);
+
                 continue;
             } catch (UnexpectedValueException $exception) {
                 report($exception);
@@ -153,6 +153,25 @@ class StripeWebhookController extends Controller
             return;
         }
 
+        // Delayed-notification (SEPA) afronding van een eenmalige checkout.
+        if ($type === 'checkout.session.async_payment_succeeded') {
+            $this->handleContributionCheckoutSession($object);
+
+            return;
+        }
+
+        if ($type === 'checkout.session.async_payment_failed') {
+            $this->handleContributionCheckoutFailed($object);
+
+            return;
+        }
+
+        if ($type === 'charge.refunded') {
+            $this->handleChargeRefunded($event);
+
+            return;
+        }
+
         if (in_array($type, ['payment_intent.succeeded', 'payment_intent.payment_failed'], true)) {
             $type === 'payment_intent.succeeded'
                 ? $this->handlePaymentIntentSucceeded($object)
@@ -215,13 +234,44 @@ class StripeWebhookController extends Controller
                 'payment_intent' => data_get($object, 'payment_intent'),
                 'metadata' => data_get($object, 'metadata', []),
             ]);
+
             return;
         }
 
         $paymentIntentId = data_get($object, 'payment_intent');
         $sessionId = data_get($object, 'id');
 
-        $this->markTransactionSucceeded($transaction, $paymentIntentId, $sessionId);
+        // SEPA (en andere delayed-notification methodes) voltooien de checkout met
+        // payment_status 'unpaid'/'processing'; de afschrijving settelt pas dagen
+        // later. Alleen bij 'paid' markeren we succeeded — anders 'processing', tot
+        // payment_intent.succeeded / async_payment_succeeded bevestigt dat er geld is.
+        $paymentStatus = data_get($object, 'payment_status');
+
+        if ($paymentStatus === 'paid') {
+            $this->markTransactionSucceeded($transaction, $paymentIntentId, $sessionId);
+        } else {
+            $this->markTransactionProcessing($transaction, $paymentIntentId, $sessionId);
+        }
+    }
+
+    private function handleContributionCheckoutFailed($object): void
+    {
+        $transaction = $this->locateTransaction(
+            data_get($object, 'client_reference_id'),
+            data_get($object, 'id'),
+            data_get($object, 'payment_intent')
+        );
+
+        if (! $transaction) {
+            return;
+        }
+
+        $this->markTransactionFailed(
+            $transaction,
+            data_get($object, 'payment_intent'),
+            data_get($object, 'id'),
+            'SEPA-incasso mislukt (async_payment_failed)'
+        );
     }
 
     private function handleSubscriptionCheckoutSession($object): void
@@ -249,7 +299,12 @@ class StripeWebhookController extends Controller
                 $subscription->stripe_customer_id = data_get($object, 'customer', $subscription->stripe_customer_id);
             }
 
-            $subscription->status = 'incomplete';
+            // Stripe garandeert geen event-volgorde: een eerder verwerkte
+            // customer.subscription.updated (active) mag niet teruggezet worden
+            // naar 'incomplete' door een vertraagde checkout.session.completed.
+            $subscription->status = in_array($subscription->status, ['active', 'trial'], true)
+                ? $subscription->status
+                : 'incomplete';
             $subscription->save();
 
             return;
@@ -300,6 +355,7 @@ class StripeWebhookController extends Controller
                 'amount' => data_get($object, 'amount'),
                 'currency' => data_get($object, 'currency'),
             ]);
+
             return;
         }
 
@@ -340,6 +396,7 @@ class StripeWebhookController extends Controller
 
         if ($memberSubscription) {
             $this->handleMemberSubscriptionEvent($type, $object, $memberSubscription);
+
             return;
         }
 
@@ -362,7 +419,7 @@ class StripeWebhookController extends Controller
 
         $oldStatus = $subscription->status;
         $oldPlanId = $subscription->plan_id;
-        
+
         $stripeStatus = data_get($object, 'status');
         $subscription->status = $this->mapStripeSubscriptionStatus($stripeStatus);
 
@@ -394,7 +451,7 @@ class StripeWebhookController extends Controller
                 null,
                 $oldStatus,
                 $subscription->status,
-                "Subscription status changed via Stripe webhook",
+                'Subscription status changed via Stripe webhook',
                 ['stripe_event' => $type, 'stripe_status' => $stripeStatus]
             );
         }
@@ -418,7 +475,7 @@ class StripeWebhookController extends Controller
                         'name' => $newPlan->name,
                         'monthly_price' => (float) $newPlan->monthly_price,
                     ],
-                    "Plan changed via Stripe webhook",
+                    'Plan changed via Stripe webhook',
                     ['stripe_event' => $type, 'stripe_price_id' => $priceId]
                 );
             }
@@ -487,6 +544,7 @@ class StripeWebhookController extends Controller
 
         if ($memberSubscription) {
             $this->handleMemberSubscriptionInvoice($type, $object, $memberSubscription);
+
             return;
         }
 
@@ -518,7 +576,7 @@ class StripeWebhookController extends Controller
                 null,
                 $oldStatus,
                 $subscription->status,
-                "Invoice payment failed: " . (data_get($object, 'number') ?? data_get($object, 'id')),
+                'Invoice payment failed: '.(data_get($object, 'number') ?? data_get($object, 'id')),
                 ['invoice_id' => data_get($object, 'id'), 'stripe_event' => $type]
             );
 
@@ -526,7 +584,7 @@ class StripeWebhookController extends Controller
             $paymentIntentId = data_get($object, 'payment_intent');
             $amountDue = (int) data_get($object, 'amount_due', 0);
             $currency = strtolower((string) data_get($object, 'currency', 'eur'));
-            
+
             $this->auditService->logPaymentEvent(
                 $subscription->organisation,
                 null,
@@ -538,7 +596,7 @@ class StripeWebhookController extends Controller
                     'invoice_number' => data_get($object, 'number'),
                     'payment_intent_id' => $paymentIntentId,
                 ],
-                "Invoice payment failed for invoice " . (data_get($object, 'number') ?? data_get($object, 'id')),
+                'Invoice payment failed for invoice '.(data_get($object, 'number') ?? data_get($object, 'id')),
                 ['stripe_event' => $type, 'invoice_id' => data_get($object, 'id')]
             );
 
@@ -547,7 +605,7 @@ class StripeWebhookController extends Controller
                 $transaction = PaymentTransaction::query()
                     ->where('stripe_payment_intent_id', $paymentIntentId)
                     ->first();
-                
+
                 if ($transaction) {
                     $transaction->retry_count = ($transaction->retry_count ?? 0) + 1;
                     $transaction->last_retry_at = now();
@@ -581,7 +639,7 @@ class StripeWebhookController extends Controller
                 null,
                 $oldStatus,
                 $subscription->status,
-                "Invoice payment succeeded",
+                'Invoice payment succeeded',
                 ['invoice_id' => data_get($object, 'id'), 'stripe_event' => $type]
             );
         }
@@ -643,7 +701,7 @@ class StripeWebhookController extends Controller
                 'invoice_number' => data_get($object, 'number'),
                 'payment_intent_id' => $paymentIntentId,
             ],
-            "Invoice payment succeeded for invoice " . (data_get($object, 'number') ?? $invoiceId),
+            'Invoice payment succeeded for invoice '.(data_get($object, 'number') ?? $invoiceId),
             ['stripe_event' => $type, 'invoice_id' => $invoiceId, 'transaction_id' => $transaction->id]
         );
     }
@@ -660,6 +718,10 @@ class StripeWebhookController extends Controller
             $subscription->metadata = $metadata;
             $subscription->save();
 
+            // Leg de mislukte incasso vast zodat de beheerder de mislukte maand in de
+            // contributiematrix ziet (anders is er geen enkel spoor van de poging).
+            $this->recordFailedMemberInvoice($object, $subscription);
+
             return;
         }
 
@@ -674,7 +736,7 @@ class StripeWebhookController extends Controller
         if ($member && ! $member->sepa_mandate_stripe_id && $member->organisation) {
             $member->loadMissing('organisation.stripeConnection');
             $connection = $member->organisation->stripeConnection;
-            
+
             if ($connection && $connection->stripe_account_id) {
                 try {
                     $paymentIntentId = data_get($object, 'payment_intent');
@@ -757,6 +819,7 @@ class StripeWebhookController extends Controller
                     ]),
                     'occurred_at' => $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? $transaction->occurred_at ?? now(),
                 ]);
+
                 return;
             }
         }
@@ -803,6 +866,87 @@ class StripeWebhookController extends Controller
         $contribution->update([
             'payment_transaction_id' => $transaction->id,
         ]);
+    }
+
+    private function recordFailedMemberInvoice($object, MemberSubscription $subscription): void
+    {
+        $member = $subscription->member;
+        if (! $member) {
+            return;
+        }
+
+        $invoiceId = data_get($object, 'id');
+        $amount = (int) data_get($object, 'amount_due', 0);
+        if ($amount <= 0) {
+            $amount = (int) data_get($object, 'amount_paid', 0);
+        }
+
+        $periodStart = $this->timestampToDateTime(data_get($object, 'lines.data.0.period.start'));
+        if ($periodStart) {
+            $periodStart = $periodStart->copy()->startOfMonth();
+        }
+
+        // Dedupe op invoice-id zodat retries geen dubbele records maken.
+        $transaction = PaymentTransaction::query()
+            ->whereJsonContains('metadata->stripe_invoice_id', $invoiceId)
+            ->first();
+
+        $metadata = [
+            'stripe_invoice_id' => $invoiceId,
+            'stripe_invoice_number' => data_get($object, 'number'),
+            'member_subscription_id' => (string) $subscription->id,
+        ];
+
+        if ($transaction) {
+            // Niet overschrijven als de betaling inmiddels alsnog geslaagd is.
+            if ($transaction->status !== 'succeeded') {
+                $transaction->update([
+                    'status' => 'failed',
+                    'failure_reason' => 'Automatische incasso mislukt',
+                    'metadata' => array_merge($transaction->metadata ?? [], $metadata),
+                ]);
+            }
+        } else {
+            $transaction = PaymentTransaction::create([
+                'organisation_id' => $member->organisation_id,
+                'member_id' => $subscription->member_id,
+                'type' => 'contribution',
+                'amount' => round($amount / 100, 2),
+                'currency' => strtoupper((string) data_get($object, 'currency', 'eur')),
+                'status' => 'failed',
+                'failure_reason' => 'Automatische incasso mislukt',
+                'metadata' => $metadata,
+                'occurred_at' => now(),
+            ]);
+        }
+
+        if (! $periodStart) {
+            return;
+        }
+
+        $contribution = MemberContributionRecord::query()
+            ->where('member_id', $subscription->member_id)
+            ->where('period', $periodStart)
+            ->first();
+
+        if ($contribution) {
+            // Een reeds betaalde maand niet terugzetten naar 'failed'.
+            if ($contribution->status !== 'paid') {
+                $contribution->update([
+                    'status' => 'failed',
+                    'payment_transaction_id' => $transaction->id,
+                ]);
+            }
+        } else {
+            MemberContributionRecord::create([
+                'member_id' => $subscription->member_id,
+                'amount' => round($amount / 100, 2),
+                'status' => 'failed',
+                'period' => $periodStart,
+                'note' => __('Automatische incasso mislukt'),
+                'payment_transaction_id' => $transaction->id,
+            ]);
+        }
     }
 
     private function handleChargeDisputeCreated(StripeEventObject $event): void
@@ -963,6 +1107,89 @@ class StripeWebhookController extends Controller
         }
     }
 
+    private function handleChargeRefunded(StripeEventObject $event): void
+    {
+        $charge = $event->data->object;
+        $paymentIntentId = $charge->payment_intent ?? null;
+
+        if (! $paymentIntentId) {
+            \Log::warning('Stripe webhook: charge.refunded zonder payment_intent', [
+                'charge_id' => $charge->id ?? null,
+            ]);
+
+            return;
+        }
+
+        $amountRefunded = (int) ($charge->amount_refunded ?? 0);
+        $amountCharged = (int) ($charge->amount ?? 0);
+        $fullyRefunded = ($charge->refunded ?? false)
+            || ($amountCharged > 0 && $amountRefunded >= $amountCharged);
+
+        try {
+            DB::transaction(function () use ($charge, $paymentIntentId, $amountRefunded, $fullyRefunded): void {
+                $transaction = PaymentTransaction::query()
+                    ->where('stripe_payment_intent_id', $paymentIntentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $transaction) {
+                    \Log::warning('Stripe webhook: charge.refunded maar geen transaction gevonden', [
+                        'charge_id' => $charge->id ?? null,
+                        'payment_intent_id' => $paymentIntentId,
+                    ]);
+
+                    return;
+                }
+
+                $transaction->failure_metadata = array_merge($transaction->failure_metadata ?? [], [
+                    'refunded_at' => now()->toIso8601String(),
+                    'charge_id' => $charge->id ?? null,
+                    'amount_refunded' => round($amountRefunded / 100, 2),
+                    'fully_refunded' => $fullyRefunded,
+                ]);
+
+                if ($fullyRefunded) {
+                    // Volledige terugbetaling: transactie terug naar 'refunded' en de
+                    // gekoppelde contributiemaanden terug naar 'open' (niet meer geïnd).
+                    $transaction->status = 'refunded';
+                    $transaction->save();
+
+                    MemberContributionRecord::query()
+                        ->where('payment_transaction_id', $transaction->id)
+                        ->update(['status' => 'open']);
+                } else {
+                    // Gedeeltelijke terugbetaling: alleen vastleggen, records ongemoeid.
+                    $transaction->save();
+                }
+
+                if ($transaction->organisation_id && $transaction->organisation) {
+                    $this->auditService->logPaymentEvent(
+                        $transaction->organisation,
+                        null,
+                        $fullyRefunded ? 'refunded' : 'partially_refunded',
+                        [
+                            'amount' => (float) $transaction->amount,
+                            'amount_refunded' => round($amountRefunded / 100, 2),
+                            'currency' => $transaction->currency,
+                            'payment_intent_id' => $paymentIntentId,
+                            'charge_id' => $charge->id ?? null,
+                        ],
+                        $fullyRefunded ? 'Betaling volledig terugbetaald' : 'Betaling gedeeltelijk terugbetaald',
+                        ['transaction_id' => $transaction->id, 'charge_id' => $charge->id ?? null]
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            \Log::error('Stripe webhook: fout bij verwerken charge.refunded', [
+                'charge_id' => $charge->id ?? null,
+                'payment_intent_id' => $paymentIntentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
     private function locateTransaction($clientReferenceId, ?string $sessionId, ?string $paymentIntentId): ?PaymentTransaction
     {
         if ($clientReferenceId !== null && is_numeric($clientReferenceId)) {
@@ -1035,6 +1262,39 @@ class StripeWebhookController extends Controller
             }
 
             $record->update($updates);
+        }
+    }
+
+    private function markTransactionProcessing(PaymentTransaction $transaction, ?string $paymentIntentId, ?string $sessionId): void
+    {
+        $transaction->refresh();
+
+        // Was al betaald? Niet terugzetten (event-volgorde is niet gegarandeerd).
+        if ($transaction->status === 'succeeded') {
+            return;
+        }
+
+        $updates = ['status' => 'processing'];
+
+        if ($paymentIntentId && $transaction->stripe_payment_intent_id !== $paymentIntentId) {
+            $updates['stripe_payment_intent_id'] = $paymentIntentId;
+        }
+
+        if ($sessionId && $transaction->stripe_checkout_session_id !== $sessionId) {
+            $updates['stripe_checkout_session_id'] = $sessionId;
+        }
+
+        $transaction->fill($updates)->save();
+
+        $transaction->loadMissing('memberContributionRecords');
+
+        foreach ($transaction->memberContributionRecords as $record) {
+            if ($record->status !== 'paid') {
+                $record->update([
+                    'status' => 'processing',
+                    'payment_transaction_id' => $transaction->id,
+                ]);
+            }
         }
     }
 

@@ -31,15 +31,15 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## 2. Blockers vóór livegang — Betalingen
 
-- ☐ **AUDIT-20 · HIGH · Eenmalige SEPA-contributie direct "betaald"** bij `checkout.session.completed` zonder `payment_status`-check; SEPA settelt dagen later. → alleen 'paid' bij `payment_status === 'paid'`; anders 'processing'; `async_payment_failed`-branch toevoegen.
-- ☐ **AUDIT-21 · HIGH · Dubbele maandincasso.** Lid-portaal kan tweede recurring checkout starten die de duplicate-guard omzeilt → twee live subscriptions. → guard toevoegen in `setupSubscription` + UI-checkbox verbergen bij actieve incasso.
-- ☐ **AUDIT-22 · HIGH · Stripe-subscription binnen DB-transactie.** Rollback na `subscriptions->create` laat een live mandaat-gedekte subscription draaien zonder lokaal spoor → stille dubbele incasso bij retry. → Stripe-calls buiten transactie + compenserende cancel bij faal.
-- ☐ **AUDIT-23 · MEDIUM · `charge.refunded` niet afgehandeld** → refunds blijven "betaald". → branch toevoegen die transactie op 'refunded' en records op 'open' zet.
-- ☐ **AUDIT-24 · MEDIUM · Mislukte maandincasso laat geen spoor** (member-pad zet alleen `past_due`). → `MemberContributionRecord`(failed) + `PaymentTransaction`(failed) upserten.
-- ☐ **AUDIT-25 · MEDIUM · `checkout.session.completed` kan actieve member-sub terug naar 'incomplete'** zetten; recovery-command slaat 'm over. → org-guard spiegelen; `whereNull('latest_checkout_session_id')`-filter droppen.
-- ☐ **AUDIT-26 · MEDIUM · Amount-update negeert `pass_stripe_fee_to_member`** → org absorbeert Stripe-fee na elke wijziging. → gross-up delen tussen setup en update.
-- ☐ **AUDIT-27 · MEDIUM · Member self-service kan €0-subscription maken** (geen amount>0-guard) → schijnbaar gedekt, betaalt niets. → guard in service + 422 bij ontbrekend bedrag.
-- ☐ **AUDIT-28 · MEDIUM · Webhook valideert `event->account` niet** → latent cross-tenant risico zodra Standard-accounts worden gebruikt. → org matchen tegen connected account.
+- ☑ **AUDIT-20 · HIGH · Eenmalige SEPA-contributie direct "betaald".** `handleContributionCheckoutSession` markeert nu alleen 'paid' bij `payment_status === 'paid'`, anders 'processing' (nieuwe `markTransactionProcessing`). `async_payment_succeeded`/`async_payment_failed` toegevoegd aan de router.
+- ☑ **AUDIT-21 · HIGH · Dubbele maandincasso.** Duplicate-guard toegevoegd in `ContributionPaymentController::setupSubscription` (422 bij lopende incasso) + de recurring-checkbox verborgen in `MemberContributionPage.tsx` bij een actieve incasso.
+- ☑ **AUDIT-22 · HIGH · Stripe-subscription binnen DB-transactie.** Compenserende cancel toegevoegd: faalt een lokale write na `subscriptions->create`, dan wordt de Stripe-subscription geannuleerd vóór de rollback → geen wees-incasso meer. *(Volledige herstructurering — Stripe-calls volledig buiten de transactie — is een grotere follow-up; deze mitigatie dicht het geldrisico.)*
+- ☑ **AUDIT-23 · MEDIUM · `charge.refunded` niet afgehandeld.** `handleChargeRefunded` toegevoegd: volledige refund → transactie 'refunded' + records 'open'; partiële refund vastgelegd in metadata + audit.
+- ☑ **AUDIT-24 · MEDIUM · Mislukte maandincasso laat geen spoor.** `recordFailedMemberInvoice` upsert nu een `MemberContributionRecord`(failed) + `PaymentTransaction`(failed) per periode (deduped op invoice-id).
+- ☑ **AUDIT-25 · MEDIUM · Member-sub-downgrade naar 'incomplete'.** Org-guard gespiegeld in de member-branch (active/trial blijft behouden) + `whereNull('latest_checkout_session_id')`-filter uit het recovery-command gehaald.
+- ☑ **AUDIT-26 · MEDIUM · Amount-update negeert fee.** Gross-up geëxtraheerd naar gedeelde `grossUpBillingAmount()` en toegepast in zowel setup als update; opgeslagen `amount` nu consistent (bruto).
+- ☑ **AUDIT-27 · MEDIUM · €0-subscription mogelijk.** `amount <= 0`-guard bovenaan `setupSepaSubscription` (geldt voor élk aanroeppad, incl. member self-service).
+- ☐ **AUDIT-28 · MEDIUM · Webhook valideert `event->account` niet** → **latent** (alleen relevant bij Standard-accounts; nu Express). Bewust uitgesteld: vereist account→org-mapping in elke handler. → org matchen tegen connected account vóór overstap naar Standard.
 
 ## 3. Blockers vóór livegang — Data-integriteit & operatie
 

@@ -1,26 +1,26 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\MemberActivationController;
 use App\Http\Controllers\Api\Member\ContributionPaymentController;
 use App\Http\Controllers\Api\Member\DeviceTokenController;
 use App\Http\Controllers\Api\Member\MemberPostController;
 use App\Http\Controllers\Api\Member\SelfServiceController;
-use App\Http\Controllers\Api\Organisation\OrganisationPostController;
-use App\Http\Controllers\Api\Organisation\SubscriptionController;
+use App\Http\Controllers\Api\MemberActivationController;
 use App\Http\Controllers\Api\Organisation\ContributionReportController;
 use App\Http\Controllers\Api\Organisation\MemberController;
 use App\Http\Controllers\Api\Organisation\MemberSepaSubscriptionController;
 use App\Http\Controllers\Api\Organisation\MonitorController;
+use App\Http\Controllers\Api\Organisation\OrganisationPostController;
 use App\Http\Controllers\Api\Organisation\PaymentConnectionController;
+use App\Http\Controllers\Api\Organisation\SubscriptionController;
 use App\Http\Controllers\Api\OrganisationProfileController;
 use App\Http\Controllers\Api\OrganisationUserController;
+use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PlatformOrganisationController;
 use App\Http\Controllers\Api\PlatformPlanController;
 use App\Http\Controllers\Api\PlatformSettingsController;
-use App\Http\Controllers\Api\StripeWebhookController;
-use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PublicMemberRegistrationController;
+use App\Http\Controllers\Api\StripeWebhookController;
 use App\Http\Middleware\ResolveOrganisationFromSubdomain;
 use App\Http\Middleware\ValidateUserOrganisationAccess;
 use Illuminate\Support\Facades\Route;
@@ -56,12 +56,12 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware([
-        'auth:sanctum',
-        'role:org_admin',
-        'billing.status',
-        ResolveOrganisationFromSubdomain::class,
-        ValidateUserOrganisationAccess::class,
-    ])
+    'auth:sanctum',
+    'role:org_admin',
+    'billing.status',
+    ResolveOrganisationFromSubdomain::class,
+    ValidateUserOrganisationAccess::class,
+])
     ->prefix('organisation')
     ->group(function (): void {
         Route::get('profile', [OrganisationProfileController::class, 'show']);
@@ -124,22 +124,22 @@ Route::middleware([
 // Monitor route - toegankelijk voor zowel monitor als org_admin rollen
 // Billing status check toegevoegd zodat monitor geblokkeerd is bij betalingsachterstand
 Route::middleware([
-        'auth:sanctum',
-        'billing.status',
-        ResolveOrganisationFromSubdomain::class,
-        ValidateUserOrganisationAccess::class,
-    ])
+    'auth:sanctum',
+    'billing.status',
+    ResolveOrganisationFromSubdomain::class,
+    ValidateUserOrganisationAccess::class,
+])
     ->prefix('organisation')
     ->group(function (): void {
         Route::get('monitor', [MonitorController::class, 'index']);
     });
 
 Route::middleware([
-        'auth:sanctum',
-        'role:member',
-        ResolveOrganisationFromSubdomain::class,
-        ValidateUserOrganisationAccess::class,
-    ])
+    'auth:sanctum',
+    'role:member',
+    ResolveOrganisationFromSubdomain::class,
+    ValidateUserOrganisationAccess::class,
+])
     ->prefix('member')
     ->group(function (): void {
         Route::get('profile', [SelfServiceController::class, 'profile']);
@@ -164,10 +164,10 @@ Route::middleware([
     });
 
 Route::middleware([
-        'auth:sanctum',
-        'role:platform_admin',
-        ResolveOrganisationFromSubdomain::class,
-    ])
+    'auth:sanctum',
+    'role:platform_admin',
+    ResolveOrganisationFromSubdomain::class,
+])
     ->prefix('platform')
     ->group(function (): void {
         Route::get('organisations', [PlatformOrganisationController::class, 'index']);
@@ -183,7 +183,7 @@ Route::middleware([
         Route::post('plans', [PlatformPlanController::class, 'store']);
         Route::put('plans/{id}', [PlatformPlanController::class, 'update']);
         Route::delete('plans/{id}', [PlatformPlanController::class, 'destroy']);
-        
+
         Route::get('settings', [PlatformSettingsController::class, 'index']);
         // Specifieke routes moeten vóór generieke {key} routes komen
         Route::get('settings/payment-methods', [PlatformSettingsController::class, 'getPaymentMethods']);
@@ -193,4 +193,3 @@ Route::middleware([
     });
 
 Route::post('stripe/webhook', StripeWebhookController::class);
-

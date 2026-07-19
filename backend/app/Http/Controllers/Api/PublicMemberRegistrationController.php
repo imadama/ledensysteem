@@ -7,7 +7,6 @@ use App\Http\Requests\PublicMemberRegistrationRequest;
 use App\Models\Member;
 use App\Models\Organisation;
 use App\Models\PlatformSetting;
-use App\Models\User;
 use App\Services\MemberAccountService;
 use App\Services\MemberSepaSubscriptionService;
 use Illuminate\Http\JsonResponse;
@@ -20,8 +19,7 @@ class PublicMemberRegistrationController extends Controller
     public function __construct(
         private readonly MemberSepaSubscriptionService $sepaService,
         private readonly MemberAccountService $memberAccountService,
-    ) {
-    }
+    ) {}
 
     public function getOrganisationInfo(PublicMemberRegistrationRequest $request): JsonResponse
     {
@@ -53,7 +51,7 @@ class PublicMemberRegistrationController extends Controller
     private function generateUniqueMemberNumber(int $organisationId): string
     {
         $year = date('Y');
-        
+
         // Haal het laatste lidnummer op voor deze organisatie dat begint met het jaartal
         $lastMember = Member::where('organisation_id', $organisationId)
             ->where('member_number', 'like', "{$year}-%")
@@ -61,18 +59,19 @@ class PublicMemberRegistrationController extends Controller
             ->orderBy('member_number', 'desc')
             ->first();
 
-        if (!$lastMember) {
+        if (! $lastMember) {
             return "{$year}-001";
         }
 
-        if (preg_match('/^' . $year . '-(\d+)$/', $lastMember->member_number, $matches)) {
+        if (preg_match('/^'.$year.'-(\d+)$/', $lastMember->member_number, $matches)) {
             $lastSequence = intval($matches[1]);
             $newSequence = $lastSequence + 1;
-            return sprintf("%s-%03d", $year, $newSequence);
+
+            return sprintf('%s-%03d', $year, $newSequence);
         }
 
         do {
-            $number = $year . '-' . mt_rand(1000, 9999);
+            $number = $year.'-'.mt_rand(1000, 9999);
         } while (Member::where('organisation_id', $organisationId)->where('member_number', $number)->exists());
 
         return $number;
@@ -129,7 +128,7 @@ class PublicMemberRegistrationController extends Controller
                 try {
                     $this->memberAccountService->sendInvitationToNewMember($member);
                 } catch (\Exception $e) {
-                    Log::error("Uitnodigingsmail mislukt voor nieuw lid {$member->id}: " . $e->getMessage());
+                    Log::error("Uitnodigingsmail mislukt voor nieuw lid {$member->id}: ".$e->getMessage());
                 }
 
                 return response()->json([
@@ -146,7 +145,7 @@ class PublicMemberRegistrationController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Fout bij publieke lid registratie: ' . $e->getMessage(), [
+            Log::error('Fout bij publieke lid registratie: '.$e->getMessage(), [
                 'organisation_id' => $organisation->id ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -196,6 +195,7 @@ class PublicMemberRegistrationController extends Controller
 
         if ($orgId) {
             $orgId = (int) $orgId;
+
             return Organisation::find($orgId);
         }
 
@@ -275,20 +275,20 @@ class PublicMemberRegistrationController extends Controller
 
         // Extract subdomein (alles voor .aidatim.nl)
         $parts = explode('.', $host);
-        
+
         // Voor subdomeinen zoals 'isn-gorinchem-suleyman-celebi.aidatim.nl'
         // parts[0] is 'isn-gorinchem-suleyman-celebi'
         if (count($parts) >= 3) {
             // Neem het eerste deel als subdomein (alles voor de eerste punt)
-            // Maar wacht, als het subdomein zelf punten bevat (wat niet gebruikelijk is, maar technisch kan), 
+            // Maar wacht, als het subdomein zelf punten bevat (wat niet gebruikelijk is, maar technisch kan),
             // dan klopt dit niet helemaal.
             // Echter, standaard setup is <subdomain>.aidatim.nl
-            
+
             // We nemen alles wat voor .aidatim.nl staat
             // Dit is veiliger dan expliciet parts[0] nemen als we complexere structuren zouden hebben
             $baseDomain = '.aidatim.nl';
             $subdomain = substr($host, 0, -strlen($baseDomain));
-            
+
             return $this->normalizeSubdomain($subdomain);
         }
 
@@ -303,4 +303,3 @@ class PublicMemberRegistrationController extends Controller
         return strtolower(trim($subdomain));
     }
 }
-

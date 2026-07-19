@@ -44,6 +44,7 @@ class FixMemberAccounts extends Command
 
             if (! $user) {
                 $this->error("User niet gevonden: {$email}");
+
                 continue;
             }
 
@@ -51,11 +52,11 @@ class FixMemberAccounts extends Command
 
             // Check roles
             $roles = $user->roles->pluck('name')->toArray();
-            $this->info("Huidige rollen: " . (empty($roles) ? 'geen' : implode(', ', $roles)));
+            $this->info('Huidige rollen: '.(empty($roles) ? 'geen' : implode(', ', $roles)));
 
             // Check member_id
             if (! $user->member_id) {
-                $this->warn("Geen member_id gekoppeld aan user");
+                $this->warn('Geen member_id gekoppeld aan user');
 
                 // Probeer member te vinden op basis van email
                 $member = Member::where('email', $email)->first();
@@ -68,9 +69,10 @@ class FixMemberAccounts extends Command
                     $user->organisation_id = $member->organisation_id;
                     $user->save();
 
-                    $this->info("✓ Member gekoppeld aan user");
+                    $this->info('✓ Member gekoppeld aan user');
                 } else {
                     $this->error("Geen member gevonden met email: {$email}");
+
                     continue;
                 }
             } else {
@@ -79,6 +81,7 @@ class FixMemberAccounts extends Command
                     $this->info("Member al gekoppeld - ID: {$member->id}, Naam: {$member->full_name}");
                 } else {
                     $this->error("Member niet gevonden voor member_id: {$user->member_id}");
+
                     continue;
                 }
             }
@@ -120,4 +123,3 @@ class FixMemberAccounts extends Command
         return Command::SUCCESS;
     }
 }
-
