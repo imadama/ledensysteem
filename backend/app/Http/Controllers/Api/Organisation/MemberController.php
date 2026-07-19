@@ -5,20 +5,20 @@ namespace App\Http\Controllers\Api\Organisation;
 use App\Exports\MemberTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organisation\BulkInviteMembersRequest;
+use App\Http\Requests\Organisation\MemberImportConfirmRequest;
+use App\Http\Requests\Organisation\MemberImportPreviewRequest;
 use App\Http\Requests\Organisation\StoreMemberRequest;
 use App\Http\Requests\Organisation\UpdateMemberRequest;
 use App\Http\Requests\Organisation\UpdateMemberStatusRequest;
-use App\Http\Requests\Organisation\MemberImportPreviewRequest;
-use App\Http\Requests\Organisation\MemberImportConfirmRequest;
 use App\Models\Member;
 use App\Models\MemberInvitation;
-use App\Services\MemberService;
-use App\Services\MemberImportService;
 use App\Services\MemberAccountService;
+use App\Services\MemberImportService;
+use App\Services\MemberService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -29,8 +29,7 @@ class MemberController extends Controller
         private readonly MemberService $memberService,
         private readonly MemberImportService $memberImportService,
         private readonly MemberAccountService $memberAccountService,
-    ) {
-    }
+    ) {}
 
     public function previewImport(MemberImportPreviewRequest $request): JsonResponse
     {
@@ -55,7 +54,7 @@ class MemberController extends Controller
 
     public function downloadTemplate(): BinaryFileResponse
     {
-        return Excel::download(new MemberTemplateExport(), 'leden_template.xlsx');
+        return Excel::download(new MemberTemplateExport, 'leden_template.xlsx');
     }
 
     public function export(Request $request): StreamedResponse
@@ -67,10 +66,24 @@ class MemberController extends Controller
             ->orderBy('last_name', 'asc')
             ->get();
 
-        $filename = 'leden_export_' . now()->format('Y-m-d') . '.csv';
+        $filename = 'leden_export_'.now()->format('Y-m-d').'.csv';
 
         return response()->stream(function () use ($members): void {
             $handle = fopen('php://output', 'w');
+
+            // Neutraliseer CSV formula/DDE-injectie: cellen die met = + - @ (of tab/CR)
+            // beginnen krijgen een quote-prefix zodat Excel/LibreOffice ze als tekst tonen
+            // i.p.v. als formule uit te voeren. Ledenvelden zijn (deels) door onbekenden
+            // in te vullen via publieke aanmelding/import, dus dit is stored-injection-relevant.
+            $csvSafe = static function ($value): string {
+                $value = (string) $value;
+
+                if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                    return "'".$value;
+                }
+
+                return $value;
+            };
 
             // UTF-8 BOM for Excel compatibility
             fwrite($handle, "\xEF\xBB\xBF");
@@ -104,35 +117,35 @@ class MemberController extends Controller
 
                 $frequency = match ($member->contribution_frequency) {
                     'monthly' => 'Maandelijks',
-                    'yearly'  => 'Jaarlijks',
-                    'none'    => 'Geen',
-                    default   => $member->contribution_frequency ?? '',
+                    'yearly' => 'Jaarlijks',
+                    'none' => 'Geen',
+                    default => $member->contribution_frequency ?? '',
                 };
 
                 fputcsv($handle, [
-                    $member->member_number ?? '',
-                    $member->first_name ?? '',
-                    $member->last_name ?? '',
-                    $gender,
-                    $member->birth_date?->toDateString() ?? '',
-                    $member->email ?? '',
-                    $member->phone ?? '',
-                    $member->street_address ?? '',
-                    $member->postal_code ?? '',
-                    $member->city ?? '',
-                    $member->iban ?? '',
-                    $member->contribution_amount ?? '',
-                    $frequency,
-                    $member->contribution_start_date?->toDateString() ?? '',
-                    $member->status ?? '',
-                    $member->created_at?->toDateString() ?? '',
+                    $csvSafe($member->member_number ?? ''),
+                    $csvSafe($member->first_name ?? ''),
+                    $csvSafe($member->last_name ?? ''),
+                    $csvSafe($gender),
+                    $csvSafe($member->birth_date?->toDateString() ?? ''),
+                    $csvSafe($member->email ?? ''),
+                    $csvSafe($member->phone ?? ''),
+                    $csvSafe($member->street_address ?? ''),
+                    $csvSafe($member->postal_code ?? ''),
+                    $csvSafe($member->city ?? ''),
+                    $csvSafe($member->iban ?? ''),
+                    $csvSafe($member->contribution_amount ?? ''),
+                    $csvSafe($frequency),
+                    $csvSafe($member->contribution_start_date?->toDateString() ?? ''),
+                    $csvSafe($member->status ?? ''),
+                    $csvSafe($member->created_at?->toDateString() ?? ''),
                 ], ';');
             }
 
             fclose($handle);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -343,5 +356,3 @@ class MemberController extends Controller
         ];
     }
 }
-
-

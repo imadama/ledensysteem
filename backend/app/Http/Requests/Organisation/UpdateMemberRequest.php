@@ -49,12 +49,10 @@ class UpdateMemberRequest extends FormRequest
             'city' => ['sometimes', 'nullable', 'string', 'max:255'],
             'iban' => ['sometimes', 'nullable', 'string', 'max:255'],
             'status' => ['sometimes', 'nullable', Rule::in(['active', 'inactive'])],
-            'contribution_amount' => ['sometimes', 'nullable', 'numeric', 'between:-9999999.99,9999999.99'],
+            'contribution_amount' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:9999999.99'],
             'contribution_frequency' => ['sometimes', 'nullable', 'string', 'max:255'],
             'contribution_start_date' => ['sometimes', 'nullable', 'date'],
             'contribution_note' => ['sometimes', 'nullable', 'string'],
         ];
     }
 }
-
-

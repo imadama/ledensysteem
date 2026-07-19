@@ -25,6 +25,7 @@ import OrganisationProfilePage from './pages/OrganisationProfilePage'
 import OrganisationPaymentsSettingsPage from './pages/OrganisationPaymentsSettingsPage'
 import OrganisationContributionsOverviewPage from './pages/OrganisationContributionsOverviewPage'
 import OrganisationContributionsBatchPage from './pages/OrganisationContributionsBatchPage'
+import OrganisationContributionsMatrixPage from './pages/OrganisationContributionsMatrixPage'
 import OrganisationPostsListPage from './pages/OrganisationPostsListPage'
 import OrganisationPostCreatePage from './pages/OrganisationPostCreatePage'
 import OrganisationPostDetailPage from './pages/OrganisationPostDetailPage'
@@ -115,6 +116,10 @@ function App() {
         <Route
           path="/organisation/contributions/batch"
           element={<ProtectedRoute component={OrganisationContributionsBatchPage} roles={['org_admin']} />}
+        />
+        <Route
+          path="/organisation/contributions/matrix"
+          element={<ProtectedRoute component={OrganisationContributionsMatrixPage} roles={['org_admin']} />}
         />
         <Route
           path="/organisation/posts"

@@ -55,18 +55,18 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## 4. Hardening (low severity)
 
-- ☐ **AUDIT-40 · Sanctum-tokens verlopen nooit** (`expiration => null`); mobiele login revoket oude tokens niet.
-- ☐ **AUDIT-41 · Zwak wachtwoordbeleid** (`min:8`, geen complexiteit/breach-check) op alle entrypoints.
-- ☐ **AUDIT-42 · Email-enumeratie** via early-return op `/api/auth/token` (geen constant-time hash).
-- ☐ **AUDIT-43 · CSV formula-injection** in ledenexport (velden zetbaar via publieke registratie).
-- ☐ **AUDIT-44 · IBAN zonder mod-97-checksum** op de meeste write-paths.
-- ☐ **AUDIT-45 · Negatieve contributiebedragen** geaccepteerd (`between:-9999999.99,...`).
-- ☐ **AUDIT-46 · Ongebonden `per_page`** op post-endpoints → grote-response-DoS.
-- ☐ **AUDIT-47 · `SESSION_SECURE_COOKIE` niet gezet** in de prod-boot (entrypoint schrijft 'm niet).
-- ☐ **AUDIT-48 · Contributie-matrix-pagina niet gerouteerd** (`OrganisationContributionsMatrixPage` onbereikbaar).
-- ☐ **AUDIT-49 · Client-supplied Stripe redirect-URLs** alleen als `url` gevalideerd (geen host-allowlist).
-- ☐ **AUDIT-50 · Mobile:** hardcoded prod-API-URL zonder env-scheiding; Ktor-logging in release; geen HTTP-timeouts; ongesigneerde/unminified release-build; iOS geen push; keychain-fallback plaintext; `allowBackup=true`.
-- ☐ **AUDIT-51 · Healthcheck** checkt alleen framework-boot (geen DB); ontbreekt in `docker-compose.prod.yml`.
+- ☑ **AUDIT-40 · Sanctum-tokens verlopen nooit.** `expiration` op 30 dagen (env-overrideable) + mobiele `token()` revoket nu eerdere tokens van hetzelfde device.
+- ☑ **AUDIT-41 · Zwak wachtwoordbeleid.** Centraal `Password::defaults()` (min 10, hoofd-/kleine letters, cijfers) in `AppServiceProvider`, toegepast op registratie/activatie/reset.
+- ☑ **AUDIT-42 · Email-enumeratie.** `/api/auth/token` doet nu altijd een bcrypt-vergelijking (constant-time), ook bij niet-bestaande gebruiker.
+- ☑ **AUDIT-43 · CSV formula-injection.** Ledenexport prefixt cellen die met `= + - @`/tab/CR beginnen met een quote.
+- ☐ **AUDIT-44 · IBAN zonder mod-97-checksum** op de meeste write-paths. *(Follow-up: mod-97-rule extraheren uit `SetupSepaSubscriptionRequest` en overal toepassen.)*
+- ☑ **AUDIT-45 · Negatieve contributiebedragen.** `min:0` i.p.v. `between:-…` in Store/UpdateMemberRequest.
+- ☑ **AUDIT-46 · Ongebonden `per_page`.** Geclamped op 1–100 in beide post-controllers.
+- ☑ **AUDIT-47 · `SESSION_SECURE_COOKIE`** — zie sectie 3 (entrypoint schrijft 'm nu).
+- ☑ **AUDIT-48 · Contributie-matrix-pagina niet gerouteerd.** Route `/organisation/contributions/matrix` toegevoegd in `App.tsx`.
+- ☐ **AUDIT-49 · Client-supplied Stripe redirect-URLs** alleen als `url` gevalideerd. *(Follow-up: host-allowlist `*.aidatim.nl` of server-side afleiden.)*
+- ☐ **AUDIT-50 · Mobile:** hardcoded prod-API-URL, Ktor-logging in release, geen HTTP-timeouts, ongesigneerde/unminified release-build, iOS geen push, keychain-fallback plaintext, `allowBackup=true`. *(Follow-up: aparte mobile-hardening-ronde; app is nog niet store-klaar.)*
+- ☐ **AUDIT-51 · Healthcheck** checkt alleen framework-boot (geen DB); ontbreekt in `docker-compose.prod.yml`. *(Follow-up.)*
 
 ---
 

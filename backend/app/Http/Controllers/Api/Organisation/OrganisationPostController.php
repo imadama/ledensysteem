@@ -21,7 +21,7 @@ class OrganisationPostController extends Controller
         $posts = OrganisationPost::forCurrentOrganisation()
             ->withCount(['comments', 'likes'])
             ->latest()
-            ->paginate((int) $request->query('per_page', 15));
+            ->paginate(min(100, max(1, (int) $request->query('per_page', 15))));
 
         return response()->json([
             'data' => collect($posts->items())->map(fn (OrganisationPost $p) => $this->transform($p))->all(),
