@@ -19,6 +19,9 @@ class MemberImportService
     use ResolvesOrganisation;
     private const CACHE_PREFIX = 'member-import';
 
+    /** Maximum aantal datarijen dat in één import verwerkt mag worden. */
+    public const MAX_ROWS = 2000;
+
     /**
      * @return array<string, mixed>
      */
@@ -26,7 +29,16 @@ class MemberImportService
     {
         $organisationId = $this->requireOrganisationId($user);
 
-        $collection = Excel::toCollection(new MemberRowsImport(), $file)->first() ?? collect();
+        // Lees maximaal MAX_ROWS + 1 rijen zodat een enorm (comprimeerbaar) bestand
+        // het proces niet OOM-kilt; +1 om een overschrijding te kunnen detecteren.
+        $collection = Excel::toCollection(new MemberRowsImport(self::MAX_ROWS + 1), $file)->first() ?? collect();
+
+        if ($collection->count() > self::MAX_ROWS) {
+            abort(422, sprintf(
+                'Het bestand bevat te veel rijen (max %d per import). Splits het bestand op in kleinere delen.',
+                self::MAX_ROWS
+            ));
+        }
 
         $totalRows = 0;
         $validRows = [];

@@ -32,15 +32,15 @@ Route::prefix('member-activation')->group(function (): void {
 
 Route::get('plans', [PlanController::class, 'index']);
 
-// Publieke routes (geen authenticatie vereist)
-Route::prefix('public')->group(function (): void {
+// Publieke routes (geen authenticatie vereist) — gethrottled tegen spam/abuse
+Route::prefix('public')->middleware('throttle:10,1')->group(function (): void {
     Route::post('member-registration', [PublicMemberRegistrationController::class, 'store']);
     Route::get('organisation-info', [PublicMemberRegistrationController::class, 'getOrganisationInfo']);
 });
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('login', [AuthController::class, 'login']);
     Route::middleware('throttle:5,1')->group(function (): void {
+        Route::post('login', [AuthController::class, 'login']);
         Route::post('token', [AuthController::class, 'token']);
         Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
     });

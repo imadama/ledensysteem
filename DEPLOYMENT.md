@@ -87,8 +87,8 @@ DB_HOST=192.168.68.86  # IP adres van je MariaDB server, of host.docker.internal
 DB_PORT=3306
 DB_DATABASE=ledenportaal
 DB_USERNAME=ama
-DB_PASSWORD=ama123
-# DB_ROOT_PASSWORD is niet nodig (root password: amaroot)
+DB_PASSWORD=<your-db-password>
+# DB_ROOT_PASSWORD is niet nodig (root password apart beheren, niet hier documenteren)
 
 # Session & CORS
 SESSION_DOMAIN=aidatim.nl
@@ -106,15 +106,15 @@ MAIL_MAILER=smtp
 MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=587
 MAIL_USERNAME=info@aidatim.nl
-MAIL_PASSWORD=Imad2003!
+MAIL_PASSWORD=<your-smtp-password>
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=noreply@aidatim.nl
 MAIL_FROM_NAME="${APP_NAME}"
 
 # Stripe Configuration
-STRIPE_SECRET=sk_test_51SS1PAA46Wivqv54uKmI8oL0q8Jwl1kOH1rLrzE0jVRYh612INjMGRbdeWL50UGLxPNm3cpdoXLcsDMm65B0tBI900P7rlJtW5
-STRIPE_PUBLIC_KEY=pk_test_51SS1PAA46Wivqv54IlxS2UYHIsW57tFF8pwua21tNvHtuZSKXk1xiAtvB9T1i1fTENeOvwVhztnM5CXgnjk4t2Cz00HoIGr7Zu
-STRIPE_WEBHOOK_SECRET=whsec_dab7edac21edcfd0145bfd0e82a8b8e49081e21a7f4c88b709c5b149493f282e
+STRIPE_SECRET=sk_test_<your-stripe-secret-key>
+STRIPE_PUBLIC_KEY=pk_test_<your-stripe-publishable-key>
+STRIPE_WEBHOOK_SECRET=whsec_<your-stripe-webhook-signing-secret>
 STRIPE_CONNECT_CLIENT_ID=ca_your_connect_client_id
 STRIPE_CONNECT_ACCOUNT_TYPE=express
 STRIPE_DEFAULT_CURRENCY=eur

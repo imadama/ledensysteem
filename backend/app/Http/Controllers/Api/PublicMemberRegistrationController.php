@@ -113,42 +113,16 @@ class PublicMemberRegistrationController extends Controller
                     'status' => 'active',
                 ]);
 
-                // Setup SEPA abonnement als akkoord gegeven
+                // BEWUST géén automatische SEPA-incasso vanaf dit publieke, niet-geauthenticeerde
+                // endpoint. Dat zou een anonieme aanvrager een incassomachtiging op een willekeurig
+                // IBAN laten aanmaken via de Stripe-account van de organisatie (offline mandaat onder
+                // een geleende org_admin). We bewaren het IBAN en de akkoordverklaring bij het lid;
+                // een org_admin activeert de incasso daarna bewust vanuit het beheerderportaal.
                 if ($validated['sepa_consent'] ?? false) {
-                    try {
-                        // Gebruik ingelogde gebruiker als actor, anders zoek een org_admin
-                        $adminUser = $request->user();
-                        
-                        if (! $adminUser || ! $adminUser->hasRole('org_admin') || $adminUser->organisation_id !== $organisation->id) {
-                            // Zoek een org_admin user voor deze organisatie om als actor te gebruiken
-                            $adminUser = User::where('organisation_id', $organisation->id)
-                                ->whereHas('roles', function ($query) {
-                                    $query->where('name', 'org_admin');
-                                })
-                                ->where('status', 'active')
-                                ->first();
-                        }
-
-                        if ($adminUser) {
-                            $this->sepaService->setupSepaSubscription(
-                                $adminUser,
-                                $member,
-                                (float) $validated['contribution_amount'],
-                                $member->iban,
-                                "Maandelijkse contributie voor {$member->full_name}",
-                                $validated['contribution_note'] ?? null
-                            );
-                        } else {
-                            Log::warning("Geen actieve org_admin gevonden voor organisatie {$organisation->id} om SEPA abonnement in te stellen voor lid {$member->id}");
-                        }
-                    } catch (\Exception $e) {
-                        // Log error maar laat lid aanmaken slagen
-                        Log::error("SEPA abonnement setup mislukt voor lid {$member->id}: " . $e->getMessage(), [
-                            'member_id' => $member->id,
-                            'organisation_id' => $organisation->id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
+                    Log::info("Publieke aanmelding met SEPA-akkoord voor lid {$member->id}; incasso wacht op handmatige activatie door een beheerder.", [
+                        'member_id' => $member->id,
+                        'organisation_id' => $organisation->id,
+                    ]);
                 }
 
                 // Stuur uitnodigingsmail zodat het lid direct een account kan activeren
