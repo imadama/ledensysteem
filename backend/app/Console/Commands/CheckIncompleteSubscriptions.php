@@ -78,23 +78,22 @@ class CheckIncompleteSubscriptions extends Command
                 }
             }
 
-            $this->info("Resultaat:");
+            $this->info('Resultaat:');
             $this->info("  - Expired/geannuleerd: {$expired}");
             $this->info("  - Bijgewerkt naar actief: {$updated}");
             $this->info("  - Nog incomplete: {$stillIncomplete}");
             $this->info("  - Fouten: {$errors}");
         }
 
-        // --- Deel 2: MemberSubscriptions zonder checkout session (SEPA admin flow) ---
-        // SEPA subscriptions aangemaakt via de admin (MemberSepaSubscriptionService) krijgen
-        // een stripe_subscription_id direct, zonder checkout session. Daardoor worden ze
-        // nooit opgepikt door de bovenstaande loop.
-        $this->info("\nControleren incomplete SEPA member subscriptions (zonder checkout session)...");
+        // --- Deel 2: incomplete MemberSubscriptions met een Stripe subscription ---
+        // Zowel admin-flow (MemberSepaSubscriptionService, geen checkout session) als de
+        // lid-flow via checkout (mét latest_checkout_session_id) kunnen blijven hangen op
+        // 'incomplete'. Beide hebben een stripe_subscription_id en worden hier gesynct.
+        $this->info("\nControleren incomplete SEPA member subscriptions...");
 
         $memberSubQuery = MemberSubscription::query()
             ->where('status', 'incomplete')
             ->whereNotNull('stripe_subscription_id')
-            ->whereNull('latest_checkout_session_id')
             ->where('created_at', '<', Carbon::now()->subMinutes(5))
             ->with('member.organisation.stripeConnection');
 
@@ -108,6 +107,7 @@ class CheckIncompleteSubscriptions extends Command
 
         if ($incompleteMemberSubscriptions->isEmpty()) {
             $this->info('Geen incomplete SEPA member subscriptions gevonden.');
+
             return Command::SUCCESS;
         }
 
@@ -128,7 +128,7 @@ class CheckIncompleteSubscriptions extends Command
             }
         }
 
-        $this->info("SEPA resultaat:");
+        $this->info('SEPA resultaat:');
         $this->info("  - Bijgewerkt: {$memberUpdated}");
         $this->info("  - Fouten: {$memberErrors}");
 
@@ -145,6 +145,7 @@ class CheckIncompleteSubscriptions extends Command
         // Als er geen checkout session ID is, kan de gebruiker opnieuw proberen
         if (! $subscription->latest_checkout_session_id) {
             $this->warn("  Subscription {$subscription->id}: Geen checkout session ID, kan opnieuw proberen");
+
             return 'still_incomplete';
         }
 
@@ -161,12 +162,12 @@ class CheckIncompleteSubscriptions extends Command
 
             // Als de session expired is of complete maar unpaid
             if ($sessionStatus === 'expired' || ($sessionStatus === 'complete' && $paymentStatus !== 'paid')) {
-                $reason = $sessionStatus === 'expired' 
-                    ? 'Checkout session is verlopen' 
+                $reason = $sessionStatus === 'expired'
+                    ? 'Checkout session is verlopen'
                     : 'Betaling niet voltooid';
-                
+
                 $this->warn("  Subscription {$subscription->id}: {$reason}");
-                
+
                 // Reset subscription zodat gebruiker opnieuw kan proberen
                 $subscription->status = 'incomplete';
                 $subscription->latest_checkout_session_id = null;
@@ -187,9 +188,9 @@ class CheckIncompleteSubscriptions extends Command
                         'incomplete',
                         "{$reason} - gebruiker moet opnieuw betalen",
                         [
-                            'checkout_session_id' => $subscription->latest_checkout_session_id, 
+                            'checkout_session_id' => $subscription->latest_checkout_session_id,
                             'session_status' => $sessionStatus,
-                            'payment_status' => $paymentStatus
+                            'payment_status' => $paymentStatus,
                         ]
                     );
                 }
@@ -201,14 +202,14 @@ class CheckIncompleteSubscriptions extends Command
             if ($sessionStatus === 'complete' && $paymentStatus === 'paid') {
                 // Check of er een subscription ID is
                 $stripeSubscriptionId = $session->subscription ?? null;
-                
+
                 if ($stripeSubscriptionId) {
                     // Haal subscription op van Stripe
                     $stripeSubscription = $this->stripe->subscriptions->retrieve($stripeSubscriptionId);
-                    
+
                     if ($stripeSubscription->status === 'active') {
                         $this->info("  Subscription {$subscription->id}: Betaling succesvol, activeren...");
-                        
+
                         $subscription->status = 'active';
                         $subscription->stripe_subscription_id = $stripeSubscriptionId;
                         $subscription->current_period_start = Carbon::createFromTimestamp($stripeSubscription->current_period_start);
@@ -228,7 +229,7 @@ class CheckIncompleteSubscriptions extends Command
                                 null,
                                 'incomplete',
                                 'active',
-                                "Subscription geactiveerd na controle van incomplete status",
+                                'Subscription geactiveerd na controle van incomplete status',
                                 ['checkout_session_id' => $subscription->latest_checkout_session_id, 'stripe_subscription_id' => $stripeSubscriptionId]
                             );
                         }
@@ -241,15 +242,15 @@ class CheckIncompleteSubscriptions extends Command
             // Als de session "open" is maar unpaid, check of deze te oud is
             if ($sessionStatus === 'open' && $paymentStatus === 'unpaid') {
                 $sessionCreatedTimestamp = $session->created ?? null;
-                
+
                 if ($sessionCreatedTimestamp) {
                     $sessionCreated = Carbon::createFromTimestamp($sessionCreatedTimestamp);
                     $hoursOpen = $sessionCreated->diffInHours(Carbon::now(), false); // false = absolute value
-                    
+
                     // Als de session langer dan 1 uur open is, reset het
                     if ($hoursOpen > 1) {
                         $this->warn("  Subscription {$subscription->id}: Checkout session is al {$hoursOpen} uur open en unpaid, resetten");
-                        
+
                         // Reset subscription zodat gebruiker opnieuw kan proberen
                         $subscription->status = 'incomplete';
                         $subscription->latest_checkout_session_id = null;
@@ -270,23 +271,24 @@ class CheckIncompleteSubscriptions extends Command
                                 'incomplete',
                                 "Checkout session te lang open ({$hoursOpen} uur) zonder betaling - gebruiker moet opnieuw betalen",
                                 [
-                                    'checkout_session_id' => $subscription->latest_checkout_session_id, 
+                                    'checkout_session_id' => $subscription->latest_checkout_session_id,
                                     'session_status' => $sessionStatus,
                                     'payment_status' => $paymentStatus,
-                                    'hours_open' => $hoursOpen
+                                    'hours_open' => $hoursOpen,
                                 ]
                             );
                         }
 
                         return 'expired';
                     }
-                    
+
                     $this->line("  Subscription {$subscription->id}: Nog in behandeling (open voor {$hoursOpen} uur, unpaid)");
+
                     return 'still_incomplete';
                 } else {
                     // Geen created timestamp, behandel als expired
                     $this->warn("  Subscription {$subscription->id}: Checkout session heeft geen created timestamp, resetten");
-                    
+
                     $subscription->status = 'incomplete';
                     $subscription->latest_checkout_session_id = null;
                     $subscription->save();
@@ -305,18 +307,20 @@ class CheckIncompleteSubscriptions extends Command
             // Als de session complete is maar nog niet paid
             if ($sessionStatus === 'complete' && $paymentStatus !== 'paid') {
                 $this->line("  Subscription {$subscription->id}: Nog in behandeling (complete maar unpaid)");
+
                 return 'still_incomplete';
             }
 
             // Onbekende status - blijf incomplete
             $this->warn("  Subscription {$subscription->id}: Onbekende session status: {$sessionStatus}");
+
             return 'still_incomplete';
 
         } catch (ApiErrorException $e) {
             // Als de session niet bestaat in Stripe, reset de subscription
             if ($e->getStripeCode() === 'resource_missing') {
                 $this->warn("  Subscription {$subscription->id}: Checkout session bestaat niet meer in Stripe");
-                
+
                 $subscription->latest_checkout_session_id = null;
                 $subscription->save();
 
@@ -342,6 +346,7 @@ class CheckIncompleteSubscriptions extends Command
 
         if (! $connection || $connection->status !== 'active' || ! $connection->stripe_account_id) {
             $this->warn("  MemberSubscription {$memberSubscription->id}: Geen actieve Stripe Connect account voor organisatie");
+
             return false;
         }
 
@@ -356,6 +361,7 @@ class CheckIncompleteSubscriptions extends Command
         } catch (ApiErrorException $e) {
             if ($e->getStripeCode() === 'resource_missing') {
                 $this->warn("  MemberSubscription {$memberSubscription->id}: Stripe subscription bestaat niet meer, status ongewijzigd");
+
                 return false;
             }
             throw $e;
@@ -434,6 +440,7 @@ class CheckIncompleteSubscriptions extends Command
 
                 if ($existingTransaction) {
                     $this->line("    → Contribution record bestaat al voor invoice {$fullInvoice->id}");
+
                     continue;
                 }
 
@@ -481,26 +488,26 @@ class CheckIncompleteSubscriptions extends Command
     {
         try {
             $this->line("  Subscription {$subscription->id}: Controleren Stripe subscription {$subscription->stripe_subscription_id}...");
-            
+
             $stripeSubscription = $this->stripe->subscriptions->retrieve($subscription->stripe_subscription_id);
             $stripeStatus = $stripeSubscription->status ?? 'unknown';
-            
+
             $this->line("  Subscription {$subscription->id}: Stripe status = {$stripeStatus}");
-            
+
             // Als de Stripe subscription actief is, update de lokale subscription
             if ($stripeStatus === 'active') {
                 $this->info("  Subscription {$subscription->id}: Stripe subscription is actief, updaten lokale status...");
-                
+
                 $oldStatus = $subscription->status;
                 $subscription->status = 'active';
-                
+
                 if (isset($stripeSubscription->current_period_start)) {
                     $subscription->current_period_start = Carbon::createFromTimestamp($stripeSubscription->current_period_start);
                 }
                 if (isset($stripeSubscription->current_period_end)) {
                     $subscription->current_period_end = Carbon::createFromTimestamp($stripeSubscription->current_period_end);
                 }
-                
+
                 // Update plan als nodig
                 $priceId = data_get($stripeSubscription, 'items.data.0.price.id');
                 if ($priceId) {
@@ -509,16 +516,16 @@ class CheckIncompleteSubscriptions extends Command
                         $subscription->plan_id = $plan->id;
                     }
                 }
-                
+
                 $subscription->save();
-                
+
                 // Update billing status
                 $organisation = $subscription->organisation;
                 if ($organisation) {
                     $organisation->billing_status = 'ok';
                     $organisation->billing_note = null;
                     $organisation->save();
-                    
+
                     // Log in audit trail
                     if ($oldStatus !== 'active') {
                         $this->auditService->logSubscriptionStatusChange(
@@ -526,56 +533,57 @@ class CheckIncompleteSubscriptions extends Command
                             null,
                             $oldStatus,
                             'active',
-                            "Subscription geactiveerd na controle van Stripe subscription status",
+                            'Subscription geactiveerd na controle van Stripe subscription status',
                             ['stripe_subscription_id' => $subscription->stripe_subscription_id, 'stripe_status' => $stripeStatus]
                         );
                     }
                 }
-                
+
                 return 'updated';
             }
-            
+
             // Als de Stripe subscription incomplete_expired of canceled is, reset
             if (in_array($stripeStatus, ['incomplete_expired', 'canceled'], true)) {
                 $this->warn("  Subscription {$subscription->id}: Stripe subscription is {$stripeStatus}, resetten...");
-                
+
                 $subscription->status = 'incomplete';
                 $subscription->stripe_subscription_id = null;
                 $subscription->save();
-                
+
                 $organisation = $subscription->organisation;
                 if ($organisation) {
                     $organisation->billing_status = 'pending_payment';
                     $organisation->billing_note = "Stripe subscription status: {$stripeStatus}. Selecteer opnieuw een plan om te betalen.";
                     $organisation->save();
                 }
-                
+
                 return 'expired';
             }
-            
+
             // Andere statussen (past_due, unpaid, etc.)
             $this->line("  Subscription {$subscription->id}: Stripe status is {$stripeStatus}, nog niet actief");
+
             return 'still_incomplete';
-            
+
         } catch (ApiErrorException $e) {
             // Als de subscription niet bestaat in Stripe, reset
             if ($e->getStripeCode() === 'resource_missing') {
                 $this->warn("  Subscription {$subscription->id}: Stripe subscription bestaat niet meer");
-                
+
                 $subscription->status = 'incomplete';
                 $subscription->stripe_subscription_id = null;
                 $subscription->save();
-                
+
                 $organisation = $subscription->organisation;
                 if ($organisation) {
                     $organisation->billing_status = 'pending_payment';
                     $organisation->billing_note = 'Stripe subscription niet gevonden. Selecteer opnieuw een plan om te betalen.';
                     $organisation->save();
                 }
-                
+
                 return 'expired';
             }
-            
+
             throw $e;
         }
     }

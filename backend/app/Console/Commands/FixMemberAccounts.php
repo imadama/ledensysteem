@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class FixMemberAccounts extends Command
 {
@@ -31,8 +32,9 @@ class FixMemberAccounts extends Command
         $emails = $this->argument('emails');
 
         if (empty($emails)) {
-            $emails = ['info@smartpowerdeals.nl', 'imadgames2003@gmail.com'];
-            $this->info('Geen emails opgegeven, gebruik standaard emails: ' . implode(', ', $emails));
+            $this->error('Geef minimaal één e-mailadres op: php artisan members:fix-accounts user@example.com');
+
+            return self::INVALID;
         }
 
         foreach ($emails as $email) {
@@ -42,6 +44,7 @@ class FixMemberAccounts extends Command
 
             if (! $user) {
                 $this->error("User niet gevonden: {$email}");
+
                 continue;
             }
 
@@ -49,11 +52,11 @@ class FixMemberAccounts extends Command
 
             // Check roles
             $roles = $user->roles->pluck('name')->toArray();
-            $this->info("Huidige rollen: " . (empty($roles) ? 'geen' : implode(', ', $roles)));
+            $this->info('Huidige rollen: '.(empty($roles) ? 'geen' : implode(', ', $roles)));
 
             // Check member_id
             if (! $user->member_id) {
-                $this->warn("Geen member_id gekoppeld aan user");
+                $this->warn('Geen member_id gekoppeld aan user');
 
                 // Probeer member te vinden op basis van email
                 $member = Member::where('email', $email)->first();
@@ -66,9 +69,10 @@ class FixMemberAccounts extends Command
                     $user->organisation_id = $member->organisation_id;
                     $user->save();
 
-                    $this->info("✓ Member gekoppeld aan user");
+                    $this->info('✓ Member gekoppeld aan user');
                 } else {
                     $this->error("Geen member gevonden met email: {$email}");
+
                     continue;
                 }
             } else {
@@ -77,6 +81,7 @@ class FixMemberAccounts extends Command
                     $this->info("Member al gekoppeld - ID: {$member->id}, Naam: {$member->full_name}");
                 } else {
                     $this->error("Member niet gevonden voor member_id: {$user->member_id}");
+
                     continue;
                 }
             }
@@ -102,12 +107,12 @@ class FixMemberAccounts extends Command
                 $this->info("✓ User status is 'active'");
             }
 
-            // Reset password if requested
+            // Reset password if requested — genereer een willekeurig wachtwoord en toon het één keer.
             if ($this->option('reset-password')) {
-                $newPassword = 'Imad2003!';
+                $newPassword = Str::password(16);
                 $user->password = Hash::make($newPassword);
                 $user->save();
-                $this->info("✓ Wachtwoord gereset naar: {$newPassword}");
+                $this->warn("✓ Wachtwoord gereset. Noteer dit nu, het wordt niet opnieuw getoond: {$newPassword}");
             }
 
             $this->info("✓ Account gerepareerd voor: {$email}");
@@ -118,4 +123,3 @@ class FixMemberAccounts extends Command
         return Command::SUCCESS;
     }
 }
-

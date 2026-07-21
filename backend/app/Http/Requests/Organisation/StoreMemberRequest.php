@@ -49,12 +49,10 @@ class StoreMemberRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'iban' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
-            'contribution_amount' => ['nullable', 'numeric', 'between:-9999999.99,9999999.99'],
+            'contribution_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
             'contribution_frequency' => ['nullable', 'string', 'max:255'],
             'contribution_start_date' => ['nullable', 'date'],
             'contribution_note' => ['nullable', 'string'],
         ];
     }
 }
-
-

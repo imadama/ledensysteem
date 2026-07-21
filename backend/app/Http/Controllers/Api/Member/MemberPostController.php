@@ -23,7 +23,7 @@ class MemberPostController extends Controller
             ->withExists(['likes as liked_by_me' => fn ($q) => $q->where('user_id', $user->id)])
             ->orderByDesc('published_at')
             ->orderByDesc('id')
-            ->paginate((int) $request->query('per_page', 15));
+            ->paginate(min(100, max(1, (int) $request->query('per_page', 15))));
 
         return response()->json([
             'data' => collect($posts->items())->map(fn (OrganisationPost $p) => $this->transformSummary($p))->all(),

@@ -22,8 +22,7 @@ class ContributionPaymentController extends Controller
     public function __construct(
         private readonly StripeClient $stripe,
         private readonly OrganisationStripeService $stripeService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -68,7 +67,7 @@ class ContributionPaymentController extends Controller
 
         if (! in_array($contribution->status, ['open', 'failed'], true)) {
             return response()->json([
-                'message' => __('Deze contributie kan niet (opnieuw) betaald worden.')
+                'message' => __('Deze contributie kan niet (opnieuw) betaald worden.'),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -192,6 +191,7 @@ class ContributionPaymentController extends Controller
         // Als automatische incasso, maak een subscription
         if ($setupRecurring) {
             $paymentMethod = $validated['payment_method'] ?? 'card';
+
             return $this->setupSubscription($member, $organisation, $connection, $amount, $validated['note'] ?? null, $validated['success_url'], $validated['cancel_url'], $request->user()->email ?? null, $paymentMethod);
         }
 
@@ -306,6 +306,19 @@ class ContributionPaymentController extends Controller
         ?string $customerEmail,
         string $paymentMethod = 'card'
     ): JsonResponse {
+        // Voorkom dubbele actieve incasso's (spiegel van de guard in
+        // MemberSepaSubscriptionService): een lid met een lopende incasso mag geen
+        // tweede recurring checkout starten — anders lopen er twee maandafschrijvingen.
+        $hasActiveSubscription = MemberSubscription::where('member_id', $member->id)
+            ->whereIn('status', ['active', 'incomplete', 'past_due', 'trial'])
+            ->exists();
+
+        if ($hasActiveSubscription) {
+            return response()->json([
+                'message' => __('Je hebt al een lopende automatische incasso. Schakel die eerst uit voordat je een nieuwe instelt.'),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $subscription = MemberSubscription::create([
             'member_id' => $member->id,
             'amount' => $amount,
@@ -329,7 +342,7 @@ class ContributionPaymentController extends Controller
             $customerId = null;
             if ($paymentMethod === 'sepa') {
                 // Voor SEPA gebruiken we customer_email in plaats van customer ID
-                if (!$customerEmail) {
+                if (! $customerEmail) {
                     return response()->json([
                         'message' => __('Voor SEPA incasso is een e-mailadres vereist.'),
                     ], Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -361,17 +374,17 @@ class ContributionPaymentController extends Controller
             ]);
         } catch (ApiErrorException $exception) {
             $subscription->delete();
-            
+
             // Log meer details over de error
             $errorMessage = $exception->getMessage();
             $stripeError = null;
-            
+
             if (method_exists($exception, 'getStripeError')) {
                 $stripeError = $exception->getStripeError();
             } elseif (method_exists($exception, 'getJsonBody')) {
                 $stripeError = $exception->getJsonBody()['error'] ?? null;
             }
-            
+
             \Log::error('SEPA subscription checkout creation failed', [
                 'member_id' => $member->id,
                 'organisation_id' => $organisation->id,
@@ -379,7 +392,7 @@ class ContributionPaymentController extends Controller
                 'error' => $errorMessage,
                 'stripe_error' => $stripeError,
             ]);
-            
+
             report($exception);
 
             return response()->json([
@@ -439,14 +452,14 @@ class ContributionPaymentController extends Controller
     ): Session {
         // Bepaal payment method types - gebruik geconfigureerde methodes of fallback
         $availableMethods = \App\Models\PlatformSetting::getPaymentMethods();
-        
+
         // Als er een specifieke payment method is gekozen, filter de beschikbare methodes
         $paymentMethodTypes = match ($paymentMethod) {
             'sepa' => in_array('sepa_debit', $availableMethods) ? ['sepa_debit'] : $availableMethods,
             'card' => in_array('card', $availableMethods) ? ['card'] : $availableMethods,
             default => $availableMethods,
         };
-        
+
         // Zorg dat er altijd minstens één payment method is
         if (empty($paymentMethodTypes)) {
             $paymentMethodTypes = ['card'];
@@ -521,7 +534,7 @@ class ContributionPaymentController extends Controller
         ?string $customerEmail
     ): Session {
         $currency = strtolower($transaction->currency ?? 'eur');
-        
+
         // Gebruik geconfigureerde betaalmethodes
         $paymentMethodTypes = \App\Models\PlatformSetting::getPaymentMethods();
         if (empty($paymentMethodTypes)) {

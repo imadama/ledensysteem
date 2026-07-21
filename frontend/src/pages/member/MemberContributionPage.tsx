@@ -306,19 +306,23 @@ const MemberContributionPage: React.FC = () => {
                   disabled={manualPaying}
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="setup_recurring"
-                  checked={setupRecurring}
-                  onChange={(e) => setSetupRecurring(e.target.checked)}
-                  disabled={manualPaying}
-                  className="w-4 h-4 rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
-                />
-                <label htmlFor="setup_recurring" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                  Automatische incasso inschakelen (maandelijks afschrijven)
-                </label>
-              </div>
+              {/* Alleen tonen als er nog geen actieve incasso is — voorkomt een tweede
+                  maandelijkse incasso naast een bestaande. */}
+              {!info.has_subscription && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="setup_recurring"
+                    checked={setupRecurring}
+                    onChange={(e) => setSetupRecurring(e.target.checked)}
+                    disabled={manualPaying}
+                    className="w-4 h-4 rounded border-gray-300 text-aidatim-blue focus:ring-aidatim-blue"
+                  />
+                  <label htmlFor="setup_recurring" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                    Automatische incasso inschakelen (maandelijks afschrijven)
+                  </label>
+                </div>
+              )}
               {setupRecurring && (
                 <div>
                   <label htmlFor="payment_method" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

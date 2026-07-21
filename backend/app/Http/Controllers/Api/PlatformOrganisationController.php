@@ -70,7 +70,7 @@ class PlatformOrganisationController extends Controller
         ]);
 
         $orgData = $validated['organisation'];
-        
+
         // Genereer subdomein als niet opgegeven
         if (empty($orgData['subdomain'])) {
             $orgData['subdomain'] = Organisation::generateSubdomainFromName($orgData['name']);
@@ -85,13 +85,13 @@ class PlatformOrganisationController extends Controller
             $organisation = Organisation::create($orgData);
 
             // 2. Maak admin user aan (als data aanwezig is)
-            if (!empty($validated['admin']['email']) && !empty($validated['admin']['password'])) {
+            if (! empty($validated['admin']['email']) && ! empty($validated['admin']['password'])) {
                 $userData = $validated['admin'];
-                
+
                 $user = User::create([
                     'first_name' => $userData['first_name'] ?? 'Admin',
                     'last_name' => $userData['last_name'] ?? $organisation->name,
-                    'name' => ($userData['first_name'] ?? 'Admin') . ' ' . ($userData['last_name'] ?? $organisation->name),
+                    'name' => ($userData['first_name'] ?? 'Admin').' '.($userData['last_name'] ?? $organisation->name),
                     'email' => $userData['email'],
                     'password' => \Illuminate\Support\Facades\Hash::make($userData['password']),
                     'organisation_id' => $organisation->id,
@@ -185,6 +185,10 @@ class PlatformOrganisationController extends Controller
     {
         $organisation = Organisation::findOrFail($id);
 
+        // Annuleer eerst de live Stripe SEPA-subscriptions (buiten de DB-transactie),
+        // anders blijven ze na verwijdering van de organisatie de leden debiteren.
+        $this->cancelActiveMemberStripeSubscriptions($organisation);
+
         DB::transaction(function () use ($organisation): void {
             // Verwijder alle member subscriptions
             MemberSubscription::whereHas('member', function ($query) use ($organisation) {
@@ -204,7 +208,7 @@ class PlatformOrganisationController extends Controller
             // Verwijder alle members (cascade delete verwijdert automatisch contribution records)
             // Maar we doen het expliciet voor duidelijkheid
             $memberIds = Member::where('organisation_id', $organisation->id)->pluck('id');
-            
+
             // Verwijder member contribution records
             DB::table('member_contribution_records')
                 ->whereIn('member_id', $memberIds)
@@ -242,6 +246,51 @@ class PlatformOrganisationController extends Controller
         return response()->json([
             'message' => 'Organisatie en alle gerelateerde data zijn verwijderd.',
         ]);
+    }
+
+    /**
+     * Annuleer best-effort de live Stripe-subscriptions van de leden vóór het
+     * verwijderen van de organisatie, zodat er geen wees-incasso's op de connected
+     * account achterblijven die de leden blijven debiteren. Fouten worden gelogd
+     * (niet fataal), zodat een onbereikbare Stripe de verwijdering niet blokkeert.
+     */
+    private function cancelActiveMemberStripeSubscriptions(Organisation $organisation): void
+    {
+        $accountId = OrganisationStripeConnection::where('organisation_id', $organisation->id)
+            ->value('stripe_account_id');
+
+        if (! $accountId) {
+            return;
+        }
+
+        $subscriptions = MemberSubscription::whereHas('member', function ($query) use ($organisation) {
+            $query->where('organisation_id', $organisation->id);
+        })
+            ->whereNotNull('stripe_subscription_id')
+            ->get();
+
+        if ($subscriptions->isEmpty()) {
+            return;
+        }
+
+        $stripe = app(\Stripe\StripeClient::class);
+
+        foreach ($subscriptions as $subscription) {
+            try {
+                $stripe->subscriptions->cancel(
+                    $subscription->stripe_subscription_id,
+                    [],
+                    ['stripe_account' => $accountId]
+                );
+            } catch (\Throwable $e) {
+                \Log::error('Kon Stripe-subscription niet annuleren bij organisatie-verwijdering', [
+                    'organisation_id' => $organisation->id,
+                    'member_subscription_id' => $subscription->id,
+                    'stripe_subscription_id' => $subscription->stripe_subscription_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     protected function updateStatus(int $id, string $status): Organisation
@@ -366,4 +415,3 @@ class PlatformOrganisationController extends Controller
         return $organisation->billing_status === 'restricted';
     }
 }
-

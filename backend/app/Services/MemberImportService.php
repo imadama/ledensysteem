@@ -17,7 +17,11 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 class MemberImportService
 {
     use ResolvesOrganisation;
+
     private const CACHE_PREFIX = 'member-import';
+
+    /** Maximum aantal datarijen dat in één import verwerkt mag worden. */
+    public const MAX_ROWS = 2000;
 
     /**
      * @return array<string, mixed>
@@ -26,7 +30,16 @@ class MemberImportService
     {
         $organisationId = $this->requireOrganisationId($user);
 
-        $collection = Excel::toCollection(new MemberRowsImport(), $file)->first() ?? collect();
+        // Lees maximaal MAX_ROWS + 1 rijen zodat een enorm (comprimeerbaar) bestand
+        // het proces niet OOM-kilt; +1 om een overschrijding te kunnen detecteren.
+        $collection = Excel::toCollection(new MemberRowsImport(self::MAX_ROWS + 1), $file)->first() ?? collect();
+
+        if ($collection->count() > self::MAX_ROWS) {
+            abort(422, sprintf(
+                'Het bestand bevat te veel rijen (max %d per import). Splits het bestand op in kleinere delen.',
+                self::MAX_ROWS
+            ));
+        }
 
         $totalRows = 0;
         $validRows = [];
@@ -151,8 +164,7 @@ class MemberImportService
     }
 
     /**
-     * @param array<string, mixed> $row
-     *
+     * @param  array<string, mixed>  $row
      * @return array{0: array<string, mixed>, 1: list<string>}
      */
     private function validateRow(array $row): array
@@ -210,7 +222,7 @@ class MemberImportService
     }
 
     /**
-     * @param array<string, mixed> $row
+     * @param  array<string, mixed>  $row
      */
     private function rowIsEmpty(array $row): bool
     {
@@ -234,7 +246,7 @@ class MemberImportService
     }
 
     /**
-     * @param mixed $value
+     * @param  mixed  $value
      */
     private function normalizeString($value): ?string
     {
@@ -256,7 +268,7 @@ class MemberImportService
     }
 
     /**
-     * @param mixed $value
+     * @param  mixed  $value
      */
     private function normalizeGender($value): ?string
     {
@@ -266,8 +278,7 @@ class MemberImportService
     }
 
     /**
-     * @param mixed $value
-     *
+     * @param  mixed  $value
      * @return array{0: ?string, 1: ?string}
      */
     private function parseDecimal($value): array
@@ -295,8 +306,7 @@ class MemberImportService
     }
 
     /**
-     * @param mixed $value
-     *
+     * @param  mixed  $value
      * @return array{0: ?string, 1: ?string}
      */
     private function parseDate($value): array
@@ -347,8 +357,7 @@ class MemberImportService
     }
 
     /**
-     * @param array<string, mixed>|mixed $row
-     *
+     * @param  array<string, mixed>|mixed  $row
      * @return array<string, mixed>
      */
     private function normalizeRow($row): array
@@ -373,14 +382,11 @@ class MemberImportService
         return implode(':', [self::CACHE_PREFIX, $organisationId, $token]);
     }
 
-
     /**
-     * @param mixed $value
+     * @param  mixed  $value
      */
     private function formatDecimal($value): string
     {
         return number_format((float) $value, 2, '.', '');
     }
 }
-
-

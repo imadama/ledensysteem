@@ -4,14 +4,10 @@ namespace App\Services;
 
 use App\Models\Member;
 use App\Models\MemberSubscription;
-use App\Models\Organisation;
 use App\Models\User;
-use App\Services\OrganisationStripeService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Stripe\Exception\ApiErrorException;
-use Stripe\PaymentMethod;
-use Stripe\SetupIntent;
 use Stripe\StripeClient;
 
 class MemberSepaSubscriptionService
@@ -19,8 +15,7 @@ class MemberSepaSubscriptionService
     public function __construct(
         private readonly StripeClient $stripe,
         private readonly OrganisationStripeService $stripeService
-    ) {
-    }
+    ) {}
 
     /**
      * @throws ApiErrorException
@@ -42,6 +37,14 @@ class MemberSepaSubscriptionService
         if (! $organisation) {
             throw ValidationException::withMessages([
                 'organisation' => __('Lid heeft geen organisatie.'),
+            ]);
+        }
+
+        // Defense in depth: nooit een €0-incasso opzetten (schijnbaar gedekt lid dat
+        // niets betaalt; de webhook slaat €0-facturen over). Geldt voor élk aanroeppad.
+        if ($amount <= 0) {
+            throw ValidationException::withMessages([
+                'amount' => __('Contributiebedrag moet groter dan € 0,00 zijn.'),
             ]);
         }
 
@@ -86,243 +89,270 @@ class MemberSepaSubscriptionService
             throw new \RuntimeException('Dit lid heeft al een actieve incasso. Schakel de bestaande incasso eerst uit.');
         }
 
-        return DB::transaction(function () use (
-            $admin,
-            $member,
-            $organisation,
-            $amount,
-            $memberIban,
-            $description,
-            $notes,
-            $stripeAccountId,
-            $mandateType,
-            $ipAddress,
-            $userAgent
-        ) {
-            // 1. Maak Stripe customer aan op connected account (of hergebruik bestaande)
-            $customerEmail = $member->email;
-            if (empty($customerEmail)) {
-                // Gebruik generieke email als lid geen email heeft
-                $customerEmail = "member-{$member->id}@organisation-{$organisation->id}.local";
-            }
+        // Houd de aangemaakte Stripe-subscription buiten de transactie bij, zodat we die
+        // compenserend kunnen annuleren als een lokale DB-write daarna faalt (anders blijft
+        // er een live, mandaat-gedekte subscription draaien zonder lokaal spoor).
+        $createdStripeSubscriptionId = null;
 
-            // Fix 1: Reuse existing Stripe customer if available
-            $customer = null;
-            $existingSubscriptionWithCustomer = MemberSubscription::where('member_id', $member->id)
-                ->whereNotNull('stripe_customer_id')
-                ->latest()
-                ->first();
+        try {
+            return DB::transaction(function () use (
+                $admin,
+                $member,
+                $organisation,
+                $amount,
+                $memberIban,
+                $description,
+                $notes,
+                $stripeAccountId,
+                $mandateType,
+                $ipAddress,
+                $userAgent,
+                &$createdStripeSubscriptionId
+            ) {
+                // 1. Maak Stripe customer aan op connected account (of hergebruik bestaande)
+                $customerEmail = $member->email;
+                if (empty($customerEmail)) {
+                    // Gebruik generieke email als lid geen email heeft
+                    $customerEmail = "member-{$member->id}@organisation-{$organisation->id}.local";
+                }
 
-            if ($existingSubscriptionWithCustomer) {
-                $existingCustomerId = $existingSubscriptionWithCustomer->stripe_customer_id;
-                try {
-                    $customer = $this->stripe->customers->retrieve(
-                        $existingCustomerId,
-                        [],
-                        ['stripe_account' => $stripeAccountId]
-                    );
-                    // If customer is deleted in Stripe, treat it as not found
-                    if (isset($customer->deleted) && $customer->deleted) {
+                // Fix 1: Reuse existing Stripe customer if available
+                $customer = null;
+                $existingSubscriptionWithCustomer = MemberSubscription::where('member_id', $member->id)
+                    ->whereNotNull('stripe_customer_id')
+                    ->latest()
+                    ->first();
+
+                if ($existingSubscriptionWithCustomer) {
+                    $existingCustomerId = $existingSubscriptionWithCustomer->stripe_customer_id;
+                    try {
+                        $customer = $this->stripe->customers->retrieve(
+                            $existingCustomerId,
+                            [],
+                            ['stripe_account' => $stripeAccountId]
+                        );
+                        // If customer is deleted in Stripe, treat it as not found
+                        if (isset($customer->deleted) && $customer->deleted) {
+                            $customer = null;
+                        }
+                    } catch (\Exception $e) {
+                        // Customer not found in Stripe, create a new one
                         $customer = null;
                     }
-                } catch (\Exception $e) {
-                    // Customer not found in Stripe, create a new one
-                    $customer = null;
                 }
-            }
 
-            if (! $customer) {
-                $customer = $this->stripe->customers->create([
-                    'email' => $customerEmail,
-                    'name' => $member->full_name,
+                if (! $customer) {
+                    $customer = $this->stripe->customers->create([
+                        'email' => $customerEmail,
+                        'name' => $member->full_name,
+                        'metadata' => [
+                            'member_id' => (string) $member->id,
+                            'organisation_id' => (string) $organisation->id,
+                        ],
+                    ], ['stripe_account' => $stripeAccountId]);
+                }
+
+                // 2. Maak SEPA payment method aan
+                $paymentMethod = $this->stripe->paymentMethods->create([
+                    'type' => 'sepa_debit',
+                    'sepa_debit' => [
+                        'iban' => $memberIban,
+                    ],
+                    'billing_details' => [
+                        'name' => $member->full_name,
+                        'email' => $customerEmail,
+                    ],
+                ], ['stripe_account' => $stripeAccountId]);
+
+                // 3. Koppel payment method aan customer
+                $this->stripe->paymentMethods->attach(
+                    $paymentMethod->id,
+                    ['customer' => $customer->id],
+                    ['stripe_account' => $stripeAccountId]
+                );
+
+                // 4. Maak Setup Intent aan om SEPA mandate te bevestigen
+                $customerAcceptance = $mandateType === 'online'
+                    ? [
+                        'type' => 'online',
+                        'online' => [
+                            'ip_address' => $ipAddress,
+                            'user_agent' => $userAgent,
+                        ],
+                    ]
+                    : [
+                        'type' => 'offline',
+                    ];
+
+                $setupIntent = $this->stripe->setupIntents->create([
+                    'customer' => $customer->id,
+                    'payment_method' => $paymentMethod->id,
+                    'payment_method_types' => ['sepa_debit'],
+                    'usage' => 'off_session',
+                    'confirm' => true,
+                    'mandate_data' => [
+                        'customer_acceptance' => $customerAcceptance,
+                    ],
+                ], ['stripe_account' => $stripeAccountId]);
+
+                // 5. Haal mandate ID op uit payment method na setup intent
+                $mandateId = null;
+                if ($setupIntent->status === 'succeeded' && $setupIntent->payment_method) {
+                    try {
+                        $paymentMethodDetails = $this->stripe->paymentMethods->retrieve(
+                            $setupIntent->payment_method,
+                            [],
+                            ['stripe_account' => $stripeAccountId]
+                        );
+                        $mandateId = $paymentMethodDetails->sepa_debit->mandate ?? null;
+                    } catch (\Exception $e) {
+                        // Mandate kan nog niet beschikbaar zijn
+                    }
+                }
+
+                // 6. Maak eerst een product aan
+                $subscriptionDescription = $description ?? "Maandelijkse contributie voor {$member->full_name}";
+
+                $product = $this->stripe->products->create([
+                    'name' => $subscriptionDescription,
                     'metadata' => [
                         'member_id' => (string) $member->id,
                         'organisation_id' => (string) $organisation->id,
                     ],
                 ], ['stripe_account' => $stripeAccountId]);
-            }
 
-            // 2. Maak SEPA payment method aan
-            $paymentMethod = $this->stripe->paymentMethods->create([
-                'type' => 'sepa_debit',
-                'sepa_debit' => [
-                    'iban' => $memberIban,
-                ],
-                'billing_details' => [
-                    'name' => $member->full_name,
-                    'email' => $customerEmail,
-                ],
-            ], ['stripe_account' => $stripeAccountId]);
+                // 7. Maak een price aan voor het product
+                $billingAmount = $this->grossUpBillingAmount((bool) $organisation->pass_stripe_fee_to_member, $amount);
+                $stripeAmount = (int) round($billingAmount * 100); // Convert to cents
 
-            // 3. Koppel payment method aan customer
-            $this->stripe->paymentMethods->attach(
-                $paymentMethod->id,
-                ['customer' => $customer->id],
-                ['stripe_account' => $stripeAccountId]
-            );
-
-            // 4. Maak Setup Intent aan om SEPA mandate te bevestigen
-            $customerAcceptance = $mandateType === 'online'
-                ? [
-                    'type' => 'online',
-                    'online' => [
-                        'ip_address' => $ipAddress,
-                        'user_agent' => $userAgent,
+                $price = $this->stripe->prices->create([
+                    'currency' => 'eur',
+                    'unit_amount' => $stripeAmount,
+                    'recurring' => [
+                        'interval' => 'month',
                     ],
-                ]
-                : [
-                    'type' => 'offline',
+                    'product' => $product->id,
+                ], ['stripe_account' => $stripeAccountId]);
+
+                // 8. Maak Stripe subscription aan
+                // Verankerd op de geconfigureerde dag + tijdstip van de (volgende) maand
+                $cycleDay = max(1, min(31, (int) ($organisation->billing_cycle_day ?? 1)));
+                [$cycleHour, $cycleMinute] = array_map('intval', explode(':', $organisation->billing_cycle_time ?? '00:00'));
+                $now = now()->utc();
+
+                // Gebruik de geconfigureerde dag, maar niet meer dan het aantal dagen in die maand
+                $clampToMonth = fn (\Illuminate\Support\Carbon $base) => $base->startOfMonth()
+                    ->addDays(min($cycleDay, $base->daysInMonth) - 1)
+                    ->setTime($cycleHour, $cycleMinute, 0);
+
+                $candidate = $clampToMonth($now->copy());
+                if ($candidate->lte($now)) {
+                    $candidate = $clampToMonth($now->copy()->addMonth());
+                }
+                $billingAnchor = $candidate->timestamp;
+
+                $stripeSubscription = $this->stripe->subscriptions->create([
+                    'customer' => $customer->id,
+                    'items' => [[
+                        'price' => $price->id,
+                    ]],
+                    'default_payment_method' => $paymentMethod->id,
+                    'billing_cycle_anchor' => $billingAnchor,
+                    'proration_behavior' => 'none',
+                    'metadata' => [
+                        'member_id' => (string) $member->id,
+                        'organisation_id' => (string) $organisation->id,
+                        'setup_by_admin' => (string) $admin->id,
+                    ],
+                ], ['stripe_account' => $stripeAccountId]);
+
+                // Vanaf hier bestaat er een live Stripe-subscription; onthoud de id zodat een
+                // faal in de lokale writes hierna compenserend geannuleerd kan worden.
+                $createdStripeSubscriptionId = $stripeSubscription->id;
+
+                // Vertaal Stripe status naar lokale status
+                $statusMap = [
+                    'active' => 'active',
+                    'trialing' => 'trial',
+                    'past_due' => 'past_due',
+                    'canceled' => 'canceled',
+                    'unpaid' => 'unpaid',
+                    'incomplete' => 'incomplete',
+                    'incomplete_expired' => 'incomplete_expired',
                 ];
+                $localStatus = $statusMap[$stripeSubscription->status] ?? 'incomplete';
 
-            $setupIntent = $this->stripe->setupIntents->create([
-                'customer' => $customer->id,
-                'payment_method' => $paymentMethod->id,
-                'payment_method_types' => ['sepa_debit'],
-                'usage' => 'off_session',
-                'confirm' => true,
-                'mandate_data' => [
-                    'customer_acceptance' => $customerAcceptance,
-                ],
-            ], ['stripe_account' => $stripeAccountId]);
+                // 9. Maak MemberSubscription aan
+                $memberSubscription = MemberSubscription::create([
+                    'member_id' => $member->id,
+                    'amount' => $billingAmount,
+                    'currency' => 'EUR',
+                    'stripe_customer_id' => $customer->id,
+                    'stripe_subscription_id' => $stripeSubscription->id,
+                    'status' => $localStatus,
+                    'current_period_start' => $stripeSubscription->current_period_start
+                        ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_start)
+                        : null,
+                    'current_period_end' => $stripeSubscription->current_period_end
+                        ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_end)
+                        : null,
+                    'metadata' => [
+                        'setup_by_admin' => (string) $admin->id,
+                        'description' => $description,
+                        'notes' => $notes,
+                    ],
+                ]);
 
-            // 5. Haal mandate ID op uit payment method na setup intent
-            $mandateId = null;
-            if ($setupIntent->status === 'succeeded' && $setupIntent->payment_method) {
+                // 10. Probeer mandate ID op te halen na subscription aanmaken
+                // Voor SEPA wordt de mandate vaak pas aangemaakt bij eerste betaling
+                // Maar we proberen het nu al op te halen
+                if (! $mandateId) {
+                    try {
+                        $updatedPaymentMethod = $this->stripe->paymentMethods->retrieve(
+                            $paymentMethod->id,
+                            [],
+                            ['stripe_account' => $stripeAccountId]
+                        );
+                        $mandateId = $updatedPaymentMethod->sepa_debit->mandate ?? null;
+                    } catch (\Exception $e) {
+                        // Mandate kan nog niet bestaan, wordt later opgehaald via webhook
+                    }
+                }
+
+                // 11. Update member record
+                $member->update([
+                    'sepa_subscription_enabled' => true,
+                    'sepa_subscription_iban' => $memberIban,
+                    'sepa_mandate_stripe_id' => $mandateId, // Kan null zijn, wordt later bijgewerkt
+                    'sepa_subscription_notes' => $notes,
+                    'sepa_subscription_setup_at' => now(),
+                    'sepa_subscription_setup_by' => $admin->id,
+                ]);
+
+                return $memberSubscription;
+            });
+        } catch (\Throwable $e) {
+            // De transactie-rollback heeft de lokale rijen teruggedraaid; annuleer nu
+            // compenserend de Stripe-subscription zodat er geen wees-incasso (met SEPA-
+            // mandaat) op de connected account achterblijft die maandelijks blijft debiteren.
+            if ($createdStripeSubscriptionId) {
                 try {
-                    $paymentMethodDetails = $this->stripe->paymentMethods->retrieve(
-                        $setupIntent->payment_method,
+                    $this->stripe->subscriptions->cancel(
+                        $createdStripeSubscriptionId,
                         [],
                         ['stripe_account' => $stripeAccountId]
                     );
-                    $mandateId = $paymentMethodDetails->sepa_debit->mandate ?? null;
-                } catch (\Exception $e) {
-                    // Mandate kan nog niet beschikbaar zijn
+                } catch (\Throwable $cancelError) {
+                    \Log::error('Compenserende annulering van Stripe subscription mislukt', [
+                        'stripe_subscription_id' => $createdStripeSubscriptionId,
+                        'member_id' => $member->id,
+                        'error' => $cancelError->getMessage(),
+                    ]);
                 }
             }
 
-            // 6. Maak eerst een product aan
-            $subscriptionDescription = $description ?? "Maandelijkse contributie voor {$member->full_name}";
-            
-            $product = $this->stripe->products->create([
-                'name' => $subscriptionDescription,
-                'metadata' => [
-                    'member_id' => (string) $member->id,
-                    'organisation_id' => (string) $organisation->id,
-                ],
-            ], ['stripe_account' => $stripeAccountId]);
-
-            // 7. Maak een price aan voor het product
-            // Bereken bruto bedrag als organisatie de Stripe fee doorberekent aan het lid
-            // Stripe SEPA fee: 0.35% + €0.25 (max €5)
-            $billingAmount = $amount;
-            if ($organisation->pass_stripe_fee_to_member) {
-                $billingAmount = min(($amount + 0.25) / (1 - 0.0035), $amount + 5.00 + 0.25);
-                $billingAmount = round($billingAmount, 2);
-            }
-            $stripeAmount = (int) round($billingAmount * 100); // Convert to cents
-
-            $price = $this->stripe->prices->create([
-                'currency' => 'eur',
-                'unit_amount' => $stripeAmount,
-                'recurring' => [
-                    'interval' => 'month',
-                ],
-                'product' => $product->id,
-            ], ['stripe_account' => $stripeAccountId]);
-
-            // 8. Maak Stripe subscription aan
-            // Verankerd op de geconfigureerde dag + tijdstip van de (volgende) maand
-            $cycleDay = max(1, min(31, (int) ($organisation->billing_cycle_day ?? 1)));
-            [$cycleHour, $cycleMinute] = array_map('intval', explode(':', $organisation->billing_cycle_time ?? '00:00'));
-            $now = now()->utc();
-
-            // Gebruik de geconfigureerde dag, maar niet meer dan het aantal dagen in die maand
-            $clampToMonth = fn (\Illuminate\Support\Carbon $base) => $base->startOfMonth()
-                ->addDays(min($cycleDay, $base->daysInMonth) - 1)
-                ->setTime($cycleHour, $cycleMinute, 0);
-
-            $candidate = $clampToMonth($now->copy());
-            if ($candidate->lte($now)) {
-                $candidate = $clampToMonth($now->copy()->addMonth());
-            }
-            $billingAnchor = $candidate->timestamp;
-
-            $stripeSubscription = $this->stripe->subscriptions->create([
-                'customer' => $customer->id,
-                'items' => [[
-                    'price' => $price->id,
-                ]],
-                'default_payment_method' => $paymentMethod->id,
-                'billing_cycle_anchor' => $billingAnchor,
-                'proration_behavior' => 'none',
-                'metadata' => [
-                    'member_id' => (string) $member->id,
-                    'organisation_id' => (string) $organisation->id,
-                    'setup_by_admin' => (string) $admin->id,
-                ],
-            ], ['stripe_account' => $stripeAccountId]);
-
-            // Vertaal Stripe status naar lokale status
-            $statusMap = [
-                'active' => 'active',
-                'trialing' => 'trial',
-                'past_due' => 'past_due',
-                'canceled' => 'canceled',
-                'unpaid' => 'unpaid',
-                'incomplete' => 'incomplete',
-                'incomplete_expired' => 'incomplete_expired',
-            ];
-            $localStatus = $statusMap[$stripeSubscription->status] ?? 'incomplete';
-
-            // 9. Maak MemberSubscription aan
-            $memberSubscription = MemberSubscription::create([
-                'member_id' => $member->id,
-                'amount' => $billingAmount,
-                'currency' => 'EUR',
-                'stripe_customer_id' => $customer->id,
-                'stripe_subscription_id' => $stripeSubscription->id,
-                'status' => $localStatus,
-                'current_period_start' => $stripeSubscription->current_period_start
-                    ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_start)
-                    : null,
-                'current_period_end' => $stripeSubscription->current_period_end
-                    ? \Illuminate\Support\Carbon::createFromTimestamp($stripeSubscription->current_period_end)
-                    : null,
-                'metadata' => [
-                    'setup_by_admin' => (string) $admin->id,
-                    'description' => $description,
-                    'notes' => $notes,
-                ],
-            ]);
-
-            // 10. Probeer mandate ID op te halen na subscription aanmaken
-            // Voor SEPA wordt de mandate vaak pas aangemaakt bij eerste betaling
-            // Maar we proberen het nu al op te halen
-            if (! $mandateId) {
-                try {
-                    $updatedPaymentMethod = $this->stripe->paymentMethods->retrieve(
-                        $paymentMethod->id,
-                        [],
-                        ['stripe_account' => $stripeAccountId]
-                    );
-                    $mandateId = $updatedPaymentMethod->sepa_debit->mandate ?? null;
-                } catch (\Exception $e) {
-                    // Mandate kan nog niet bestaan, wordt later opgehaald via webhook
-                }
-            }
-
-            // 11. Update member record
-            $member->update([
-                'sepa_subscription_enabled' => true,
-                'sepa_subscription_iban' => $memberIban,
-                'sepa_mandate_stripe_id' => $mandateId, // Kan null zijn, wordt later bijgewerkt
-                'sepa_subscription_notes' => $notes,
-                'sepa_subscription_setup_at' => now(),
-                'sepa_subscription_setup_by' => $admin->id,
-            ]);
-
-            return $memberSubscription;
-        });
+            throw $e;
+        }
     }
 
     /**
@@ -353,7 +383,7 @@ class MemberSepaSubscriptionService
             ]);
         }
 
-        DB::transaction(function () use ($subscription, $member, $connection, $reason) {
+        DB::transaction(function () use ($subscription, $member, $connection) {
             // Cancel Stripe subscription
             $this->stripe->subscriptions->cancel(
                 $subscription->stripe_subscription_id,
@@ -422,7 +452,10 @@ class MemberSepaSubscriptionService
             ]);
         }
 
-        $stripeAmount = (int) round($newAmount * 100); // Convert to cents
+        // Pas dezelfde fee-doorberekening toe als bij de setup, anders valt de
+        // surcharge weg bij de eerste bedragwijziging en absorbeert de org de Stripe-fee.
+        $billingAmount = $this->grossUpBillingAmount((bool) $organisation->pass_stripe_fee_to_member, $newAmount);
+        $stripeAmount = (int) round($billingAmount * 100); // Convert to cents
 
         // Haal product op van bestaande subscription item
         $subscriptionItem = $stripeSubscription->items->data[0] ?? null;
@@ -459,11 +492,28 @@ class MemberSepaSubscriptionService
             ['stripe_account' => $connection->stripe_account_id]
         );
 
-        // Update MemberSubscription
+        // Update MemberSubscription — bewaar het (bruto) gefactureerde bedrag, net als
+        // de setup-flow, zodat de opgeslagen 'amount' consistent blijft.
         $subscription->update([
-            'amount' => $newAmount,
+            'amount' => $billingAmount,
         ]);
 
         return $subscription->fresh();
+    }
+
+    /**
+     * Bereken het te factureren bedrag. Als de organisatie de Stripe SEPA-fee
+     * (0,35% + €0,25, max €5) doorberekent aan het lid, wordt het contributiebedrag
+     * opgehoogd zodat de organisatie netto het volledige bedrag overhoudt.
+     */
+    private function grossUpBillingAmount(bool $passStripeFee, float $amount): float
+    {
+        if (! $passStripeFee) {
+            return $amount;
+        }
+
+        $billingAmount = min(($amount + 0.25) / (1 - 0.0035), $amount + 5.00 + 0.25);
+
+        return round($billingAmount, 2);
     }
 }

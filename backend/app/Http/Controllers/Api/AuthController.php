@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-
 use App\Mail\OrganisationWelcomeMailable;
 use App\Models\Organisation;
 use App\Models\OrganisationSubscription;
@@ -17,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -34,7 +34,7 @@ class AuthController extends Controller
                 'admin.first_name' => ['required', 'string', 'max:255'],
                 'admin.last_name' => ['required', 'string', 'max:255'],
                 'admin.email' => ['required', 'email', 'max:255', 'unique:users,email'],
-                'admin.password' => ['required', 'string', 'min:8', 'confirmed'],
+                'admin.password' => ['required', 'string', PasswordRule::defaults(), 'confirmed'],
                 'accept_terms' => ['accepted'],
             ],
             [
@@ -157,7 +157,11 @@ class AuthController extends Controller
         /** @var User|null $user */
         $user = User::where('email', $credentials['email'])->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        // Constant-time: voer altijd een bcrypt-vergelijking uit, óók als de gebruiker
+        // niet bestaat, zodat de responstijd geen bestaande e-mailadressen prijsgeeft.
+        $hashToCheck = $user?->password ?? '$2y$12$7RKVRbev90SWI8r8FL9.e.pIkCcyJwiW1y178dKZRIUUjNStlbxAy';
+
+        if (! Hash::check($credentials['password'], $hashToCheck) || ! $user) {
             throw ValidationException::withMessages([
                 'email' => [__('auth.failed')],
             ]);
@@ -178,6 +182,11 @@ class AuthController extends Controller
         $user->load('roles', 'organisation.currentSubscription.plan');
 
         $deviceName = $credentials['device_name'] ?? 'mobile';
+
+        // Trek eerdere tokens voor hetzelfde device in zodat ze niet onbeperkt
+        // opstapelen (en een oud/gelekt token van dit device niet actief blijft).
+        $user->tokens()->where('name', $deviceName)->delete();
+
         $token = $user->createToken($deviceName)->plainTextToken;
 
         return response()->json([
@@ -243,12 +252,12 @@ class AuthController extends Controller
         $validated = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', PasswordRule::defaults(), 'confirmed'],
         ]);
 
         $status = Password::reset(
             $validated,
-            function (User $user, string $password) use ($request): void {
+            function (User $user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
@@ -433,4 +442,3 @@ class AuthController extends Controller
         return strtolower(trim($subdomain));
     }
 }
-
