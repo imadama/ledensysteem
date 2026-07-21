@@ -83,10 +83,10 @@ return [
     'middleware' => [
         'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
         'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        // AUDIT-10: CSRF-verificatie tijdelijk terug uit. Het aanzetten brak de
-        // SPA-login met 419 (token mismatch) in productie. Opnieuw inschakelen pas
-        // nadat de frontend CSRF-cookieflow met een browsertest is geverifieerd.
-        'validate_csrf_token' => null,
+        // AUDIT-10: CSRF-verificatie aan. De eerdere 419-storing kwam niet door de
+        // backend maar doordat axios (>=1.4) de X-XSRF-TOKEN-header bij cross-origin
+        // requests weglaat; opgelost met withXSRFToken:true in frontend/src/api/axios.ts.
+        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ],
 
 ];

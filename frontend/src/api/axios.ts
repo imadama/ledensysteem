@@ -5,6 +5,11 @@ import { authManager } from '../context/authManager'
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  // Sinds axios 1.4 wordt de XSRF-token-header bij CROSS-ORIGIN requests alleen
+  // meegestuurd als withXSRFToken expliciet aan staat. De frontend (aidatim.nl)
+  // en de API (api.aidatim.nl) zijn cross-origin, dus zonder dit blijft de
+  // X-XSRF-TOKEN-header weg en geeft Laravel 419 (CSRF mismatch) op elke POST.
+  withXSRFToken: true,
   xsrfCookieName: 'XSRF-TOKEN',
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
