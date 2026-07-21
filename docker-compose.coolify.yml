@@ -41,7 +41,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.prod
-    image: leden_backend:latest
     restart: unless-stopped
     volumes:
       - backend_storage:/var/www/html/storage
@@ -58,8 +57,11 @@ services:
       - coolify
 
   # Queue-worker: verwerkt ShouldQueue-jobs (o.a. push-notificaties) buiten de request.
+  # Eigen build-blok (i.p.v. image-reuse) zodat Coolify de image per service bouwt.
   worker:
-    image: leden_backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     restart: unless-stopped
     depends_on:
       - backend
@@ -74,7 +76,9 @@ services:
 
   # Scheduler: draait de geplande commands (o.a. subscriptions:check-incomplete).
   scheduler:
-    image: leden_backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
     restart: unless-stopped
     depends_on:
       - backend
