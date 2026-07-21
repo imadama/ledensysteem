@@ -16,7 +16,8 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 - ⚠️ **AUDIT-00 · CRITICAL · Live credentials in publieke repo.** `DEPLOYMENT.md` bevatte echte SMTP-, DB- (incl. root), Stripe secret- en Stripe **webhook signing**-secrets. Repo is publiek. Alle vier zijn gecompromitteerd.
   - ☑ **Code-actie gedaan:** waarden in `DEPLOYMENT.md` vervangen door placeholders.
-  - ⚠️ **Eigenaar-actie (openstaand — kan ik niet doen):** roteer Gmail/SMTP-wachtwoord `info@aidatim.nl`, roll Stripe API-keys + nieuw webhook-secret, wijzig MySQL app- én root-wachtwoord. *(git-historie bevat de oude waarden nog — rotatie is de echte remedie.)*
+  - ⚠️ **Eigenaar-actie (openstaand — kan ik niet doen):** roteer Gmail/SMTP-wachtwoord `info@aidatim.nl` en roll Stripe API-keys + nieuw webhook-secret. *(git-historie bevat de oude waarden nog — rotatie is de echte remedie.)*
+  - ℹ️ **MySQL: rotatie NIET urgent.** Geverifieerd in Coolify (2026-07-21): de productie-DB draait al op een sterk, willekeurig Coolify-wachtwoord (user `mysql`, db `default`), NIET de `ama123` uit `DEPLOYMENT.md` — die waarde was nooit de echte productie-credential. DB is niet publiek (alleen binnen het Coolify-netwerk). Optioneel roteren kan (het echte wachtwoord passeerde 2026-07-21 wel de MCP-context bij verificatie), maar het is lage prioriteit.
 - ☑ **AUDIT-01 · HIGH · Hardcoded wachtwoord `Imad2003!`** in `FixMemberAccounts.php` — vervangen door `Str::password(16)` (eenmalig getoond); hardcoded persoonlijke default-emails verwijderd.
 
 ---
