@@ -24,7 +24,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## 1. Blockers vóór livegang — Beveiliging
 
-- ☑ **AUDIT-10 · HIGH · CSRF uitgeschakeld** voor de cookie-SPA. `validate_csrf_token => null` vervangen door `ValidateCsrfToken::class` in `config/sanctum.php` — CSRF-verificatie op stateful SPA-requests hersteld.
+- ☑ **AUDIT-10 · HIGH · CSRF.** Verificatie weer aan (`ValidateCsrfToken::class` in `config/sanctum.php`). Het aanzetten brak eerst de login met 419; **root cause**: axios ≥1.4 stuurt de `X-XSRF-TOKEN`-header bij cross-origin requests (frontend `aidatim.nl` → API `api.aidatim.nl`) alleen mee met `withXSRFToken: true` — toegevoegd in `frontend/src/api/axios.ts`. Live geverifieerd: login zonder header → 419, mét header → 422; `withXSRFToken` zit in de gedeployede bundle; CORS staat apex én subdomeinen toe met credentials.
 - ☑ **AUDIT-11 · HIGH · Geen rate limiting op `/api/auth/login`.** Login binnen de `throttle:5,1`-groep gebracht in `routes/api.php`.
 - ☑ **AUDIT-12 · HIGH · Publieke registratie + offline SEPA-mandaat.** Het geldrisico weggenomen: publieke registratie zet **geen** SEPA-incasso meer op (geen offline mandaat onder geleende org_admin) — lid wordt aangemaakt met IBAN + akkoord, beheerder activeert incasso bewust. `throttle:10,1` op de `public`-groep tegen spam. **Follow-up (open):** org-resolutie leunt nog op client-input (`org_id`/subdomein-header); harden met een gesigneerd per-org registratietoken — zie AUDIT-12b.
 - ☐ **AUDIT-12b · MEDIUM · Org-resolutie op publiek endpoint is client-gestuurd** (`org_id` + spoofbare `X-Organisation-Subdomain`). Nu enkel nog spam/nuisance (money-movement is weg, throttle actief). → gesigneerd per-org registratietoken.
