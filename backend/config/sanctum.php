@@ -83,7 +83,10 @@ return [
     'middleware' => [
         'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
         'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        // AUDIT-10: CSRF-verificatie tijdelijk terug uit. Het aanzetten brak de
+        // SPA-login met 419 (token mismatch) in productie. Opnieuw inschakelen pas
+        // nadat de frontend CSRF-cookieflow met een browsertest is geverifieerd.
+        'validate_csrf_token' => null,
     ],
 
 ];
