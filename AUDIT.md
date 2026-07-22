@@ -61,7 +61,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 - ☑ **AUDIT-41 · Zwak wachtwoordbeleid.** Centraal `Password::defaults()` (min 10, hoofd-/kleine letters, cijfers) in `AppServiceProvider`, toegepast op registratie/activatie/reset.
 - ☑ **AUDIT-42 · Email-enumeratie.** `/api/auth/token` doet nu altijd een bcrypt-vergelijking (constant-time), ook bij niet-bestaande gebruiker.
 - ☑ **AUDIT-43 · CSV formula-injection.** Ledenexport prefixt cellen die met `= + - @`/tab/CR beginnen met een quote.
-- ☐ **AUDIT-44 · IBAN zonder mod-97-checksum** op de meeste write-paths. *(Follow-up: mod-97-rule extraheren uit `SetupSepaSubscriptionRequest` en overal toepassen.)*
+- ☑ **AUDIT-44 · IBAN zonder mod-97-checksum.** Herbruikbare `App\Rules\ValidIban` (formaat + mod-97) toegevoegd en toegepast in de publieke aanmelding én `SetupSepaSubscriptionRequest` (dedup). Gedekt door `PublicMemberRegistrationTest`.
 - ☑ **AUDIT-45 · Negatieve contributiebedragen.** `min:0` i.p.v. `between:-…` in Store/UpdateMemberRequest.
 - ☑ **AUDIT-46 · Ongebonden `per_page`.** Geclamped op 1–100 in beide post-controllers.
 - ☑ **AUDIT-47 · `SESSION_SECURE_COOKIE`** — zie sectie 3 (entrypoint schrijft 'm nu).

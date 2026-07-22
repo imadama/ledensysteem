@@ -3,10 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\OrganisationScoped;
-use App\Models\MemberContributionRecord;
-use App\Models\MemberInvitation;
-use App\Models\Role;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -46,6 +42,8 @@ class Member extends Model
         'sepa_subscription_notes',
         'sepa_subscription_setup_at',
         'sepa_subscription_setup_by',
+        'sepa_consent_at',
+        'sepa_consent_ip',
     ];
 
     /**
@@ -59,6 +57,7 @@ class Member extends Model
             'contribution_amount' => 'decimal:2',
             'sepa_subscription_enabled' => 'boolean',
             'sepa_subscription_setup_at' => 'datetime',
+            'sepa_consent_at' => 'datetime',
         ];
     }
 
@@ -204,12 +203,11 @@ class Member extends Model
     public function canSetupSepaSubscription(): bool
     {
         // Check of lid IBAN heeft
-        $hasIban = !empty($this->iban) || !empty($this->sepa_subscription_iban);
-        
+        $hasIban = ! empty($this->iban) || ! empty($this->sepa_subscription_iban);
+
         // Check of lid geen actieve subscription heeft
         $hasActiveSubscription = $this->activeSubscription !== null;
-        
-        return $hasIban && !$hasActiveSubscription;
+
+        return $hasIban && ! $hasActiveSubscription;
     }
 }
-

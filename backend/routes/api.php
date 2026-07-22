@@ -25,7 +25,7 @@ use App\Http\Middleware\ResolveOrganisationFromSubdomain;
 use App\Http\Middleware\ValidateUserOrganisationAccess;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('member-activation')->group(function (): void {
+Route::prefix('member-activation')->middleware('throttle:10,1')->group(function (): void {
     Route::get('{token}', [MemberActivationController::class, 'show']);
     Route::post('{token}', [MemberActivationController::class, 'store']);
 });

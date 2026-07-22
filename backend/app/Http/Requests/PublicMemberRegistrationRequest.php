@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Organisation\Concerns\NormalizesMemberDates;
+use App\Rules\ValidIban;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -53,7 +54,7 @@ class PublicMemberRegistrationRequest extends FormRequest
             'street_address' => ['required', 'string', 'max:255'],
             'postal_code' => ['required', 'string', 'max:50'],
             'city' => ['required', 'string', 'max:255'],
-            'iban' => ['required', 'string', 'max:255'],
+            'iban' => ['required', 'string', 'max:34', new ValidIban],
             'contribution_amount' => ['required', 'numeric', Rule::in([10, 15, 20, 25])],
             'contribution_start_date' => ['required', 'date', 'after_or_equal:today'],
             'contribution_note' => ['nullable', 'string'],
@@ -87,23 +88,5 @@ class PublicMemberRegistrationRequest extends FormRequest
             'sepa_consent.required' => 'U moet akkoord gaan met de SEPA machtiging.',
             'sepa_consent.accepted' => 'U moet akkoord gaan met de SEPA machtiging.',
         ];
-    }
-
-    /**
-     * Configure the validator instance.
-     */
-    public function withValidator($validator): void
-    {
-        $validator->after(function ($validator): void {
-            // IBAN validatie
-            if ($this->has('iban') && $this->filled('iban')) {
-                $iban = str_replace(' ', '', strtoupper($this->input('iban')));
-                if (strlen($iban) < 15 || strlen($iban) > 34) {
-                    $validator->errors()->add('iban', 'IBAN moet tussen 15 en 34 karakters lang zijn.');
-                } elseif (!preg_match('/^[A-Z0-9]+$/', $iban)) {
-                    $validator->errors()->add('iban', 'IBAN mag alleen letters en cijfers bevatten.');
-                }
-            }
-        });
     }
 }
