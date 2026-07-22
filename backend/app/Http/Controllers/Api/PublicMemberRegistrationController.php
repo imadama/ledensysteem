@@ -90,8 +90,24 @@ class PublicMemberRegistrationController extends Controller
             ], 404);
         }
 
+        // Voorkom dubbele aanmelding met hetzelfde e-mailadres binnen deze organisatie
+        // (anders ontstaan dubbele leden en potentieel dubbele incasso).
+        $alreadyMember = Member::where('organisation_id', $organisation->id)
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower($validated['email'])])
+            ->exists();
+
+        if ($alreadyMember) {
+            return response()->json([
+                'message' => 'Er is al een lid met dit e-mailadres aangemeld bij deze organisatie.',
+                'errors' => ['email' => ['Dit e-mailadres is al aangemeld bij deze organisatie.']],
+            ], 422);
+        }
+
+        // Leg het akkoord-IP vast voor de SEPA-machtiging (bewijs bij incasso/dispuut).
+        $consentIp = $request->ip();
+
         try {
-            return DB::transaction(function () use ($validated, $organisation) {
+            return DB::transaction(function () use ($validated, $organisation, $consentIp) {
                 // Maak lid aan
                 $member = Member::create([
                     'organisation_id' => $organisation->id,
@@ -110,6 +126,9 @@ class PublicMemberRegistrationController extends Controller
                     'contribution_start_date' => $validated['contribution_start_date'],
                     'contribution_note' => $validated['contribution_note'] ?? null,
                     'status' => 'active',
+                    // SEPA-akkoord vastleggen (tijdstip + IP) als bewijs van de machtiging.
+                    'sepa_consent_at' => ($validated['sepa_consent'] ?? false) ? now() : null,
+                    'sepa_consent_ip' => ($validated['sepa_consent'] ?? false) ? $consentIp : null,
                 ]);
 
                 // BEWUST géén automatische SEPA-incasso vanaf dit publieke, niet-geauthenticeerde
