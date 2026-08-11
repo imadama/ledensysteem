@@ -15,7 +15,9 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## Openstaand — stand 2026-08-12
 
-Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **27 van de 37 items zijn volledig dicht**; hieronder staat wat resteert.
+Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **27 van de 47 items zijn volledig dicht**; hieronder staat wat resteert.
+
+> De tien AUDIT-6x-items komen uit de losse security-review van juni 2026, die nooit in deze audit was verwerkt. Ze zijn op 2026-08-12 geverifieerd en staan alle tien nog open — zie sectie 5.
 
 **Eigenaar-actie (buiten code):**
 
@@ -37,6 +39,16 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | AUDIT-51 | LOW | Healthcheck ontbreekt in `docker-compose.prod.yml`, checkt geen DB | alleen in `docker-compose.coolify.yml:51` |
 | AUDIT-53 | LOW | `hasRole()` query't per aanroep (N+1) | `User.php:92` |
 | AUDIT-54 | LOW | Hardcoded `aidatim.nl` in middleware + frontend-config | `ResolveOrganisationFromSubdomain.php:129`, `config.ts:23` |
+| AUDIT-60 | HIGH | Uitnodigingstokens plaintext in de DB | `MemberAccountService.php:199` |
+| AUDIT-61 | HIGH | IBAN's plaintext in de DB (AVG art. 32) | `Member.php` — geen `encrypted` cast |
+| AUDIT-62 | MEDIUM | E-mailwijziging zonder herbevestiging | `SelfServiceController.php:39` |
+| AUDIT-63 | MEDIUM | Volledige IBAN's in API-responses | `MemberController.php:304` |
+| AUDIT-64 | MEDIUM | Geen security headers (alleen `Cache-Control`) | `frontend/docker/nginx.conf:21` |
+| AUDIT-65 | MEDIUM | 50 ongeguarde `console.*` in de productie-bundle | `frontend/src/api/axios.ts` |
+| AUDIT-66 | MEDIUM | Stripe-foutmeldingen doorgegeven aan de client | `MemberSepaSubscriptionController.php:98,136` |
+| AUDIT-67 | LOW | Monitor-route mist `role`-middleware | `routes/api.php:126` |
+| AUDIT-68 | LOW | Webhook-endpoint zonder rate limiting | `routes/api.php:195` |
+| AUDIT-69 | LOW | `STRIPE_CONNECT_WEBHOOK_SECRET` niet in `.env.example` | `backend/.env.example` |
 
 **Opgelost sinds de vorige stand:** AUDIT-52 (SPF/DKIM/DMARC — zie sectie 3).
 
@@ -111,6 +123,27 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 
 ---
 
+## 5. Uit de security-review van juni 2026
+
+Op 12 juni 2026 is er een aparte statische security-review gedaan (branch `claude/code-security-analysis-65bkg1`, nooit gemerged). De meeste bevindingen daaruit zijn inmiddels opgelost via de audit hierboven — rate limiting op login (AUDIT-11), op activatie en publieke registratie (AUDIT-12 + PR #8), `SESSION_SECURE_COOKIE` (AUDIT-47) en negatieve bedragen (AUDIT-45).
+
+**Tien bevindingen waren nog nergens vastgelegd.** Alle tien zijn op 2026-08-12 tegen de huidige `main` geverifieerd en staan nog open. De branch is daarna opgeruimd; dit is de blijvende vastlegging.
+
+- ☐ **AUDIT-60 · HIGH · Uitnodigingstokens staan plaintext in de database.** De tokens zijn sterk (`Str::random(64)`, eenmalig, 7 dagen geldig — `MemberAccountService.php:199`), maar worden onversleuteld opgeslagen in `member_invitations.token`. Bij een DB-lek (gestolen backup, gelekte credentials) zijn álle openstaande activatielinks direct bruikbaar om ledenaccounts over te nemen. → Sla `hash('sha256', $token)` op en vergelijk bij activatie op hash. Bcrypt is niet nodig — het token heeft genoeg entropie, en SHA-256 houdt de lookup-query mogelijk.
+- ☐ **AUDIT-61 · HIGH · IBAN's staan plaintext in de database.** `members.iban` en `members.sepa_subscription_iban` — het `Member`-model heeft geen `encrypted` cast. IBAN's zijn financiële persoonsgegevens (AVG art. 32); bij een lek liggen de bankrekeningnummers van alle leden van alle organisaties op straat. → Twee stappen: (1) `sepa_subscription_iban` is na de Stripe-setup functioneel overbodig — Stripe bewaart het mandaat — dus bewaar daar alleen de laatste vier cijfers of laat de kolom vervallen; (2) zet `'iban' => 'encrypted'` in de casts van `Member`. *Let op: daarna kan er niet meer in SQL op gefilterd worden en wordt `APP_KEY`-rotatie een migratie.*
+- ☐ **AUDIT-62 · MEDIUM · E-mailadres wijzigen zonder herbevestiging.** `SelfServiceController.php:39-40` schrijft een nieuw e-mailadres direct weg — geen verificatie van het nieuwe adres, geen notificatie naar het oude. Bij een gekaapte sessie neemt een aanvaller het account permanent over, want de wachtwoord-reset gaat daarna naar het nieuwe adres. → Bevestigingslink naar het nieuwe adres, notificatie naar het oude, wijziging pas doorvoeren na bevestiging.
+- ☐ **AUDIT-63 · MEDIUM · Volledige IBAN's in API-responses.** `MemberController.php:304` geeft het complete IBAN terug in de ledenlijst. `ContributionReportController.php:189-196` maskeert al netjes (`NL12****3456`) — dat patroon hoort overal te gelden, met het volledige IBAN alleen waar het functioneel moet (het bewerkformulier).
+- ☐ **AUDIT-64 · MEDIUM · Geen security headers.** `frontend/docker/nginx.conf` bevat één `add_header`, en dat is een `Cache-Control`. Er is geen `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security` of CSP. Gevolg: clickjacking is mogelijk, en activatie- en reset-tokens die in URLs staan kunnen via de Referer-header naar externe sites lekken. → Begin met de vier simpele headers; CSP daarna apart, want die vereist testen met de Stripe-domeinen.
+- ☐ **AUDIT-65 · MEDIUM · Debug-logging in de productie-frontend.** `frontend/src/api/axios.ts` bevat 50 `console.*`-aanroepen, geen enkele geguard met `import.meta.env.DEV`. Elke request, response-body en foutdetail belandt in de browserconsole van elke gebruiker. → Guard alles met `import.meta.env.DEV`.
+- ☐ **AUDIT-66 · MEDIUM · Stripe-foutmeldingen doorgegeven aan de client.** `MemberSepaSubscriptionController.php:98,136` zet `$e->getMessage()` van Stripe letterlijk in de melding voor de gebruiker. → Server-side loggen, generieke melding terugsturen.
+- ☐ **AUDIT-67 · LOW · Monitor-route mist `role`-middleware.** `routes/api.php:126-135` heeft geen `role:`-middleware; de rolcheck zit alleen in `MonitorController` zelf. Het wérkt, maar wijkt af van alle andere routegroepen — precies het soort inconsistentie waar later een gat in valt. → `RoleMiddleware` meerdere rollen laten accepteren (`role:monitor,org_admin`).
+- ☐ **AUDIT-68 · LOW · Webhook-endpoint zonder rate limiting.** `routes/api.php:195` staat buiten elke throttle-groep. Signatuurverificatie vangt nep-events af, maar een flood kost nog steeds CPU en logruimte. → `throttle` met een ruime limiet.
+- ☐ **AUDIT-69 · LOW · `STRIPE_CONNECT_WEBHOOK_SECRET` ontbreekt in `.env.example`.** De code en `entrypoint.sh` kennen de variabele, maar hij is nergens gedocumenteerd. Zonder deze secret worden Connect-events geweigerd. Documentatiegat, geen lek.
+
+**Aanbevolen volgorde:** AUDIT-60 en 61 eerst (beide raken persoonsgegevens en zijn een kleine wijziging), dan 64 en 65, dan de rest in regulier onderhoud.
+
+---
+
 ## Sterke punten (bewust behouden)
 
 Geen `dangerouslySetInnerHTML` (geen web-XSS); alle writes via FormRequests (geen mass-assignment); invitation-tokens sterk (64 chars, single-use, 7 dagen); webhook-signatures verplicht met idempotency; geauthenticeerde tenant-isolatie hield stand (geen IDOR gevonden); `.env` en `google-services.json` correct gitignored; APP_DEBUG default false.
@@ -132,3 +165,4 @@ Zie git-historie; commits verwijzen naar de AUDIT-ID's hierboven. Laatste fix-ro
 | 2026-08-12 | `composer.json` / `package.json` | Geen Sentry/Bugsnag → AUDIT-35b bevestigd open |
 | 2026-08-12 | Code-check op 12b, 28, 32, 49, 50, 51 | Alle zes ongewijzigd open (regelverwijzingen per item) |
 | 2026-08-12 | Nieuwe bevindingen | AUDIT-53 (`hasRole` N+1) en AUDIT-54 (hardcoded domein) toegevoegd |
+| 2026-08-12 | Security-review juni 2026 doorgenomen | 10 nooit-vastgelegde bevindingen geverifieerd en opgenomen als AUDIT-60 t/m 69 (sectie 5); branch `claude/code-security-analysis-65bkg1` daarna opgeruimd |
