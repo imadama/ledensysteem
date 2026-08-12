@@ -24,7 +24,7 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | Item | Wat | Status |
 |---|---|---|
 | AUDIT-00 | Gmail/SMTP-wachtwoord roteren + Stripe keys & webhook-secret rollen | ⚠️ open — niet extern verifieerbaar |
-| AUDIT-35a | DB-backups inrichten | ⚠️ open — Coolify meldt **0 backup-schedules** op de prod-MySQL |
+| AUDIT-35a | DB-backups inrichten | 🔍 dagelijks schema aangemaakt op 2026-08-12 (03:00, 14 dagen lokaal) — eerste run nog niet geverifieerd, en nog geen off-site kopie |
 | AUDIT-35b | Error-monitoring (Sentry) | ⚠️ open — geen Sentry/Bugsnag in `composer.json` of `package.json` |
 
 **Code follow-ups:**
@@ -98,7 +98,8 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 
   *Vervolgstap (optioneel, geen blocker):* DMARC staat op `p=none` — puur monitoren. Als de `rua`-rapporten een paar weken schoon zijn, kan dit naar `p=quarantine` en later `p=reject` voor echte spoofing-bescherming.
 - ☑/⚠️ **AUDIT-35 · Migratie-fouten geslikt bij deploy** → **opgelost**: `entrypoint.sh` gebruikt geen `|| echo` meer, een mislukte migratie laat de boot nu fataal falen. **Open (eigenaar/infra), herverifieerd 2026-08-12:**
-  - **DB-backups: nog steeds niet ingericht.** Coolify geeft **nul backup-schedules** terug voor de prod-MySQL (`m0scs8g0s8cok04gswook00o`, user `mysql`, db `default`). Dit is nu het grootste operationele risico: er is geen enkel herstelpunt als de database omvalt of een migratie data beschadigt. → In Coolify: database → Backups → dagelijks schema, retentie ≥ 7 dagen, bij voorkeur ook naar S3.
+  - **DB-backups: schema aangemaakt op 2026-08-12, nog niet geverifieerd.** Coolify gaf tot dan nul backup-schedules terug voor de prod-MySQL (`m0scs8g0s8cok04gswook00o`, user `mysql`, db `default`) — er was geen enkel herstelpunt. Nu ingericht: schedule `j4gg8k48occwgo0ws0oco4ck`, dagelijks om 03:00 (`0 3 * * *`), database `default`, retentie 14 backups / 14 dagen, **lokaal op de server**. 🔍 **Nog te verifiëren:** de eerste run moet nog plaatsvinden (`executions: []`); de Coolify-API kent geen handmatige trigger. Controleer na de eerste nacht of er een geslaagde execution staat.
+  - **Backups staan alleen lokaal — dat is nog geen volwaardige backupstrategie.** De dumps liggen op dezelfde server als de database, dus verlies van die server betekent verlies van database én backups. De server draait MinIO-instanties, maar die horen bij andere projecten (`popify-minio`, `smartpowerdeals-minio`) en zijn geen geschikte bestemming voor deze data. → Voeg een off-site S3-bestemming toe (eigen bucket) en zet `save_s3` aan op de schedule.
   - **Error-monitoring: nog niet ingericht.** Geen `sentry`/`bugsnag` in `backend/composer.json` of `frontend/package.json` — fouten in productie zijn alleen zichtbaar als je actief in de logs kijkt.
 - ☑ **AUDIT-47 · `SESSION_SECURE_COOKIE`/`SESSION_SAME_SITE` niet in prod-boot** → nu geschreven in `entrypoint.sh` (`SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax`) en geforward in compose.
 
