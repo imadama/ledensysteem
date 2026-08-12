@@ -15,7 +15,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## Openstaand — stand 2026-08-12
 
-Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **27 van de 47 items zijn volledig dicht**; hieronder staat wat resteert.
+Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **27 van de 48 items zijn volledig dicht**; hieronder staat wat resteert.
 
 > De tien AUDIT-6x-items komen uit de losse security-review van juni 2026, die nooit in deze audit was verwerkt. Ze zijn op 2026-08-12 geverifieerd en staan alle tien nog open — zie sectie 5.
 
@@ -26,6 +26,12 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | AUDIT-00 | Gmail/SMTP-wachtwoord roteren + Stripe keys & webhook-secret rollen | ⚠️ open — niet extern verifieerbaar |
 | AUDIT-35a | DB-backups inrichten | 🔍 dagelijks schema aangemaakt op 2026-08-12 (03:00, 14 dagen lokaal) — eerste run nog niet geverifieerd, en nog geen off-site kopie |
 | AUDIT-35b | Error-monitoring (Sentry) | ⚠️ open — geen Sentry/Bugsnag in `composer.json` of `package.json` |
+
+**Actieve storing:**
+
+| Item | Sev | Wat | Bewijs |
+|---|---|---|---|
+| AUDIT-70 | HIGH | `app.aidatim.nl` → 503; wachtwoord-reset en Stripe-onboarding linken naar een dood domein | 4/4 × 503, terwijl `aidatim.nl`/`portal`/`ama-stichting` 200 geven |
 
 **Code follow-ups:**
 
@@ -102,6 +108,27 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
   - **Backups staan alleen lokaal — dat is nog geen volwaardige backupstrategie.** De dumps liggen op dezelfde server als de database, dus verlies van die server betekent verlies van database én backups. De server draait MinIO-instanties, maar die horen bij andere projecten (`popify-minio`, `smartpowerdeals-minio`) en zijn geen geschikte bestemming voor deze data. → Voeg een off-site S3-bestemming toe (eigen bucket) en zet `save_s3` aan op de schedule.
   - **Error-monitoring: nog niet ingericht.** Geen `sentry`/`bugsnag` in `backend/composer.json` of `frontend/package.json` — fouten in productie zijn alleen zichtbaar als je actief in de logs kijkt.
 - ☑ **AUDIT-47 · `SESSION_SECURE_COOKIE`/`SESSION_SAME_SITE` niet in prod-boot** → nu geschreven in `entrypoint.sh` (`SESSION_SECURE_COOKIE=true`, `SESSION_SAME_SITE=lax`) en geforward in compose.
+- ☐ **AUDIT-70 · HIGH · `app.aidatim.nl` geeft 503 — wachtwoord-reset en Stripe-onboarding zijn stuk.** Ontdekt op 2026-08-12.
+
+  **Waarneming.** `https://app.aidatim.nl` geeft consistent `HTTP 503 — no available server` (4/4 pogingen, elke route). De andere frontend-domeinen doen het wél: `aidatim.nl` → 200, `portal.aidatim.nl` → 200, `ama-stichting.aidatim.nl` → 200. De backend is volledig gezond (`api.aidatim.nl/up` → 200 ×3, publiek endpoint → 422). De frontend-container draait dus prima; dit is puur routering.
+
+  **Oorzaak.** De frontend-service in `docker_compose_domains` van de Coolify-app kent deze domeinen: `aidatim.nl`, `ama-stichting.aidatim.nl`, `*.aidatim.nl`, `portal.aidatim.nl`, `isn-gorinchem-suleyman-celebi.aidatim.nl`. **`app.aidatim.nl` staat er niet bij** — en de wildcard `*.aidatim.nl` blijkt in de praktijk niet te matchen, want alleen de expliciet genoemde subdomeinen antwoorden. Tegelijk staat de productie-env `FRONTEND_URL` wél op `https://app.aidatim.nl` (buildtime + runtime).
+
+  **Gevolgen — alles wat een link op `FRONTEND_URL` bouwt wijst naar een dood domein:**
+
+  | Waar | Wat breekt |
+  |---|---|
+  | `User::sendPasswordResetNotification` (`User.php:106`) | **Niemand kan zijn wachtwoord resetten** — geldt voor alle rollen |
+  | `OrganisationStripeService::buildFrontendUrl` (`:206`) | Org-admin komt na Stripe Connect-onboarding op een dode pagina |
+  | `OrganisationWelcomeMailable` (`:25`) | Nieuwe organisatie kan via de welkomstmail geen abonnement kiezen |
+  | `OrganisationPaymentReminderMailable` (`:25`) | Betaalherinnering linkt naar een dood domein |
+  | `MemberInvitationMailable` (`:26`) | Werkt **wel** bij een org mét subdomein — die strípt de `app.`-prefix (`:35-37`) en linkt naar `<org>.aidatim.nl`. Zónder subdomein valt 'ie terug op `FRONTEND_URL` en is de activatielink stuk |
+
+  **Fix (één van beide, allebei in Coolify):**
+  1. *Voorkeur:* zet `app.aidatim.nl` bij de domeinen van de `frontend`-service en herdeploy. Dit herstelt het gedrag zoals `CLAUDE.md` het beschrijft.
+  2. *Alternatief:* zet `FRONTEND_URL` op `https://aidatim.nl` (geverifieerd 200 op `/reset-password`, `/organisation/subscription` en `/portal/activate`). Let op: de variabele is `is_buildtime: true`, dus dit vereist een **rebuild**, niet alleen een herstart. De `app.`-strip in `MemberInvitationMailable` wordt dan een no-op en blijft correct werken.
+
+  Zolang dit openstaat is elke wachtwoord-reset-mail een doodlopende link.
 
 ---
 
