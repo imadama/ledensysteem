@@ -15,7 +15,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## Openstaand — stand 2026-08-12
 
-Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **27 van de 48 items zijn volledig dicht**; hieronder staat wat resteert.
+Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **28 van de 52 items zijn volledig dicht**; hieronder staat wat resteert.
 
 > De tien AUDIT-6x-items komen uit de losse security-review van juni 2026, die nooit in deze audit was verwerkt. Ze zijn op 2026-08-12 geverifieerd en staan alle tien nog open — zie sectie 5.
 
@@ -32,6 +32,9 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | Item | Sev | Wat | Bewijs |
 |---|---|---|---|
 | AUDIT-70 | HIGH | `app.aidatim.nl` → 503; wachtwoord-reset en Stripe-onboarding linken naar een dood domein | 4/4 × 503, terwijl `aidatim.nl`/`portal`/`ama-stichting` 200 geven |
+| AUDIT-71 | HIGH | Terugboekingen en refunds worden stilzwijgend niet verwerkt — matrix blijft "betaald" | `Invoice.php` heeft geen top-level `payment_intent`; `:967` en `:1129` zoeken alleen daarop |
+| AUDIT-72 | HIGH | Eigen SaaS-omzet wordt nooit vastgelegd | `StripeWebhookController.php:654` |
+| AUDIT-74 | MEDIUM | "Lid toevoegen" loopt via het publieke endpoint → 429 na tien leden | `App.tsx:103` |
 
 **Code follow-ups:**
 
@@ -174,6 +177,28 @@ Op 12 juni 2026 is er een aparte statische security-review gedaan (branch `claud
 
 ---
 
+## 6. Gevonden bij de go-live-toets (2026-08-17)
+
+Bij de beoordeling of het systeem op 1 september live kan, kwamen vier bevindingen boven die in geen enkele eerdere ronde stonden. Alle vier zelf tegen de code geverifieerd.
+
+- ☐ **AUDIT-71 · HIGH · Terugboekingen en refunds worden stilzwijgend niet verwerkt.** In `stripe/stripe-php` ^18.2 bestaat de top-level `Invoice::$payment_intent` niet meer — de enige treffer in `vendor/stripe/stripe-php/lib/Invoice.php` zit genest in `last_finalization_error`. Ledencontributies worden daardoor opgeslagen met `stripe_payment_intent_id = null`. `handleChargeDisputeCreated` (`StripeWebhookController.php:967`) en `handleChargeRefunded` (`:1129`) zoeken de bijbehorende `PaymentTransaction` **uitsluitend** op dat veld, vinden niets, loggen een warning en stoppen.
+
+  **Gevolg:** een storno komt binnen, het systeem verwerkt 'm niet, en de contributiematrix blijft "betaald" tonen. Bij SEPA Core heeft een lid **acht weken onvoorwaardelijk stornorecht** — dit is de normale gang van zaken, geen randgeval. Dit is de enige bekende bug die stilzwijgend de boekhouding van een klant onjuist maakt.
+
+  *Nuance:* het aanmaken van het contributierecord zélf is hier al voor gepatcht — `:775` valt terug op de invoice-ID (`data_get($object, 'payment_intent') ?: null` gevolgd door een lookup op `metadata->stripe_invoice_id`). Alleen de koppeling voor disputes en refunds mist die terugval. → Zoek de transactie via invoice → charge in plaats van via `payment_intent`.
+
+- ☐ **AUDIT-72 · HIGH · De eigen SaaS-omzet wordt niet vastgelegd.** `StripeWebhookController.php:654`: `if ($amountPaid <= 0 || ! $paymentIntentId) { return; }`. Omdat `$paymentIntentId` door dezelfde oorzaak als AUDIT-71 altijd leeg is, slaat deze guard **elke** organisatie-factuur over en wordt er nooit een `PaymentTransaction` van type `saas` aangemaakt. De organisatie gaat wel netjes op `active`, dus er is geen zichtbaar symptoom behalve een lege omzetadministratie. → Zelfde terugval toepassen als op het ledenpad (`:775`).
+
+- ☑ **AUDIT-73 · HIGH · Wachtwoord-reset was onbruikbaar, los van AUDIT-70.** `AuthProvider` omhult in `App.tsx` álle subdomein-routes, inclusief `/reset-password`, `/forgot-password` en `/aanmelden`. Bij mount roept `refreshMe()` `/api/auth/me` aan (`AuthContext.tsx:54`); voor een uitgelogde bezoeker is dat een 401. De axios-interceptor (`axios.ts:203-212`) zondert alleen login/registratie/activatie uit en riep dus `authManager.clearAuth()` aan, en die deed voor elk pad buiten `/portal` een harde `window.location.assign('/login')`.
+
+  **Gevolg:** wie op een wachtwoord-resetlink klikte werd naar `/login` gestuurd vóór hij een nieuw wachtwoord kon kiezen. Dat raakt ook nieuwe org-admins, want die krijgen alléén een resetlink om binnen te komen. Dit stond los van de 503 uit AUDIT-70 — dat domein repareren alléén had de reset niet werkend gemaakt.
+
+  **Opgelost 2026-08-17:** `authManager.ts` kent nu een expliciete `PUBLIC_PATHS`-lijst (login, forgot/reset-password, register-organisation, aanmelden, portal-login/forgot/activate) die nooit redirect. De portal-tak is meteen vereenvoudigd, want `/portal/activate` en `/portal/login` vallen nu onder dezelfde regel. `tsc --noEmit` slaagt. 🔍 **Nog te doen:** end-to-end testen op een echt subdomein na deploy, voor zowel een org_admin als een lid.
+
+- ☐ **AUDIT-74 · MEDIUM · "Lid toevoegen" loopt via het publieke endpoint en botst op de throttle.** `App.tsx:103` routeert `/organisation/members/new` naar `PublicMemberRegistrationPage`, terwijl `OrganisationMemberCreatePage.tsx` volledig bestaat en nergens gebruikt wordt. De beheerder voert zijn ledenbestand dus in via `/api/public/member-registration`, dat onder `throttle:10,1` staat (`routes/api.php:36`) — **na tien leden per minuut volgt een 429 midden in het invoerwerk**. Bovendien loopt de aanmaak dan langs de publieke org-resolutie uit AUDIT-12b in plaats van langs de geauthenticeerde beheerdersroute. → Route koppelen aan `OrganisationMemberCreatePage` binnen een `ProtectedRoute` met `roles={['org_admin']}`.
+
+---
+
 ## Sterke punten (bewust behouden)
 
 Geen `dangerouslySetInnerHTML` (geen web-XSS); alle writes via FormRequests (geen mass-assignment); invitation-tokens sterk (64 chars, single-use, 7 dagen); webhook-signatures verplicht met idempotency; geauthenticeerde tenant-isolatie hield stand (geen IDOR gevonden); `.env` en `google-services.json` correct gitignored; APP_DEBUG default false.
@@ -196,3 +221,5 @@ Zie git-historie; commits verwijzen naar de AUDIT-ID's hierboven. Laatste fix-ro
 | 2026-08-12 | Code-check op 12b, 28, 32, 49, 50, 51 | Alle zes ongewijzigd open (regelverwijzingen per item) |
 | 2026-08-12 | Nieuwe bevindingen | AUDIT-53 (`hasRole` N+1) en AUDIT-54 (hardcoded domein) toegevoegd |
 | 2026-08-12 | Security-review juni 2026 doorgenomen | 10 nooit-vastgelegde bevindingen geverifieerd en opgenomen als AUDIT-60 t/m 69 (sectie 5); branch `claude/code-security-analysis-65bkg1` daarna opgeruimd |
+| 2026-08-16 | Coolify backup-executions | 4 geslaagde runs op rij → AUDIT-35a lokaal gedeelte gesloten |
+| 2026-08-17 | Go-live-toets voor 1 september | AUDIT-71 t/m 74 gevonden (sectie 6); AUDIT-73 meteen opgelost; drie letterlijke wachtwoorden uit dit document verwijderd |
