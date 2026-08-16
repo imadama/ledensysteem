@@ -581,7 +581,7 @@ class StripeWebhookController extends Controller
             );
 
             // Log payment failure event
-            $paymentIntentId = data_get($object, 'payment_intent');
+            $paymentIntentId = $this->resolveInvoicePaymentIntentId($object);
             $amountDue = (int) data_get($object, 'amount_due', 0);
             $currency = strtolower((string) data_get($object, 'currency', 'eur'));
 
@@ -600,24 +600,26 @@ class StripeWebhookController extends Controller
                 ['stripe_event' => $type, 'invoice_id' => data_get($object, 'id')]
             );
 
-            // Update payment transaction if exists
-            if ($paymentIntentId) {
-                $transaction = PaymentTransaction::query()
-                    ->where('stripe_payment_intent_id', $paymentIntentId)
-                    ->first();
+            // Update payment transaction if exists. Zoeken gaat ook op invoice-id, want de
+            // payment intent ontbreekt bij nieuwere API-versies — anders bleef de retry-teller
+            // van een mislukte incasso stilstaan.
+            $transaction = $this->findPaymentTransaction(
+                $paymentIntentId,
+                $this->resolveInvoiceChargeId($object),
+                data_get($object, 'id')
+            );
 
-                if ($transaction) {
-                    $transaction->retry_count = ($transaction->retry_count ?? 0) + 1;
-                    $transaction->last_retry_at = now();
-                    $transaction->failure_reason = data_get($object, 'last_payment_error.message') ?? 'Payment failed';
-                    $transaction->failure_metadata = [
-                        'invoice_id' => data_get($object, 'id'),
-                        'invoice_number' => data_get($object, 'number'),
-                        'stripe_error' => data_get($object, 'last_payment_error'),
-                    ];
-                    $transaction->status = 'failed';
-                    $transaction->save();
-                }
+            if ($transaction) {
+                $transaction->retry_count = ($transaction->retry_count ?? 0) + 1;
+                $transaction->last_retry_at = now();
+                $transaction->failure_reason = data_get($object, 'last_payment_error.message') ?? 'Payment failed';
+                $transaction->failure_metadata = [
+                    'invoice_id' => data_get($object, 'id'),
+                    'invoice_number' => data_get($object, 'number'),
+                    'stripe_error' => data_get($object, 'last_payment_error'),
+                ];
+                $transaction->status = 'failed';
+                $transaction->save();
             }
 
             $note = __('Latest invoice :invoice failed.', ['invoice' => data_get($object, 'number') ?? data_get($object, 'id')]);
@@ -646,25 +648,28 @@ class StripeWebhookController extends Controller
 
         $this->updateOrganisationBillingStatus($subscription, 'ok', null);
 
-        $paymentIntentId = data_get($object, 'payment_intent');
+        $paymentIntentId = $this->resolveInvoicePaymentIntentId($object);
+        $chargeId = $this->resolveInvoiceChargeId($object);
         $invoiceId = data_get($object, 'id');
         $amountPaid = (int) data_get($object, 'amount_paid', 0);
         $currency = strtolower((string) data_get($object, 'currency', config('stripe.default_currency', 'eur')));
 
-        if ($amountPaid <= 0 || ! $paymentIntentId) {
+        // Bewust géén guard op $paymentIntentId: nieuwere Stripe API-versies zetten dat veld
+        // niet meer op de invoice, waardoor hier voorheen élke SaaS-factuur werd overgeslagen
+        // en er nooit omzet werd vastgelegd. Dedupliceren gaat op de invoice-id, die er altijd is.
+        if ($amountPaid <= 0) {
             return;
         }
 
-        $transaction = PaymentTransaction::query()
-            ->where('stripe_payment_intent_id', $paymentIntentId)
-            ->first();
+        $transaction = $this->findPaymentTransaction($paymentIntentId, $chargeId, $invoiceId);
 
         $occurredAt = $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? now();
 
-        $metadata = [
+        $metadata = array_filter([
             'stripe_invoice_id' => $invoiceId,
             'stripe_invoice_number' => data_get($object, 'number'),
-        ];
+            'stripe_charge_id' => $chargeId,
+        ], static fn ($value) => $value !== null);
 
         if (! $transaction) {
             $transaction = PaymentTransaction::create([
@@ -772,7 +777,8 @@ class StripeWebhookController extends Controller
 
         $amountPaid = (int) data_get($object, 'amount_paid', 0);
         // Nieuwe Stripe API versie: payment_intent kan leeg zijn voor SEPA (zit dan in payments resource)
-        $paymentIntentId = data_get($object, 'payment_intent') ?: null;
+        $paymentIntentId = $this->resolveInvoicePaymentIntentId($object);
+        $chargeId = $this->resolveInvoiceChargeId($object);
 
         if ($amountPaid <= 0) {
             return;
@@ -786,20 +792,9 @@ class StripeWebhookController extends Controller
 
         $invoiceId = data_get($object, 'id');
 
-        // Check of er al een transaction bestaat voor deze invoice (op payment_intent of invoice ID)
-        $transaction = null;
-        if ($paymentIntentId) {
-            $transaction = PaymentTransaction::query()
-                ->where('stripe_payment_intent_id', $paymentIntentId)
-                ->first();
-        }
-
-        // Check op invoice ID in metadata om dubbele records te voorkomen
-        if (! $transaction) {
-            $transaction = PaymentTransaction::query()
-                ->whereJsonContains('metadata->stripe_invoice_id', $invoiceId)
-                ->first();
-        }
+        // Zoek een bestaande transactie op payment intent, charge of invoice-id — dat laatste
+        // voorkomt dubbele records bij webhook-retries, ook als de andere twee leeg zijn.
+        $transaction = $this->findPaymentTransaction($paymentIntentId, $chargeId, $invoiceId);
 
         // Als er al een transaction is, check of er al een contribution record is
         if ($transaction) {
@@ -811,12 +806,13 @@ class StripeWebhookController extends Controller
                 // Contribution record bestaat al, update alleen de transaction als nodig
                 $transaction->update([
                     'status' => 'succeeded',
-                    'metadata' => array_merge($transaction->metadata ?? [], [
+                    'metadata' => array_merge($transaction->metadata ?? [], array_filter([
                         'stripe_invoice_id' => $invoiceId,
                         'stripe_invoice_number' => data_get($object, 'number'),
+                        'stripe_charge_id' => $chargeId,
                         'member_subscription_id' => (string) $subscription->id,
                         'member_contribution_id' => (string) $existingContribution->id,
-                    ]),
+                    ], static fn ($value) => $value !== null)),
                     'occurred_at' => $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? $transaction->occurred_at ?? now(),
                 ]);
 
@@ -836,12 +832,16 @@ class StripeWebhookController extends Controller
         // Maak of update payment transaction
         $occurredAt = $this->timestampToDateTime(data_get($object, 'status_transitions.paid_at')) ?? now();
 
-        $metadata = [
+        // stripe_charge_id wordt bewust meegeschreven: een latere terugboeking of refund draagt
+        // wél een charge-id, en dat is bij nieuwere API-versies de enige sleutel waarmee die
+        // gebeurtenis deze transactie nog kan terugvinden.
+        $metadata = array_filter([
             'stripe_invoice_id' => data_get($object, 'id'),
             'stripe_invoice_number' => data_get($object, 'number'),
+            'stripe_charge_id' => $chargeId,
             'member_subscription_id' => (string) $subscription->id,
             'member_contribution_id' => (string) $contribution->id,
-        ];
+        ], static fn ($value) => $value !== null);
 
         if (! $transaction) {
             $transaction = PaymentTransaction::create([
@@ -949,13 +949,134 @@ class StripeWebhookController extends Controller
         }
     }
 
+    /**
+     * Haalt de charge-id uit een invoice-payload.
+     *
+     * Sinds Stripe API 2025-03-31 staat de betaling niet meer als `charge`/`payment_intent`
+     * op de invoice zelf, maar in de genestte `payments`-resource. We proberen beide vormen,
+     * zodat dezelfde code werkt ongeacht de API-versie waarmee de webhook is verstuurd.
+     */
+    private function resolveInvoiceChargeId($object): ?string
+    {
+        $candidates = [
+            data_get($object, 'charge'),
+            data_get($object, 'payments.data.0.payment.charge'),
+            data_get($object, 'payments.data.0.charge'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Haalt de payment-intent-id uit een invoice-payload — zelfde verhaal als hierboven.
+     */
+    private function resolveInvoicePaymentIntentId($object): ?string
+    {
+        $candidates = [
+            data_get($object, 'payment_intent'),
+            data_get($object, 'payments.data.0.payment.payment_intent'),
+            data_get($object, 'payments.data.0.payment_intent'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Zoekt de PaymentTransaction die bij een Stripe-gebeurtenis hoort.
+     *
+     * Zoeken op alleen `stripe_payment_intent_id` is niet betrouwbaar: bij nieuwere
+     * API-versies is dat veld leeg op invoice-events, waardoor contributietransacties met
+     * `null` worden opgeslagen en terugboekingen hun transactie niet terugvinden. We
+     * proberen daarom achtereenvolgens payment intent, charge en invoice — de invoice-id
+     * ligt altijd vast in de metadata.
+     */
+    private function findPaymentTransaction(
+        ?string $paymentIntentId,
+        ?string $chargeId,
+        ?string $invoiceId,
+        bool $lock = false
+    ): ?PaymentTransaction {
+        $lookups = [
+            fn () => $paymentIntentId
+                ? PaymentTransaction::query()->where('stripe_payment_intent_id', $paymentIntentId)
+                : null,
+            fn () => $chargeId
+                ? PaymentTransaction::query()->whereJsonContains('metadata->stripe_charge_id', $chargeId)
+                : null,
+            fn () => $invoiceId
+                ? PaymentTransaction::query()->whereJsonContains('metadata->stripe_invoice_id', $invoiceId)
+                : null,
+        ];
+
+        foreach ($lookups as $buildQuery) {
+            $query = $buildQuery();
+
+            if (! $query) {
+                continue;
+            }
+
+            if ($lock) {
+                $query->lockForUpdate();
+            }
+
+            $transaction = $query->first();
+
+            if ($transaction) {
+                return $transaction;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Legt de identifiers die we bij dit event kennen alsnog vast op de transactie, zodat
+     * een volgende gebeurtenis (terugboeking, refund) 'm wel op de snelste sleutel vindt.
+     */
+    private function backfillTransactionIdentifiers(
+        PaymentTransaction $transaction,
+        ?string $paymentIntentId,
+        ?string $chargeId
+    ): void {
+        $changed = false;
+
+        if ($paymentIntentId && ! $transaction->stripe_payment_intent_id) {
+            $transaction->stripe_payment_intent_id = $paymentIntentId;
+            $changed = true;
+        }
+
+        if ($chargeId && ! data_get($transaction->metadata, 'stripe_charge_id')) {
+            $transaction->metadata = array_merge($transaction->metadata ?? [], [
+                'stripe_charge_id' => $chargeId,
+            ]);
+            $changed = true;
+        }
+
+        if ($changed) {
+            $transaction->save();
+        }
+    }
+
     private function handleChargeDisputeCreated(StripeEventObject $event): void
     {
         $dispute = $event->data->object;
         $paymentIntentId = $dispute->payment_intent ?? null;
+        $chargeId = $dispute->charge ?? null;
 
-        if (! $paymentIntentId) {
-            \Log::warning('Stripe webhook: charge.dispute.created zonder payment_intent', [
+        if (! $paymentIntentId && ! $chargeId) {
+            \Log::warning('Stripe webhook: charge.dispute.created zonder payment_intent en zonder charge', [
                 'dispute_id' => $dispute->id ?? null,
             ]);
 
@@ -963,20 +1084,20 @@ class StripeWebhookController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($dispute, $paymentIntentId): void {
-                $transaction = PaymentTransaction::query()
-                    ->where('stripe_payment_intent_id', $paymentIntentId)
-                    ->lockForUpdate()
-                    ->first();
+            DB::transaction(function () use ($dispute, $paymentIntentId, $chargeId): void {
+                $transaction = $this->findPaymentTransaction($paymentIntentId, $chargeId, null, true);
 
                 if (! $transaction) {
                     \Log::warning('Stripe webhook: charge.dispute.created maar geen transaction gevonden', [
                         'dispute_id' => $dispute->id ?? null,
                         'payment_intent_id' => $paymentIntentId,
+                        'charge_id' => $chargeId,
                     ]);
 
                     return;
                 }
+
+                $this->backfillTransactionIdentifiers($transaction, $paymentIntentId, $chargeId);
 
                 $transaction->status = 'disputed';
                 $transaction->failure_reason = 'Terugboeking ingediend door lid';
@@ -1023,9 +1144,10 @@ class StripeWebhookController extends Controller
     {
         $dispute = $event->data->object;
         $paymentIntentId = $dispute->payment_intent ?? null;
+        $chargeId = $dispute->charge ?? null;
 
-        if (! $paymentIntentId) {
-            \Log::warning('Stripe webhook: charge.dispute.closed zonder payment_intent', [
+        if (! $paymentIntentId && ! $chargeId) {
+            \Log::warning('Stripe webhook: charge.dispute.closed zonder payment_intent en zonder charge', [
                 'dispute_id' => $dispute->id ?? null,
             ]);
 
@@ -1035,16 +1157,14 @@ class StripeWebhookController extends Controller
         $disputeStatus = $dispute->status ?? null;
 
         try {
-            DB::transaction(function () use ($dispute, $paymentIntentId, $disputeStatus): void {
-                $transaction = PaymentTransaction::query()
-                    ->where('stripe_payment_intent_id', $paymentIntentId)
-                    ->lockForUpdate()
-                    ->first();
+            DB::transaction(function () use ($dispute, $paymentIntentId, $chargeId, $disputeStatus): void {
+                $transaction = $this->findPaymentTransaction($paymentIntentId, $chargeId, null, true);
 
                 if (! $transaction) {
                     \Log::warning('Stripe webhook: charge.dispute.closed maar geen transaction gevonden', [
                         'dispute_id' => $dispute->id ?? null,
                         'payment_intent_id' => $paymentIntentId,
+                        'charge_id' => $chargeId,
                     ]);
 
                     return;
@@ -1111,9 +1231,11 @@ class StripeWebhookController extends Controller
     {
         $charge = $event->data->object;
         $paymentIntentId = $charge->payment_intent ?? null;
+        $chargeId = $charge->id ?? null;
+        $invoiceId = is_string($charge->invoice ?? null) ? $charge->invoice : null;
 
-        if (! $paymentIntentId) {
-            \Log::warning('Stripe webhook: charge.refunded zonder payment_intent', [
+        if (! $paymentIntentId && ! $chargeId && ! $invoiceId) {
+            \Log::warning('Stripe webhook: charge.refunded zonder bruikbare identifier', [
                 'charge_id' => $charge->id ?? null,
             ]);
 
@@ -1126,11 +1248,12 @@ class StripeWebhookController extends Controller
             || ($amountCharged > 0 && $amountRefunded >= $amountCharged);
 
         try {
-            DB::transaction(function () use ($charge, $paymentIntentId, $amountRefunded, $fullyRefunded): void {
-                $transaction = PaymentTransaction::query()
-                    ->where('stripe_payment_intent_id', $paymentIntentId)
-                    ->lockForUpdate()
-                    ->first();
+            DB::transaction(function () use ($charge, $paymentIntentId, $chargeId, $invoiceId, $amountRefunded, $fullyRefunded): void {
+                $transaction = $this->findPaymentTransaction($paymentIntentId, $chargeId, $invoiceId, true);
+
+                if ($transaction) {
+                    $this->backfillTransactionIdentifiers($transaction, $paymentIntentId, $chargeId);
+                }
 
                 if (! $transaction) {
                     \Log::warning('Stripe webhook: charge.refunded maar geen transaction gevonden', [

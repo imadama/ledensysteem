@@ -15,7 +15,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## Openstaand — stand 2026-08-12
 
-Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **28 van de 52 items zijn volledig dicht**; hieronder staat wat resteert.
+Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **30 van de 52 items zijn volledig dicht**; hieronder staat wat resteert.
 
 > De tien AUDIT-6x-items komen uit de losse security-review van juni 2026, die nooit in deze audit was verwerkt. Ze zijn op 2026-08-12 geverifieerd en staan alle tien nog open — zie sectie 5.
 
@@ -32,8 +32,6 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | Item | Sev | Wat | Bewijs |
 |---|---|---|---|
 | AUDIT-70 | HIGH | `app.aidatim.nl` → 503; wachtwoord-reset en Stripe-onboarding linken naar een dood domein | 4/4 × 503, terwijl `aidatim.nl`/`portal`/`ama-stichting` 200 geven |
-| AUDIT-71 | HIGH | Terugboekingen en refunds worden stilzwijgend niet verwerkt — matrix blijft "betaald" | `Invoice.php` heeft geen top-level `payment_intent`; `:967` en `:1129` zoeken alleen daarop |
-| AUDIT-72 | HIGH | Eigen SaaS-omzet wordt nooit vastgelegd | `StripeWebhookController.php:654` |
 | AUDIT-74 | MEDIUM | "Lid toevoegen" loopt via het publieke endpoint → 429 na tien leden | `App.tsx:103` |
 
 **Code follow-ups:**
@@ -181,13 +179,24 @@ Op 12 juni 2026 is er een aparte statische security-review gedaan (branch `claud
 
 Bij de beoordeling of het systeem op 1 september live kan, kwamen vier bevindingen boven die in geen enkele eerdere ronde stonden. Alle vier zelf tegen de code geverifieerd.
 
-- ☐ **AUDIT-71 · HIGH · Terugboekingen en refunds worden stilzwijgend niet verwerkt.** In `stripe/stripe-php` ^18.2 bestaat de top-level `Invoice::$payment_intent` niet meer — de enige treffer in `vendor/stripe/stripe-php/lib/Invoice.php` zit genest in `last_finalization_error`. Ledencontributies worden daardoor opgeslagen met `stripe_payment_intent_id = null`. `handleChargeDisputeCreated` (`StripeWebhookController.php:967`) en `handleChargeRefunded` (`:1129`) zoeken de bijbehorende `PaymentTransaction` **uitsluitend** op dat veld, vinden niets, loggen een warning en stoppen.
+- ☑ **AUDIT-71 · HIGH · Terugboekingen en refunds worden stilzwijgend niet verwerkt.** In `stripe/stripe-php` ^18.2 bestaat de top-level `Invoice::$payment_intent` niet meer — de enige treffer in `vendor/stripe/stripe-php/lib/Invoice.php` zit genest in `last_finalization_error`. Ledencontributies worden daardoor opgeslagen met `stripe_payment_intent_id = null`. `handleChargeDisputeCreated` (`StripeWebhookController.php:967`) en `handleChargeRefunded` (`:1129`) zoeken de bijbehorende `PaymentTransaction` **uitsluitend** op dat veld, vinden niets, loggen een warning en stoppen.
 
   **Gevolg:** een storno komt binnen, het systeem verwerkt 'm niet, en de contributiematrix blijft "betaald" tonen. Bij SEPA Core heeft een lid **acht weken onvoorwaardelijk stornorecht** — dit is de normale gang van zaken, geen randgeval. Dit is de enige bekende bug die stilzwijgend de boekhouding van een klant onjuist maakt.
 
-  *Nuance:* het aanmaken van het contributierecord zélf is hier al voor gepatcht — `:775` valt terug op de invoice-ID (`data_get($object, 'payment_intent') ?: null` gevolgd door een lookup op `metadata->stripe_invoice_id`). Alleen de koppeling voor disputes en refunds mist die terugval. → Zoek de transactie via invoice → charge in plaats van via `payment_intent`.
+  *Nuance:* het aanmaken van het contributierecord zélf was hier al voor gepatcht — `:775` viel terug op de invoice-ID. Alleen de koppeling voor disputes en refunds miste die terugval.
 
-- ☐ **AUDIT-72 · HIGH · De eigen SaaS-omzet wordt niet vastgelegd.** `StripeWebhookController.php:654`: `if ($amountPaid <= 0 || ! $paymentIntentId) { return; }`. Omdat `$paymentIntentId` door dezelfde oorzaak als AUDIT-71 altijd leeg is, slaat deze guard **elke** organisatie-factuur over en wordt er nooit een `PaymentTransaction` van type `saas` aangemaakt. De organisatie gaat wel netjes op `active`, dus er is geen zichtbaar symptoom behalve een lege omzetadministratie. → Zelfde terugval toepassen als op het ledenpad (`:775`).
+  **Opgelost 2026-08-17.** Drie hulpmethodes toegevoegd in `StripeWebhookController`:
+  - `resolveInvoicePaymentIntentId()` en `resolveInvoiceChargeId()` lezen de identifiers uit zowel de oude vorm (`payment_intent`/`charge` op de invoice) als de nieuwe (`payments.data.0.payment.*`), zodat de code werkt ongeacht de API-versie waarmee de webhook binnenkomt.
+  - `findPaymentTransaction()` zoekt achtereenvolgens op payment intent → charge → invoice-id. De invoice-id ligt altijd vast in de metadata, dus die laatste sleutel werkt altijd.
+  - `backfillTransactionIdentifiers()` schrijft de identifiers die bij een later event bekend worden alsnog op de transactie.
+
+  De charge-id wordt nu bij het aanmaken vastgelegd in `metadata->stripe_charge_id`, want een dispute draagt wél een `charge` — daarmee is de koppeling rond zonder extra Stripe API-call. Toegepast op `charge.dispute.created`, `charge.dispute.closed`, `charge.refunded` en het mislukte-factuurpad (waar de retry-teller om dezelfde reden stil bleef staan).
+
+  **Gedekt door tests:** `StripeWebhookDisputeLinkageTest` post echte, ondertekende webhook-events. Geverifieerd dat de twee bug-tests falen zónder de fix en slagen mét, terwijl de regressietest (koppelen via payment intent) in beide gevallen slaagt.
+
+- ☑ **AUDIT-72 · HIGH · De eigen SaaS-omzet wordt niet vastgelegd.** `StripeWebhookController.php:654`: `if ($amountPaid <= 0 || ! $paymentIntentId) { return; }`. Omdat `$paymentIntentId` door dezelfde oorzaak als AUDIT-71 altijd leeg is, sloeg deze guard **elke** organisatie-factuur over en werd er nooit een `PaymentTransaction` van type `saas` aangemaakt. De organisatie ging wel netjes op `active`, dus er was geen zichtbaar symptoom behalve een lege omzetadministratie.
+
+  **Opgelost 2026-08-17:** de `! $paymentIntentId`-voorwaarde is uit de guard gehaald; dedupliceren gaat nu via `findPaymentTransaction()` op de invoice-id, die er altijd is. Daardoor blijft de bescherming tegen dubbele records bij webhook-retries intact — die is zelfs steviger dan eerst, want hij hing voorheen aan een veld dat leeg kon zijn.
 
 - ☑ **AUDIT-73 · HIGH · Wachtwoord-reset was onbruikbaar, los van AUDIT-70.** `AuthProvider` omhult in `App.tsx` álle subdomein-routes, inclusief `/reset-password`, `/forgot-password` en `/aanmelden`. Bij mount roept `refreshMe()` `/api/auth/me` aan (`AuthContext.tsx:54`); voor een uitgelogde bezoeker is dat een 401. De axios-interceptor (`axios.ts:203-212`) zondert alleen login/registratie/activatie uit en riep dus `authManager.clearAuth()` aan, en die deed voor elk pad buiten `/portal` een harde `window.location.assign('/login')`.
 
