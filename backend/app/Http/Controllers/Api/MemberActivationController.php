@@ -151,11 +151,16 @@ class MemberActivationController extends Controller
         ]);
     }
 
+    /**
+     * Zoekt de uitnodiging bij het token uit de activatielink. De kolom bevat alleen de
+     * hash (AUDIT-60), dus we hashen het aangeboden token en zoeken daarop — nog steeds
+     * één indexed query.
+     */
     private function findInvitation(string $token): ?MemberInvitation
     {
         return MemberInvitation::query()
             ->with('member.organisation', 'member.user.roles')
-            ->where('token', $token)
+            ->where('token', MemberInvitation::hashToken($token))
             ->first();
     }
 

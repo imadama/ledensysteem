@@ -15,7 +15,7 @@ Legenda status: ☐ open · ☑ gefixt · ⚠️ vereist actie van eigenaar (bui
 
 ## Openstaand — stand 2026-08-12
 
-Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **30 van de 52 items zijn volledig dicht**; hieronder staat wat resteert.
+Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify nagetrokken. **32 van de 56 items zijn volledig dicht**; hieronder staat wat resteert.
 
 > De tien AUDIT-6x-items komen uit de losse security-review van juni 2026, die nooit in deze audit was verwerkt. Ze zijn op 2026-08-12 geverifieerd en staan alle tien nog open — zie sectie 5.
 
@@ -47,8 +47,10 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 | AUDIT-51 | LOW | Healthcheck ontbreekt in `docker-compose.prod.yml`, checkt geen DB | alleen in `docker-compose.coolify.yml:51` |
 | AUDIT-53 | LOW | `hasRole()` query't per aanroep (N+1) | `User.php:92` |
 | AUDIT-54 | LOW | Hardcoded `aidatim.nl` in middleware + frontend-config | `ResolveOrganisationFromSubdomain.php:129`, `config.ts:23` |
-| AUDIT-60 | HIGH | Uitnodigingstokens plaintext in de DB | `MemberAccountService.php:199` |
-| AUDIT-61 | HIGH | IBAN's plaintext in de DB (AVG art. 32) | `Member.php` — geen `encrypted` cast |
+| AUDIT-75 | MEDIUM | Ledenimport cachet IBAN's een uur plaintext — houdt AUDIT-61 open | `MemberImportService.php:77-85` |
+| AUDIT-78 | MEDIUM | `APP_PREVIOUS_KEYS` niet in de prod-boot; sleutelrotatie maakt IBAN's onleesbaar | `backend/docker/entrypoint.sh` |
+| AUDIT-76 | LOW | Activatietoken staat in het URL-pad, dus in access logs | `routes/api.php:29` |
+| AUDIT-77 | LOW | Geen `$hidden` op `Member` / `MemberInvitation` | vangnet ontbreekt |
 | AUDIT-62 | MEDIUM | E-mailwijziging zonder herbevestiging | `SelfServiceController.php:39` |
 | AUDIT-63 | MEDIUM | Volledige IBAN's in API-responses | `MemberController.php:304` |
 | AUDIT-64 | MEDIUM | Geen security headers (alleen `Cache-Control`) | `frontend/docker/nginx.conf:21` |
@@ -164,8 +166,23 @@ Op 12 juni 2026 is er een aparte statische security-review gedaan (branch `claud
 
 **Tien bevindingen waren nog nergens vastgelegd.** Alle tien zijn op 2026-08-12 tegen de huidige `main` geverifieerd en staan nog open. De branch is daarna opgeruimd; dit is de blijvende vastlegging.
 
-- ☐ **AUDIT-60 · HIGH · Uitnodigingstokens staan plaintext in de database.** De tokens zijn sterk (`Str::random(64)`, eenmalig, 7 dagen geldig — `MemberAccountService.php:199`), maar worden onversleuteld opgeslagen in `member_invitations.token`. Bij een DB-lek (gestolen backup, gelekte credentials) zijn álle openstaande activatielinks direct bruikbaar om ledenaccounts over te nemen. → Sla `hash('sha256', $token)` op en vergelijk bij activatie op hash. Bcrypt is niet nodig — het token heeft genoeg entropie, en SHA-256 houdt de lookup-query mogelijk.
-- ☐ **AUDIT-61 · HIGH · IBAN's staan plaintext in de database.** `members.iban` en `members.sepa_subscription_iban` — het `Member`-model heeft geen `encrypted` cast. IBAN's zijn financiële persoonsgegevens (AVG art. 32); bij een lek liggen de bankrekeningnummers van alle leden van alle organisaties op straat. → Twee stappen: (1) `sepa_subscription_iban` is na de Stripe-setup functioneel overbodig — Stripe bewaart het mandaat — dus bewaar daar alleen de laatste vier cijfers of laat de kolom vervallen; (2) zet `'iban' => 'encrypted'` in de casts van `Member`. *Let op: daarna kan er niet meer in SQL op gefilterd worden en wordt `APP_KEY`-rotatie een migratie.*
+- ☑ **AUDIT-60 · HIGH · Uitnodigingstokens staan plaintext in de database.** De tokens zijn sterk (`Str::random(64)`, eenmalig, 7 dagen geldig — `MemberAccountService.php:199`), maar worden onversleuteld opgeslagen in `member_invitations.token`. Bij een DB-lek (gestolen backup, gelekte credentials) zijn álle openstaande activatielinks direct bruikbaar om ledenaccounts over te nemen.
+
+  **Opgelost 2026-08-17.** De kolom bevat nu `hash('sha256', $token)`; het leesbare token bestaat alleen nog in de verstuurde mail. Bcrypt is bewust niet gebruikt — `Str::random(64)` heeft ruim genoeg entropie om brute force uit te sluiten, en SHA-256 houdt de lookup één indexed query.
+  - `MemberInvitation::hashToken()` als enige plek waar de omzetting gebeurt.
+  - `MemberAccountService` genereert het token, slaat de hash op en geeft het leesbare token **als apart argument** door aan de mailable — niet via een tijdelijke property, zodat het ook klopt als de mail later naar de queue gaat.
+  - De uniciteitscheck in `generateUniqueToken()` draait nu op de hash, want dát staat in de kolom.
+  - `MemberActivationController::findInvitation()` hasht het aangeboden token vóór de lookup.
+
+  **Bestaande uitnodigingen blijven werken:** de migratie hasht de aanwezige plaintext-tokens, en omdat de lookup het aangeboden token hasht, blijven al verstuurde activatielinks geldig. Er hoefde dus niemand opnieuw uitgenodigd te worden.
+- ☑/⚠️ **AUDIT-61 · HIGH · IBAN's staan plaintext in de database.** `members.iban` en `members.sepa_subscription_iban` — het `Member`-model heeft geen `encrypted` cast. IBAN's zijn financiële persoonsgegevens (AVG art. 32); bij een lek liggen de bankrekeningnummers van alle leden van alle organisaties op straat. → Twee stappen: (1) `sepa_subscription_iban` is na de Stripe-setup functioneel overbodig — Stripe bewaart het mandaat — dus bewaar daar alleen de laatste vier cijfers of laat de kolom vervallen; (2) zet `'iban' => 'encrypted'` in de casts van `Member`.
+
+  **Opgelost 2026-08-17 — met één restpunt, zie AUDIT-75.**
+  - Beide kolommen staan op `encrypted` in `Member::casts()`. Gecontroleerd dat er **nergens** in SQL op `iban` wordt gefilterd, gezocht of gesorteerd, en dat alle schrijfpaden via Eloquent lopen (`Member::create` / `$member->save()`) — geen `DB::table()->insert()` die de cast omzeilt.
+  - **Kolommen naar `TEXT`.** Gemeten in plaats van geschat: een versleuteld IBAN is **228 tekens** bij lengte 16–31, en **256 tekens** vanaf 32. `ValidIban` accepteert `{11,30}` na de landcode, dus tot 34 tekens — precies de gevallen die met `varchar(255)` en `strict => true` op MySQL-fout 1406 zouden stuklopen. De grens ligt dus bij 32, niet bij elk buitenlands IBAN.
+  - **Validatie op het beheerderspad toegevoegd.** `StoreMemberRequest` en `UpdateMemberRequest` hadden alleen `max:255` en géén `ValidIban` — AUDIT-44 dekte destijds alleen de publieke aanmelding en de SEPA-setup, waardoor het meest gebruikte pad willekeurige tekst als IBAN accepteerde. Nu `max:34` plus `ValidIban`, met dezelfde normalisatie (spaties weg, uppercase) als `SetupSepaSubscriptionRequest`.
+
+  *Gevolgen om te onthouden:* er kan niet meer in SQL op IBAN gefilterd worden — dat gebeurde nergens, maar controleer het vóór je zo'n query toevoegt. En `APP_KEY` is nu data-kritiek: bij rotatie moet de oude sleutel via `APP_PREVIOUS_KEYS` beschikbaar blijven, anders zijn alle IBAN's onleesbaar.
 - ☐ **AUDIT-62 · MEDIUM · E-mailadres wijzigen zonder herbevestiging.** `SelfServiceController.php:39-40` schrijft een nieuw e-mailadres direct weg — geen verificatie van het nieuwe adres, geen notificatie naar het oude. Bij een gekaapte sessie neemt een aanvaller het account permanent over, want de wachtwoord-reset gaat daarna naar het nieuwe adres. → Bevestigingslink naar het nieuwe adres, notificatie naar het oude, wijziging pas doorvoeren na bevestiging.
 - ☐ **AUDIT-63 · MEDIUM · Volledige IBAN's in API-responses.** `MemberController.php:304` geeft het complete IBAN terug in de ledenlijst. `ContributionReportController.php:189-196` maskeert al netjes (`NL12****3456`) — dat patroon hoort overal te gelden, met het volledige IBAN alleen waar het functioneel moet (het bewerkformulier).
 - ☐ **AUDIT-64 · MEDIUM · Geen security headers.** `frontend/docker/nginx.conf` bevat één `add_header`, en dat is een `Cache-Control`. Er is geen `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security` of CSP. Gevolg: clickjacking is mogelijk, en activatie- en reset-tokens die in URLs staan kunnen via de Referer-header naar externe sites lekken. → Begin met de vier simpele headers; CSP daarna apart, want die vereist testen met de Stripe-domeinen.
@@ -209,6 +226,20 @@ Bij de beoordeling of het systeem op 1 september live kan, kwamen vier bevinding
   **Opgelost 2026-08-17:** `authManager.ts` kent nu een expliciete `PUBLIC_PATHS`-lijst (login, forgot/reset-password, register-organisation, aanmelden, portal-login/forgot/activate) die nooit redirect. De portal-tak is meteen vereenvoudigd, want `/portal/activate` en `/portal/login` vallen nu onder dezelfde regel. `tsc --noEmit` slaagt. 🔍 **Nog te doen:** end-to-end testen op een echt subdomein na deploy, voor zowel een org_admin als een lid.
 
 - ☐ **AUDIT-74 · MEDIUM · "Lid toevoegen" loopt via het publieke endpoint en botst op de throttle.** `App.tsx:103` routeert `/organisation/members/new` naar `PublicMemberRegistrationPage`, terwijl `OrganisationMemberCreatePage.tsx` volledig bestaat en nergens gebruikt wordt. De beheerder voert zijn ledenbestand dus in via `/api/public/member-registration`, dat onder `throttle:10,1` staat (`routes/api.php:36`) — **na tien leden per minuut volgt een 429 midden in het invoerwerk**. Bovendien loopt de aanmaak dan langs de publieke org-resolutie uit AUDIT-12b in plaats van langs de geauthenticeerde beheerdersroute. → Route koppelen aan `OrganisationMemberCreatePage` binnen een `ProtectedRoute` met `roles={['org_admin']}`.
+
+---
+
+## 7. Restpunten na de encryptie-ronde (2026-08-17)
+
+- ☐ **AUDIT-75 · MEDIUM · De ledenimport zet IBAN's een uur plaintext in de cache.** `MemberImportService.php:77-85` schrijft de geparseerde rijen — inclusief IBAN — met `Cache::put(..., now()->addHour())` weg, zodat de beheerder de import kan bevestigen. Afhankelijk van `CACHE_STORE` staat dat op schijf, in Redis of in dezelfde MySQL. **Zolang dit bestaat is AUDIT-61 strikt genomen niet dicht:** de kolom is versleuteld, maar bij elke import ligt er een uur lang een leesbare kopie naast. → Versleutel de gecachete payload, of bewaar in de cache alleen een verwijzing en lees de rijen bij bevestiging opnieuw uit het geüploade bestand.
+
+- ☐ **AUDIT-76 · LOW · Het activatietoken staat in het URL-pad.** `routes/api.php:29-30` gebruikt `/api/member-activation/{token}`. Paden belanden in access logs van Traefik/Coolify en in de browserconsole via de axios-logging (AUDIT-65). Nu de tokens gehasht in de database staan, is dít het overgebleven punt waar ze leesbaar passeren. → Token in de request body of een header, of accepteer het risico bewust en beperk de logging.
+
+- ☐ **AUDIT-77 · LOW · Geen `$hidden` op `Member` en `MemberInvitation`.** Vandaag lekt er niets, want de controllers bouwen expliciete arrays (`transformMember`). Maar één toekomstige `->toArray()` of `response()->json($member)` zet het IBAN en de tokenhash zo in een response. → `protected $hidden = ['iban', 'sepa_subscription_iban']` respectievelijk `['token']` als vangnet.
+
+- ☐ **AUDIT-78 · MEDIUM · `APP_PREVIOUS_KEYS` ontbreekt in de productie-boot.** `backend/docker/entrypoint.sh` schrijft die variabele niet naar de `.env`. Sinds de IBAN's versleuteld zijn is `APP_KEY` data-kritiek: roteren zonder de oude sleutel in `APP_PREVIOUS_KEYS` maakt elk IBAN onherstelbaar onleesbaar. → Variabele doorgeven in `entrypoint.sh` en in beide compose-bestanden, vóórdat iemand ooit `key:generate` op productie draait.
+
+**Operationeel bij het uitrollen van de migratie:** zet `worker` en `scheduler` stil tijdens de deploy. Beide gebruiken `depends_on: backend` in `docker-compose.coolify.yml`, en dat wacht niet op de healthcheck — ze draaien dus de nieuwe code mét cast terwijl de backfill nog loopt, en elke job die een `Member` leest krijgt dan een `DecryptException`. Maak vooraf een verse dump en haal die van de server af.
 
 ---
 

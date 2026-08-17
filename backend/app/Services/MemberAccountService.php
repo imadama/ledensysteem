@@ -49,9 +49,13 @@ class MemberAccountService
             $invitation->created_at = Carbon::now();
         }
 
+        // Het token bestaat maar één keer in leesbare vorm: hier, en in de mail die we
+        // hieronder versturen. De database krijgt alleen de hash (AUDIT-60).
+        $plainToken = $this->generateUniqueToken();
+
         $invitation->email = $member->email;
         $invitation->status = 'pending';
-        $invitation->token = $this->generateUniqueToken();
+        $invitation->token = MemberInvitation::hashToken($plainToken);
         $invitation->expires_at = Carbon::now()->addDays(7);
         $invitation->used_at = null;
         $invitation->save();
@@ -60,7 +64,7 @@ class MemberAccountService
 
         $invitationForMail = $invitation->load('member.organisation');
 
-        Mail::to($invitation->email)->send(new MemberInvitationMailable($invitationForMail));
+        Mail::to($invitation->email)->send(new MemberInvitationMailable($invitationForMail, $plainToken));
 
         return $invitation;
     }
@@ -193,11 +197,15 @@ class MemberAccountService
             ->first();
     }
 
+    /**
+     * Levert een nieuw token in leesbare vorm. De uniciteitscheck draait op de hash,
+     * want dát is wat er in de kolom staat.
+     */
     private function generateUniqueToken(): string
     {
         do {
             $token = Str::random(64);
-        } while (MemberInvitation::where('token', $token)->exists());
+        } while (MemberInvitation::where('token', MemberInvitation::hashToken($token))->exists());
 
         return $token;
     }
