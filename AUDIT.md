@@ -23,7 +23,8 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 
 | Item | Wat | Status |
 |---|---|---|
-| AUDIT-00 | Gmail/SMTP-wachtwoord roteren + Stripe keys & webhook-secret rollen | ⚠️ open — niet extern verifieerbaar |
+| AUDIT-00 | Gmail/SMTP-wachtwoord roteren | ☑ gedaan in juli 2026 (opgave eigenaar, 2026-08-17) |
+| AUDIT-00b | Stripe test-keys + webhook-secret rollen | ☐ open — valt samen met de overstap naar live |
 | AUDIT-35a | DB-backups inrichten | ☑/⚠️ dagelijks schema draait aantoonbaar (4 geslaagde runs t/m 2026-08-16) — maar nog **geen off-site kopie** en het herstelpad is nooit getest |
 | AUDIT-35b | Error-monitoring (Sentry) | ⚠️ open — geen Sentry/Bugsnag in `composer.json` of `package.json` |
 
@@ -65,7 +66,10 @@ Alle onderstaande items zijn op 2026-08-12 opnieuw tegen de code, DNS en Coolify
 
 - ⚠️ **AUDIT-00 · CRITICAL · Live credentials in publieke repo.** `DEPLOYMENT.md` bevatte echte SMTP-, DB- (incl. root), Stripe secret- en Stripe **webhook signing**-secrets. Repo is publiek. Alle vier zijn gecompromitteerd.
   - ☑ **Code-actie gedaan:** waarden in `DEPLOYMENT.md` vervangen door placeholders.
-  - ⚠️ **Eigenaar-actie (openstaand — kan ik niet doen):** roteer Gmail/SMTP-wachtwoord `info@aidatim.nl` en roll Stripe API-keys + nieuw webhook-secret. *(git-historie bevat de oude waarden nog — rotatie is de echte remedie.)*
+  - **Bron van het lek:** commit `4ba4796` (2025-11-28) voegde `DEPLOYMENT.md` toe met echte waarden voor `MAIL_PASSWORD`, `MAIL_USERNAME`, `STRIPE_SECRET`, `STRIPE_WEBHOOK_SECRET` en `DB_PASSWORD`. `HEAD` is sinds juli schoon, maar de git-historie bevat ze nog en de repo is publiek — vervangen is dus de enige echte remedie, weghalen uit het bestand niet.
+  - ☑ **Gmail/SMTP-wachtwoord: geroteerd.** Opgegeven door de eigenaar op 2026-08-17: het wachtwoord van `info@aidatim.nl` is in juli 2026 al vervangen. Daarmee is de zwaarste post dicht — die mailbox draagt alle activatie- en resetlinks van het platform.
+  - ☐ **Stripe-sleutels: nog te bevestigen.** `STRIPE_SECRET` en `STRIPE_WEBHOOK_SECRET` uit hetzelfde commit zijn testsleutels, dus er kan geen echt geld mee bewegen. Het gelekte webhook-secret laat wél toe dat iemand geldig ondertekende nepevents naar `/api/stripe/webhook` stuurt en zo contributies als betaald laat markeren. Wordt hoe dan ook opgelost bij de overstap naar live, want daarvoor zijn nieuwe sleutels en een nieuw webhook-endpoint nodig.
+  - ℹ️ **`MAIL_USERNAME`** is `info@aidatim.nl` — geen geheim, geen actie nodig.
   - ℹ️ **MySQL: rotatie NIET urgent.** Geverifieerd in Coolify (2026-07-21): de productie-DB draait al op een sterk, willekeurig Coolify-wachtwoord (user `mysql`, db `default`), NIET de zwakke waarde die in `DEPLOYMENT.md` stond — die was nooit de echte productie-credential. DB is niet publiek (alleen binnen het Coolify-netwerk). Optioneel roteren kan (het echte wachtwoord passeerde 2026-07-21 wel de MCP-context bij verificatie), maar het is lage prioriteit.
 - ☑ **AUDIT-01 · HIGH · Hardcoded persoonlijk wachtwoord** in `FixMemberAccounts.php` — vervangen door `Str::password(16)` (eenmalig getoond); hardcoded persoonlijke default-emails verwijderd. ⚠️ **De letterlijke waarde stond tot 2026-08-17 in dit document en dus in de publieke repo.** Het was een persoonlijk ogend wachtwoord (naam + jaartal). Is het elders hergebruikt — mail, andere diensten — verander het daar dan. De git-historie bevat 'm nog; alleen vervangen op de plekken waar je 'm gebruikt helpt echt.
 
