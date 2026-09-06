@@ -58,6 +58,13 @@ class Member extends Model
             'sepa_subscription_enabled' => 'boolean',
             'sepa_subscription_setup_at' => 'datetime',
             'sepa_consent_at' => 'datetime',
+            // IBAN's zijn financiële persoonsgegevens (AVG art. 32) en worden versleuteld
+            // opgeslagen — AUDIT-61. Let op: hierdoor kan er niet meer in SQL op gefilterd
+            // of gezocht worden. Dat gebeurde nergens; controleer dat vóór je zo'n query
+            // toevoegt. De kolommen zijn TEXT omdat een versleuteld IBAN 228 tekens is, en
+            // 256 bij de ISO-maximumlengte van 34.
+            'iban' => 'encrypted',
+            'sepa_subscription_iban' => 'encrypted',
         ];
     }
 
