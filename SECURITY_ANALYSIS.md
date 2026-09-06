@@ -1,6 +1,6 @@
 # Security-analyse — Aidatim Ledensysteem
 
-**Datum:** 12 juni 2026
+**Datum:** 12 juni 2026 (status bijgewerkt 6 september 2026)
 **Scope:** Volledige codebase — Laravel 11 backend, React frontend, Docker/nginx-configuratie
 **Methode:** Statische code-review (geen penetratietest, geen draaiende omgeving getest)
 
@@ -17,6 +17,34 @@ De belangrijkste risico's zitten in **ontbrekende rate limiting op authenticatie
 | Hoog | 4 |
 | Middel | 8 |
 | Laag | 5 |
+
+---
+
+## Status per 6 september 2026
+
+Sinds de analyse is `main` doorontwikkeld en zijn er fixes doorgevoerd. Stand van zaken per bevinding:
+
+| # | Bevinding | Status |
+|---|---|---|
+| 1 | Rate limiting login | ✅ Opgelost op `main` (`throttle:5,1`, ook op `/auth/token` en `/auth/forgot-password`) |
+| 2 | Rate limiting activatie + publieke registratie | ✅ Opgelost op `main` (`throttle:10,1`) |
+| 3 | Uitnodigingstokens plaintext | ✅ Opgelost in deze branch — SHA-256 hash in DB, migratie voor bestaande tokens, tests in `MemberActivationTest` |
+| 4 | IBAN plaintext | ⏳ Open |
+| 5 | Spoofbare subdomein-header | ⏳ Open |
+| 6 | E-mailwijziging zonder herbevestiging | ⏳ Open |
+| 7 | Webhook-lookups niet org-gescoped | ⏳ Open |
+| 8 | Volledige IBAN in API-responses | ⏳ Open |
+| 9 | Security headers nginx | ✅ Opgelost in deze branch (`frontend/docker/security-headers.conf`); CSP nog niet |
+| 10 | Secure-flag sessiecookie | ✅ Opgelost in deze branch — in productie stond dit al op `true` via `entrypoint.sh`; de config-default is nu ook veilig buiten Docker |
+| 11 | Debug-logging productie-frontend | ✅ Opgelost in deze branch (`import.meta.env.DEV`-guard) |
+| 12 | Stripe-foutmeldingen naar client | ⏳ Open |
+| 13 | Negatieve contributiebedragen | ⏳ Open |
+| 14 | Monitor-route role-middleware | ⏳ Open |
+| 15 | Dev-wachtwoorden docker-compose | ⏳ Open (alleen lokaal) |
+| 16 | Webhook rate limiting | ⏳ Open |
+| 17 | `STRIPE_CONNECT_WEBHOOK_SECRET` in `.env.example` | ✅ Opgelost in deze branch |
+
+Daarnaast is op `main` een centraal wachtwoordbeleid toegevoegd (`Password::min(10)->mixedCase()->numbers()`).
 
 ---
 
@@ -171,14 +199,13 @@ De code (`StripeWebhookController.php:40-42`) en `entrypoint.sh` kennen de varia
 
 ---
 
-## Aanbevolen volgorde van aanpak
+## Aanbevolen volgorde van aanpak (resterend)
 
-1. **Rate limiting** op login, member-activation en publieke registratie (bevindingen 1-2) — kleine wijziging, groot effect.
-2. **Uitnodigingstokens hashen** (3).
-3. **IBAN-opslag versleutelen / saneren** (4) — vóór livegang i.v.m. AVG.
-4. **Security headers** in nginx + `SESSION_SECURE_COOKIE=true` (9-10).
-5. **E-mailwijziging met herbevestiging** (6).
-6. **Webhook-lookups org-scopen** (7) en tenant-context loskoppelen van de client-header (5).
-7. Overige middel/laag-punten meenemen in regulier onderhoud.
+1. **IBAN-opslag versleutelen / saneren** (4) — vóór livegang i.v.m. AVG.
+2. **E-mailwijziging met herbevestiging** (6).
+3. **Webhook-lookups org-scopen** (7) en tenant-context loskoppelen van de client-header (5).
+4. **IBAN maskeren in API-responses** (8).
+5. **Content-Security-Policy** toevoegen aan de nginx-headers (9), na testen met de Stripe-redirects.
+6. Overige middel/laag-punten meenemen in regulier onderhoud.
 
 > **Let op:** dit is een statische code-review. Voor livegang met echte betalingen is aanvullend aan te raden: `composer audit` + `npm audit` in CI, en een externe penetratietest gericht op multi-tenant-isolatie.

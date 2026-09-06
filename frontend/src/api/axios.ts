@@ -2,15 +2,23 @@ import axios from 'axios'
 import { API_BASE_URL, getBaseUrl, getCurrentSubdomain } from './config'
 import { authManager } from '../context/authManager'
 
+// Alleen in development loggen: in productie lekt dit anders de volledige
+// API-structuur, request-headers en responsdata naar de browserconsole.
+const DEBUG = import.meta.env.DEV
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
+  // Sinds axios 1.4 wordt de XSRF-token-header bij CROSS-ORIGIN requests alleen
+  // meegestuurd als withXSRFToken expliciet aan staat. De frontend (aidatim.nl)
+  // en de API (api.aidatim.nl) zijn cross-origin, dus zonder dit blijft de
+  // X-XSRF-TOKEN-header weg en geeft Laravel 419 (CSRF mismatch) op elke POST.
+  withXSRFToken: true,
   xsrfCookieName: 'XSRF-TOKEN',
   xsrfHeaderName: 'X-XSRF-TOKEN',
 })
 
-// Debug: log altijd (ook in productie)
-if (typeof window !== 'undefined') {
+if (DEBUG) {
   console.log('[AXIOS] baseURL:', apiClient.defaults.baseURL)
   console.log('[AXIOS] API_BASE_URL:', API_BASE_URL)
 }
@@ -18,39 +26,38 @@ if (typeof window !== 'undefined') {
 // Helper functie om sanctum endpoints aan te roepen zonder /api prefix
 export const getSanctumCsrfCookie = async (): Promise<void> => {
   let baseUrl = getBaseUrl()
-  
+
   // Zorg dat baseUrl GEEN /api bevat
   if (baseUrl.endsWith('/api')) {
     baseUrl = baseUrl.slice(0, -4)
   } else if (baseUrl.endsWith('/api/')) {
     baseUrl = baseUrl.slice(0, -5)
   }
-  
+
   const fullUrl = `${baseUrl}/sanctum/csrf-cookie`
-  
-  // Debug logging
-  if (typeof window !== 'undefined') {
+
+  if (DEBUG) {
     console.log('[SANCTUM] getBaseUrl():', getBaseUrl())
     console.log('[SANCTUM] baseUrl (processed):', baseUrl)
     console.log('[SANCTUM] Full URL:', fullUrl)
   }
-  
+
   try {
     await axios.get(fullUrl, {
       withCredentials: true,
     })
-    if (typeof window !== 'undefined') {
+    if (DEBUG) {
       console.log('[SANCTUM] ✅ CSRF cookie succesvol opgehaald')
     }
   } catch (error: any) {
-    if (typeof window !== 'undefined') {
+    if (DEBUG) {
       console.error('[SANCTUM] ❌ Fout bij ophalen CSRF cookie:')
       console.error('   URL:', fullUrl)
       console.error('   Error:', error.message)
       console.error('   Code:', error.code)
       console.error('   Status:', error.response?.status)
       console.error('   CORS Issue?', error.code === 'ERR_NETWORK' || error.message.includes('CORS'))
-      
+
       // Check of het een CORS probleem is
       if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
         console.error('   ⚠️ Dit lijkt een CORS of netwerk probleem te zijn')
@@ -72,12 +79,11 @@ apiClient.interceptors.request.use(
       // Gebruik de baseURL van de config of de default
       const baseURL = config.baseURL || apiClient.defaults.baseURL || ''
       const url = config.url
-      
+
       // Bouw de volledige URL
       const fullUrl = baseURL + url
-      
-      // Log altijd voor debugging
-      if (typeof window !== 'undefined') {
+
+      if (DEBUG) {
         console.log('[API REQUEST]', {
           method: config.method?.toUpperCase(),
           baseURL: baseURL,
@@ -87,10 +93,10 @@ apiClient.interceptors.request.use(
           timestamp: new Date().toISOString(),
         })
       }
-      
+
       // Als er dubbele /api/api/ in zit, corrigeer het DIRECT
       if (fullUrl.includes('/api/api/')) {
-        if (typeof window !== 'undefined') {
+        if (DEBUG) {
           console.error('========================================')
           console.error('❌ DUBBELE /api/api/ GEDETECTEERD IN REQUEST!')
           console.error('========================================')
@@ -98,14 +104,14 @@ apiClient.interceptors.request.use(
           console.error('Originele url:', url)
           console.error('Originele fullUrl:', fullUrl)
         }
-        
+
         // Verwijder de dubbele /api/ - vervang alle voorkomens
         const correctedUrl = fullUrl.replace(/\/api\/api\//g, '/api/')
-        
-        if (typeof window !== 'undefined') {
+
+        if (DEBUG) {
           console.warn('✅ Gecorrigeerd naar:', correctedUrl)
         }
-        
+
         // Parse de gecorrigeerde URL en update de config
         try {
           const urlObj = new URL(correctedUrl)
@@ -113,15 +119,15 @@ apiClient.interceptors.request.use(
           config.baseURL = `${urlObj.protocol}//${urlObj.host}`
           // Update url naar alleen het path + query
           config.url = urlObj.pathname + urlObj.search
-          
-          if (typeof window !== 'undefined') {
+
+          if (DEBUG) {
             console.warn('📝 Config bijgewerkt:')
             console.warn('   newBaseURL:', config.baseURL)
             console.warn('   newUrl:', config.url)
             console.error('========================================')
           }
         } catch (e) {
-          if (typeof window !== 'undefined') {
+          if (DEBUG) {
             console.error('❌ Fout bij parsen URL:', e)
             console.error('   Corrected URL:', correctedUrl)
             console.error('========================================')
@@ -132,7 +138,7 @@ apiClient.interceptors.request.use(
     return config
   },
   (error) => {
-    if (typeof window !== 'undefined') {
+    if (DEBUG) {
       console.error('[API REQUEST ERROR] Request interceptor error:', error)
     }
     return Promise.reject(error)
@@ -144,8 +150,7 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
-    // Log succesvolle responses voor debugging
-    if (typeof window !== 'undefined') {
+    if (DEBUG) {
       console.log('[API SUCCESS]', {
         url: response.config.url,
         baseURL: response.config.baseURL,
@@ -162,8 +167,7 @@ apiClient.interceptors.response.use(
     const baseURL = error.config?.baseURL || apiClient.defaults.baseURL
     const fullUrl = baseURL && url ? `${baseURL}${url}` : url
 
-    // Uitgebreide error logging
-    if (typeof window !== 'undefined') {
+    if (DEBUG) {
       console.error('========================================')
       console.error('❌ API ERROR')
       console.error('========================================')
@@ -175,18 +179,18 @@ apiClient.interceptors.response.use(
       console.error('Method:', error.config?.method?.toUpperCase())
       console.error('Error Message:', error.message)
       console.error('Error Code:', error.code)
-      
+
       // Check voor dubbele /api/api/
       if (fullUrl && fullUrl.includes('/api/api/')) {
         console.error('⚠️ PROBLEEM: Dubbele /api/api/ gedetecteerd in error URL!')
         console.error('   Dit betekent dat de interceptor niet heeft gewerkt')
       }
-      
+
       // Response data als beschikbaar
       if (error.response?.data) {
         console.error('Response Data:', error.response.data)
       }
-      
+
       // Request config
       console.error('Request Config:', {
         headers: error.config?.headers,
@@ -227,4 +231,3 @@ apiClient.interceptors.request.use((config) => {
   }
   return config
 })
-
