@@ -155,7 +155,7 @@ class MemberActivationController extends Controller
     {
         return MemberInvitation::query()
             ->with('member.organisation', 'member.user.roles')
-            ->where('token', $token)
+            ->where('token', MemberInvitation::hashToken($token))
             ->first();
     }
 

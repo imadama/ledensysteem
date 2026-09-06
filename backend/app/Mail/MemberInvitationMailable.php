@@ -12,8 +12,13 @@ class MemberInvitationMailable extends Mailable
     use Queueable;
     use SerializesModels;
 
+    /**
+     * @param  string  $plainToken  Ongehashte token voor de activatielink; de
+     *                              invitation zelf bevat alleen de hash.
+     */
     public function __construct(
-        public readonly MemberInvitation $invitation
+        public readonly MemberInvitation $invitation,
+        public readonly string $plainToken,
     ) {
     }
 
@@ -39,7 +44,7 @@ class MemberInvitationMailable extends Mailable
             $portalBase = $frontendUrl;
         }
 
-        $activationUrl = $portalBase.'/portal/activate?token='.urlencode($this->invitation->token);
+        $activationUrl = $portalBase.'/portal/activate?token='.urlencode($this->plainToken);
 
         $subject = __('Uitnodiging voor het ledenportaal van :organisation', [
             'organisation' => $organisation?->name ?? config('app.name', 'Ledenportaal'),
@@ -54,5 +59,3 @@ class MemberInvitationMailable extends Mailable
             ]);
     }
 }
-
-

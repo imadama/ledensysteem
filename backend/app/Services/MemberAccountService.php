@@ -49,9 +49,11 @@ class MemberAccountService
             $invitation->created_at = Carbon::now();
         }
 
+        $plainToken = $this->generatePlainToken();
+
         $invitation->email = $member->email;
         $invitation->status = 'pending';
-        $invitation->token = $this->generateUniqueToken();
+        $invitation->token = MemberInvitation::hashToken($plainToken);
         $invitation->expires_at = Carbon::now()->addDays(7);
         $invitation->used_at = null;
         $invitation->save();
@@ -60,7 +62,7 @@ class MemberAccountService
 
         $invitationForMail = $invitation->load('member.organisation');
 
-        Mail::to($invitation->email)->send(new MemberInvitationMailable($invitationForMail));
+        Mail::to($invitation->email)->send(new MemberInvitationMailable($invitationForMail, $plainToken));
 
         return $invitation;
     }
@@ -193,11 +195,11 @@ class MemberAccountService
             ->first();
     }
 
-    private function generateUniqueToken(): string
+    private function generatePlainToken(): string
     {
         do {
             $token = Str::random(64);
-        } while (MemberInvitation::where('token', $token)->exists());
+        } while (MemberInvitation::where('token', MemberInvitation::hashToken($token))->exists());
 
         return $token;
     }

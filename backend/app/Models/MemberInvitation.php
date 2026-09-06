@@ -23,6 +23,13 @@ class MemberInvitation extends Model
     ];
 
     /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'token',
+    ];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -37,6 +44,13 @@ class MemberInvitation extends Model
     {
         return $this->belongsTo(Member::class);
     }
+
+    /**
+     * De database bevat alleen deze hash; de plaintext token staat uitsluitend
+     * in de activatielink in de e-mail.
+     */
+    public static function hashToken(string $plainToken): string
+    {
+        return hash('sha256', $plainToken);
+    }
 }
-
-
