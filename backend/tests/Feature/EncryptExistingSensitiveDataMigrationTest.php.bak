@@ -1,0 +1,131 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Member;
+use App\Models\MemberInvitation;
+use App\Models\Organisation;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
+
+/**
+ * Dekt de backfill van de migratie 2026_08_17_000000 — het stuk dat bestaande productiedata
+ * aanraakt en dus het meeste risico draagt.
+ *
+ * De reguliere testsuite draait de migratie op een lege database en bewijst daarover niets.
+ * Hier zetten we bewust plaintext in de kolommen, draaien de migratie opnieuw, en controleren
+ * dat bestaande rijen correct worden omgezet — en dat een tweede run niets kapotmaakt.
+ */
+class EncryptExistingSensitiveDataMigrationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Organisation $organisation;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->organisation = Organisation::create([
+            'name' => 'Test Vereniging',
+            'type' => 'vereniging',
+            'contact_email' => 'info@testvereniging.nl',
+            'subdomain' => 'testver',
+            'status' => 'active',
+            'billing_status' => 'ok',
+        ]);
+    }
+
+    public function test_existing_plaintext_rows_are_converted_and_rerunning_is_safe(): void
+    {
+        $member = $this->createMemberWithPlaintext('NL91ABNA0417164300', 'NL91ABNA0417164300');
+        $longMember = $this->createMemberWithPlaintext(str_repeat('A', 34), null);
+        $emptyMember = $this->createMemberWithPlaintext(null, null);
+
+        $plainToken = 'eenbestaandtokenzoalsdatvoordemigratieindedatabasestond000000000';
+        $invitationId = $this->createInvitationWithPlaintextToken($member->id, $plainToken);
+
+        $this->runMigration();
+
+        // IBAN's zijn nu onleesbaar in de kolom, maar komen via het model correct terug.
+        $this->assertStringNotContainsString(
+            'ABNA',
+            (string) DB::table('members')->where('id', $member->id)->value('iban')
+        );
+        $this->assertSame('NL91ABNA0417164300', $member->fresh()->iban);
+        $this->assertSame('NL91ABNA0417164300', $member->fresh()->sepa_subscription_iban);
+        $this->assertSame(str_repeat('A', 34), $longMember->fresh()->iban);
+        $this->assertNull($emptyMember->fresh()->iban);
+
+        // Het bestaande token is gehasht — en de link uit een al verstuurde mail blijft werken,
+        // want de lookup hasht het aangeboden token.
+        $storedToken = (string) DB::table('member_invitations')->where('id', $invitationId)->value('token');
+        $this->assertSame(hash('sha256', $plainToken), $storedToken);
+        $this->assertSame(
+            $invitationId,
+            MemberInvitation::where('token', MemberInvitation::hashToken($plainToken))->value('id')
+        );
+
+        // Tweede run: idempotent. Zonder die eigenschap zou een afgebroken migratie bij een
+        // herstart dubbel versleutelen en de data onherstelbaar maken.
+        $encryptedBefore = DB::table('members')->where('id', $member->id)->value('iban');
+        $this->runMigration();
+
+        $this->assertSame(
+            $encryptedBefore,
+            DB::table('members')->where('id', $member->id)->value('iban'),
+            'Tweede migratierun heeft de waarde opnieuw versleuteld'
+        );
+        $this->assertSame('NL91ABNA0417164300', $member->fresh()->iban);
+        $this->assertSame($storedToken, DB::table('member_invitations')->where('id', $invitationId)->value('token'));
+    }
+
+    private function runMigration(): void
+    {
+        $migration = require database_path(
+            'migrations/2026_08_17_000000_encrypt_member_ibans_and_hash_invitation_tokens.php'
+        );
+
+        $migration->up();
+    }
+
+    /**
+     * Schrijft bewust langs Eloquent heen, zodat de 'encrypted' cast niet meedoet — zo staat
+     * er plaintext in de kolom, precies zoals bij bestaande productierijen.
+     */
+    private function createMemberWithPlaintext(?string $iban, ?string $sepaIban): Member
+    {
+        static $counter = 0;
+        $counter++;
+
+        $member = Member::create([
+            'organisation_id' => $this->organisation->id,
+            'first_name' => 'Test',
+            'last_name' => 'Lid',
+            'email' => "oud{$counter}@testvereniging.nl",
+            'gender' => 'm',
+            'status' => 'active',
+        ]);
+
+        DB::table('members')->where('id', $member->id)->update([
+            'iban' => $iban,
+            'sepa_subscription_iban' => $sepaIban,
+        ]);
+
+        return $member;
+    }
+
+    private function createInvitationWithPlaintextToken(int $memberId, string $plainToken): int
+    {
+        return DB::table('member_invitations')->insertGetId([
+            'member_id' => $memberId,
+            'email' => 'oud@testvereniging.nl',
+            'token' => $plainToken,
+            'status' => 'pending',
+            'expires_at' => now()->addDays(7),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+}

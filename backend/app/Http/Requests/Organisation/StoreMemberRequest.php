@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Organisation;
 
 use App\Http\Requests\Organisation\Concerns\NormalizesMemberDates;
+use App\Rules\ValidIban;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +20,12 @@ class StoreMemberRequest extends FormRequest
             'birth_date',
             'contribution_start_date',
         ]);
+
+        if ($this->filled('iban')) {
+            $this->merge([
+                'iban' => strtoupper(str_replace(' ', '', (string) $this->input('iban'))),
+            ]);
+        }
     }
 
     /**
@@ -47,7 +54,10 @@ class StoreMemberRequest extends FormRequest
             'street_address' => ['nullable', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:50'],
             'city' => ['nullable', 'string', 'max:255'],
-            'iban' => ['nullable', 'string', 'max:255'],
+            // max:34 is de ISO 13616-maximumlengte. Stond op 255, wat betekende dat het
+            // beheerderspad — het pad dat het meest gebruikt wordt — willekeurige tekst als
+            // IBAN accepteerde. AUDIT-44 dekte alleen de publieke aanmelding en de SEPA-setup.
+            'iban' => ['nullable', 'string', 'max:34', new ValidIban],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'contribution_amount' => ['nullable', 'numeric', 'min:0', 'max:9999999.99'],
             'contribution_frequency' => ['nullable', 'string', 'max:255'],
